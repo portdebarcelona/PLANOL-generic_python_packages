@@ -1,0 +1,12 @@
+channels:
+- conda-forge
+- defaults
+- anaconda
+- javascript
+dependencies:
+- nodejs
+- gdal
+- geos
+- pip
+- pip:
+  - --requirement file:requirements.txt
