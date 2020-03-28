@@ -6,7 +6,7 @@
 #  Copyright (c) 2019
 
 import os
-from extra_utils_pckg import misc_utils as utils
+from extra_utils import misc as utils
 
 
 def geojson_to_topojson(geojson_path, dir_topo=None, nom_layer=None, simplify=True, overwrite=True):

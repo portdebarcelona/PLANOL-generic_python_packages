@@ -1,0 +1,31 @@
+version: 1
+
+formatters:
+  debug:
+    format: '%(levelname)s - %(message)s'
+  reports:
+    format: '%(message)s'
+  problems:
+    format: '%(levelname)s | %(asctime)s | %(filename)s.%(funcName)s ==>
+    %(message)s'
+
+handlers:
+  DEBUG:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: debug
+    stream: ext://sys.stdout
+  REPORTS:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: reports
+  PROBLEMS:
+    class: logging.StreamHandler
+    level: WARNING
+    formatter: problems
+
+root:
+  level: DEBUG
+  handlers: [DEBUG, REPORTS, PROBLEMS]
+
+disable_existing_loggers: False

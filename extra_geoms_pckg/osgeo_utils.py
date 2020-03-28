@@ -14,7 +14,7 @@ from osgeo import ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
     ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource
 
-from extra_utils_pckg import misc_utils as utils
+from extra_utils import misc as utils
 
 print_debug = logging.debug
 print_warning = logging.warning
