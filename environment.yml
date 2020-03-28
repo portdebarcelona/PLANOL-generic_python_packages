@@ -4,7 +4,8 @@ channels:
 - anaconda
 - javascript
 dependencies:
-- nodejs
+- nodejs<13
+- geopandas
 - gdal
 - geos
 - pip

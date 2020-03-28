@@ -1,6 +1,6 @@
-rem Instala miniconda client desde el programa de instalación en //apbprogs/wins/scripts/Miniconda3-latest-Windows-x86_64.exe
+rem Instala miniconda client desde el programa de instalación Miniconda3-latest-Windows-x86_64.exe
 rem  ==== CONDA ====
-set DIR_INSTALLER_CONDA=\\apbprogs\wins\scripts
+set "DIR_INSTALLER_CONDA=%~dp0"
 @IF NOT EXIST %DIR_INSTALLER_CONDA% (
     set "DIR_INSTALLER_CONDA=%USERPROFILE%\Downloads"
     SET /p DIR_INSTALLER_CONDA="Enter path directory with conda installer 'Miniconda3-latest-Windows-x86_64.exe' (default=%USERPROFILE%\Downloads): "

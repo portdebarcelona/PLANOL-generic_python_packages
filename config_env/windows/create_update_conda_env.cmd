@@ -22,7 +22,7 @@ call set_conda_base.cmd
 if [%OPER_CONDA%] EQU [create] (
     call conda %OPER_CONDA% --name %CONDA_ENV% python=3.7 -y -c conda-forge
     )
-call conda env update --name=%CONDA_ENV% --file="../conda_env.yml"
+call conda env update --name=%CONDA_ENV% --file="../../environment.yml"
 
 call start_conda_env.cmd
 
