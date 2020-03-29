@@ -16,7 +16,7 @@ def readme():
 
 setup(
     name='extra_utils',
-    version='0.1',
+    version='0.9',
     packages=['extra_utils'],
     url='https://github.com/ernestone/python_packages/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
