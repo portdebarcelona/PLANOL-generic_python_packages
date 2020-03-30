@@ -20,7 +20,7 @@ print_debug = logging.debug
 print_warning = logging.warning
 
 
-def srs_ref_from_epsg_code(code_epsg):
+def srs_ref_from_epsg_code(code_epsg: int) -> osr.SpatialReference:
     """
 
     Args:
@@ -37,12 +37,15 @@ def srs_ref_from_epsg_code(code_epsg):
     return srs
 
 
-def layer_gdal_from_file(path_file, nom_driver='GeoJSON', nom_geom=None, default_srs_epsg_code=4326):
+def layer_gdal_from_file(path_file: str,
+                         nom_driver: str = 'GeoJSON',
+                         nom_geom: str = None,
+                         default_srs_epsg_code: int = 4326):
     """
 
     Args:
-        path_file:
-        nom_driver_gdal (str='GeoJSON'):
+        path_file (str):
+        nom_driver (str='GeoJSON'):
         nom_geom (str=None): si se informa devolverá la layer solo con la geometria especificada
         default_srs_epsg_code (int=4326): codigo del sistema de coordenadas que asignará por defecto si la layer
                                           NO tiene sistema definido
