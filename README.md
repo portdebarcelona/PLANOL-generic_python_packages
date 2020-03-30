@@ -1,2 +1,18 @@
-# python_packages
-Python packages  for different stuff in relation with spatial data, qgis, oracle and other uses
+## Python library for GIS and spatial stuff, plus miscellaneous functionality 
+Python packages developed by the years as requirements for my different projects as GIS developer with QGIS, ESRI, Oracle, Postgis, and other technologies used in this kind of projects with spatial data.
+
+### Package '_extra_utils_'
+Packages and modules to deal with different problems commonly found in typical projects dealing with strings, mails, logging, sql, xml and others.
+
+To install:
+```shell script
+pip install "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=extra_utils_pckg"
+```
+
+### Package '_spatial_utils_'
+Modules to deal with spatial data using common used libraries in this kind of projects like OSGEO GDAL (requires `GDAL` library C), Geopandas, Shapely and Nodejs packages to deal with Topojsons (requires `Nodejs` installed).
+
+To install:
+```shell script
+pip install "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=spatial_utils_pckg"
+```

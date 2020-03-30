@@ -1,13 +1,13 @@
+name: python_packages
 channels:
-- conda-forge
 - defaults
+- conda-forge
 - anaconda
 - javascript
 dependencies:
+- python<3.8
 - nodejs<13
-- geopandas
 - gdal
-- geos
 - pip
 - pip:
   - --requirement file:requirements.txt
