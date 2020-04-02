@@ -6,7 +6,7 @@ Packages and modules to deal with different problems commonly found in typical p
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=extra_utils_pckg"
+pip install "git+https://github.com/ernestone/python_packages#egg=extra_utils_pckg&subdirectory=extra_utils_pckg"
 ```
 
 ### Package '_spatial_utils_'
@@ -14,5 +14,5 @@ Modules to deal with spatial data using common used libraries in this kind of pr
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=spatial_utils_pckg"
+pip install "git+https://github.com/ernestone/python_packages#egg=spatial_utils_pckg&subdirectory=spatial_utils_pckg"
 ```

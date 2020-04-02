@@ -313,7 +313,8 @@ def jaro_winkler(search_val, matching_vals):
     matchings = {jellyfish.jaro_winkler(search_val, match_val): match_val
                  for match_val in matching_vals}
     for fact in sorted(matchings, reverse=True):
-        ord_vals[fact] = matchings[fact]
+        if fact != 0:
+            ord_vals[fact] = matchings[fact]
 
     return ord_vals
 
