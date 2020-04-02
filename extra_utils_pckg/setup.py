@@ -6,7 +6,7 @@
 #   Last modified: 29/01/2020, 19:16
 #   Copyright (c) 2020
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def readme():
@@ -17,7 +17,7 @@ def readme():
 setup(
     name='extra_utils',
     version='0.9',
-    packages=['extra_utils'],
+    packages=find_packages(),
     url='https://github.com/ernestone/python_packages/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
     author_email='ernestone@gmail.com',
@@ -38,5 +38,9 @@ setup(
         'pyyaml',
         'sqlparse==0.2.4'
     ],
-    python_requires='<3.8'
+    python_requires='<3.8',
+    package_data={
+        # If any package contains *.txt, *.md or *.yml files, include them:
+        "": ["*.txt", "*.md", "*.yml"]
+    }
 )
