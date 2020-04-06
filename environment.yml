@@ -8,6 +8,10 @@ dependencies:
 - python<3.8
 - nodejs<13
 - gdal
+- geopandas
 - pip
 - pip:
-  - --requirement file:requirements.txt
+  - --editable extra_utils_pckg
+  - --editable spatial_utils_pckg
+  - --editable cx_ora_spatial_pckg
+  # - --requirement file:requirements.txt

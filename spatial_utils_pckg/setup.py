@@ -30,13 +30,9 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'numpy',
-        'pandas>=0.23.4',
         'shapely',
-        'fiona',
         'pyproj',
-        'geopandas'
-        'fire',
+        'geopandas',
         'extra_utils'
     ],
     python_requires='<3.8'

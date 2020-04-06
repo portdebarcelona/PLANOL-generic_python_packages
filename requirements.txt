@@ -6,9 +6,8 @@ lxml
 pyparsing<2.4
 sqlparse==0.2.4
 pyyaml
-PyPDF2
 geos
 shapely
 pyproj
-fiona
+pandas
 geopandas
