@@ -7,9 +7,9 @@ channels:
 dependencies:
 - python<3.8
 - nodejs<13
-- gdal
-- geopandas
-- pip
+- conda-forge::gdal>3
+- conda-forge::geopandas
+- pip>3
 - pip:
   - --editable extra_utils_pckg
   - --editable spatial_utils_pckg
