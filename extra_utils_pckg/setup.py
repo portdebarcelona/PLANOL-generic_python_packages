@@ -36,7 +36,10 @@ setup(
         'Pillow',
         'jellyfish',
         'pyyaml',
-        'sqlparse==0.2.4'
+        'sqlparse==0.2.4',
+        'openpyxl',
+        'psycopg2',
+        'sqlalchemy'
     ],
     python_requires='<3.8',
     package_data={
