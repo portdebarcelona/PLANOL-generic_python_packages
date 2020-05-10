@@ -1,0 +1,3 @@
+--editable extra_utils_pckg
+--editable spatial_utils_pckg
+--editable cx_ora_spatial_pckg

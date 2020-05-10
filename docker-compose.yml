@@ -1,0 +1,33 @@
+version: '3'
+
+services:
+  db_pg_pyckg:
+    image: kartoza/postgis
+    container_name: postgis
+    env_file:
+      - ./docker_settings/postgis.env
+    ports:
+      - 25432:5432
+    volumes:
+      - db_postgis_vol:/var/lib/postgresql
+  db_ora_pyckg:
+    image: oracleinanutshell/oracle-xe-11g:latest
+    container_name: oracle_xe
+    volumes:
+      - oracle_xe-vol:/u01/app/oracle
+    ports:
+      - 49161:1521
+  python_packages:
+    container_name: conda_python_packages
+    build: .
+    volumes:
+      - .:/project
+    depends_on:
+      - db_ora_pyckg
+      - db_pg_pyckg
+
+volumes: 
+  oracle_xe-vol:
+    external: True
+  db_postgis_vol:
+    external: True
