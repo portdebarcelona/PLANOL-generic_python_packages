@@ -34,7 +34,7 @@ setup(
         'extra_utils',
         'spatial_utils'
     ],
-    python_requires='<3.8',
+    python_requires='>=3.7',
     package_data={
         # If any package contains *.txt, *.md or *.yml files, include them:
         "": ["*.txt", "*.md", "*.yml"]

@@ -1011,7 +1011,7 @@ class gestor_oracle(object):
 
     __slots__ = 'nom_con_db', 'con_db', 'psw_con_db', 'logger'
 
-    def __init__(self, user_ora, psw_ora, ds_ora, a_logger=None):
+    def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None):
         """
         Inicializa gestor de Oracle para una conexion cx_Oracle a Oracle
         Se puede pasar por parametro un logger o inicializar por defecto
@@ -1019,12 +1019,13 @@ class gestor_oracle(object):
         Args:
             user_ora {str}: Usuario/schema Oracle
             psw_ora {str}: Password usuario
-            ds_ora {str}: Nombre instancia/datasource de Oracle
+            dsn_ora {str}: DSN Oracle (Nombre instancia/datasource de Oracle
+                    según TSN o string tal cual devuelve cx_Oracle.makedsn())
             a_logger:
         """
         self.logger = a_logger
         self.__set_logger()
-        self.__set_conexion(user_ora, psw_ora, ds_ora)
+        self.__set_conexion(user_ora, psw_ora, dsn_ora)
 
     def __del__(self):
         """
@@ -1125,7 +1126,7 @@ class gestor_oracle(object):
         self.logger.exception(msg)
 
     @print_to_log_exception(lanzar_exc=True)
-    def __set_conexion(self, user_ora, psw_ora, ds_ora):
+    def __set_conexion(self, user_ora, psw_ora, dsn_ora):
         """
         Añade conexion Oracle al gestor a partir de nombre de usuario/schema (user_ora), contraseña (psw_ora) y
         nombre datasource de la bbdd según tns_names (ds_ora).
@@ -1135,12 +1136,12 @@ class gestor_oracle(object):
         Args:
             user_ora {str}: Usuario/schema Oracle
             psw_ora {str}: Password usuario
-            ds_ora {str}: Nombre instancia/datasource de Oracle
+            dsn_ora {str}: DSN Oracle (Nombre instancia/datasource de Oracle según TSN o string tal cual devuelve cx_Oracle.makedsn())
 
         """
-        nom_con = "@".join((user_ora.upper(), ds_ora.upper()))
+        nom_con = "@".join((user_ora.upper(), dsn_ora.upper()))
         self.nom_con_db = nom_con
-        self.con_db = cx_Oracle.Connection(user_ora, psw_ora, ds_ora, encoding="UTF-8", nencoding="UTF-8")
+        self.con_db = cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
         self.psw_con_db = psw_ora
 
     @print_to_log_exception(cx_Oracle.DatabaseError)
