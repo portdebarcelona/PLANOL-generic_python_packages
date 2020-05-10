@@ -3,7 +3,7 @@
 #  Author: Ernesto Arredondo Martinez (ernestone@gmail.com)
 #  Created: 31/03/2019
 #  Copyright (c)
-from ..utils_logging import get_file_logger
+from extra_utils.utils_logging import get_file_logger
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
 from sqlalchemy import MetaData, Table, text

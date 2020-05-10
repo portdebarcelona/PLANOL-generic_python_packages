@@ -11,6 +11,7 @@ import datetime
 import logging
 import logging.config
 import os
+from pathlib import Path
 import tempfile
 from operator import attrgetter
 
@@ -149,7 +150,7 @@ def logs_dir(create=False):
         logs_dir = None
 
     if not logs_dir or not misc.is_dir_writable(logs_dir):
-        dir_base_logs = os.path.normpath(os.getenv("USERPROFILE"))
+        dir_base_logs = os.path.normpath(os.getenv("USERPROFILE", Path.home()))
 
         if not misc.is_path_exists_or_creatable(dir_base_logs):
             dir_base_logs = tempfile.gettempdir()

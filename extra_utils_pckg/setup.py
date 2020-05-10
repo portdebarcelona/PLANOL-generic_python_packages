@@ -31,17 +31,17 @@ setup(
     ],
     install_requires=[
         'pyparsing<2.4',
-        'docutils-python3==0.13',
+        'docutils==0.16',
         'fire',
         'Pillow',
         'jellyfish',
         'pyyaml',
         'sqlparse==0.2.4',
         'openpyxl',
-        'psycopg2',
+        'psycopg2-binary',
         'sqlalchemy'
     ],
-    python_requires='<3.8',
+    python_requires='>=3.7',
     package_data={
         # If any package contains *.txt, *.md or *.yml files, include them:
         "": ["*.txt", "*.md", "*.yml"]
