@@ -216,10 +216,8 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
 
     opt_list = {k.upper(): v.upper() for k, v in extra_opt_list.items()}
 
-    if not "FID" in opt_list and drvr_name and drvr_name.upper() == 'GPKG':
+    if not "FID" in opt_list and drvr.name == 'GPKG':
         opt_list["FID"] = 'FID=FID_GPKG'
-
-    opt_list["SPATIAL_INDEX"] = 'SPATIAL_INDEX=YES'
 
     if drvr.name == "GeoJSON":
         if "WRITE_BBOX" not in opt_list:
@@ -237,6 +235,10 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
         for n_opt in keys_opt_list:
             if list_opts_drvr.find(n_opt) < 0:
                 opt_list.pop(n_opt)
+
+        if "SPATIAL_INDEX" not in opt_list and \
+                list_opts_drvr.find("SPATIAL_INDEX") >= 0 and drvr.name != 'PostgreSQL':
+            opt_list["SPATIAL_INDEX"] = 'SPATIAL_INDEX=YES'
 
     return opt_list
 
@@ -468,8 +470,9 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
     i = 0
     for feat_src, geom_src, nt_src in feats_layer_gdal(layer_src, nom_geom):
+        cols_out_chk = [col.upper() for col in cols_out.union(geoms_out)]
         vals_camps = {nc: val for nc, val in nt_src._asdict().items()
-                      if nc.upper() in cols_out.union(geoms_out)}
+                      if nc.upper() in cols_out_chk}
         if null_geoms or not geom_field_out or geom_src:
             if nom_geom and nom_geom.upper() not in vals_camps:
                 vals_camps[nom_geom.upper()] = geom_src
@@ -1033,6 +1036,25 @@ def transform_ogr_geom(a_ogr_geom, from_espg_code, to_epsg_code):
     a_ogr_geom.Transform(a_transform)
 
     return a_ogr_geom
+
+
+def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres'):
+    """
+    Retorna datasource GDAL para ddbb postgis
+
+    Args:
+        dbname:
+        host:
+        port:
+        user:
+        password:
+
+    Returns:
+        osgeo.ogr.DataSource
+    """
+    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}'"
+    drvr, exts = driver_gdal('PostgreSQL')
+    return drvr.Open(pg_conn)
 
 
 if __name__ == '__main__':
