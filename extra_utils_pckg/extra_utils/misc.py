@@ -615,6 +615,21 @@ def month_name(num_month, code_alias_locale="es_cu"):
         return pretty_text(calendar.month_name[num_month])
 
 
+def file_mod_time(path_file):
+    """
+    Return datetime from mofification stat timestamp from file
+
+    Args:
+        path_file (str):
+
+    Returns:
+        datetime
+    """
+    f_mod_time = datetime.datetime.fromtimestamp(os.stat(path_file).st_mtime)
+
+    return f_mod_time
+
+
 def rows_csv(a_path_csv, header=True, sep=';', encoding="utf8"):
     """
     Itera como namedtuples indexado por valores primera fila (si header=True, si no num. columna) las filas del CSV pasado por parametro a_path_csv
