@@ -14,6 +14,7 @@ import errno
 import inspect
 import locale
 import os
+import re
 import subprocess
 import sys
 from calendar import different_locale
@@ -21,7 +22,6 @@ from collections import OrderedDict, namedtuple
 from math import isnan
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
-
 import jellyfish
 
 
@@ -468,21 +468,58 @@ def pretty_text(txt):
     return txt.replace("_", " ").replace("-", " ").capitalize()
 
 
-def zip_files(zip_path, *file_paths):
+def zip_files(zip_path, file_paths, base_path=None, compression=ZIP_DEFLATED):
     """
     Comprime los ficheros indicados con :file_paths en un fichero zip (:zip_path)
 
     Args:
         zip_path:
-        *file_paths:
+        file_paths (list or generator):
+        base_path (srt=None): path desde el que se mantiene la ruta relativa de los ficheros se mantendra
+        compression (int=ZIP_DEFLATED): 0 (ZIP_STORED) si no se quiere comprimir
+
     Returns:
         zip_path (str)
     """
-    with ZipFile(zip_path, "w", compression=ZIP_DEFLATED, allowZip64=True) as my_zip:
+    with ZipFile(zip_path, "w", compression=compression, allowZip64=True) as my_zip:
         for file_path in file_paths:
-            my_zip.write(file_path, arcname=os.path.basename(file_path))
+            if base_path:
+                re_base_path = re.compile(os.path.normpath(base_path), re.IGNORECASE)
+                arch_name = re_base_path.sub('', os.path.normpath(file_path))
+            else:
+                arch_name = os.path.basename(file_path)
+
+            my_zip.write(file_path, arcname=arch_name)
 
     return zip_path
+
+
+def zip_dir(dir_path, zip_path=None, relative_dirs_sel=None, func_filter_path=None, compression=ZIP_DEFLATED):
+    """
+    Comprime la carpeta indicada
+
+    Args:
+        dir_path (str): path directorio
+        zip_path (str=None): el path del fichero .zip a crear. Por defecto zip en el directorio padre con el mismo
+                            nombre del directorio zipeado
+        relative_dirs_sel (list=None): lista de paths relativos de directorios que se trataran
+        func_filter_path (func=None): Func que validará si el nom del path és valid o no per retornar
+        compression (int=ZIP_DEFLATED): 0 (ZIP_STORED) si no se quiere comprimir
+
+    Returns:
+        zip_file (str)
+    """
+    if not zip_path:
+        zip_path = f'{dir_path}.zip'
+
+    zip_file = zip_files(zip_path,
+                         iter_paths_dir(dir_path,
+                                        relative_dirs_sel=relative_dirs_sel,
+                                        func_filter_path=func_filter_path),
+                         base_path=dir_path,
+                         compression=compression)
+
+    return zip_file
 
 
 def zip_files_dir(dir_path, remove_files=False, *exts_files):
@@ -502,7 +539,7 @@ def zip_files_dir(dir_path, remove_files=False, *exts_files):
                                 for de in os.scandir(dir_path)):
         if not exts or (os.extsep in file_path and os.path.splitext(file_path)[1].lower() in exts):
             print("Comprimiendo fichero '{}' en el zip '{}'".format(file_path, zip_path))
-            zip_files(zip_path, file_path)
+            zip_files(zip_path, [file_path])
 
             if remove_files and not os.path.samefile(zip_path, file_path):
                 os.remove(file_path)
