@@ -632,7 +632,8 @@ def file_mod_time(path_file):
 
 def rows_csv(a_path_csv, header=True, sep=';', encoding="utf8"):
     """
-    Itera como namedtuples indexado por valores primera fila (si header=True, si no num. columna) las filas del CSV pasado por parametro a_path_csv
+    Itera como dicts indexados por valores primera fila (si header=True) o si no como list
+    las filas del CSV pasado por parametro a_path_csv.
 
     Args:
         a_path_csv (str):
@@ -640,24 +641,195 @@ def rows_csv(a_path_csv, header=True, sep=';', encoding="utf8"):
         sep (str=';'): por defecto cogerá el separador que por defecto usa csv.reader
         encoding (str="utf8"):
     Yields:
-        dict OR list
+        list OR dict
     """
     with open(a_path_csv, encoding=encoding) as a_file:
-        csv_rdr=csv.reader(a_file, delimiter=sep)
-        nt_row = None
+        csv_rdr = csv.reader(a_file, delimiter=sep if sep else ';')
+        header_row = None
         for row in csv_rdr:
-            if not nt_row:
-                if header:
-                    nt_row = namedtuple("row_csv",
-                                        [v.replace(" ", "_").upper() for v in row])
-                    continue
-                else:
-                    nt_row = namedtuple("row_csv",
-                                        ["C{}".format(c) for c in range(1, len(row) + 1)])
+            if header and not header_row:
+                header_row = [v.strip().lower() for v in row]
+                continue
 
-            yield nt_row(*row)
+            if header_row:
+                vals_row = dict(zip(header_row, row))
+            else:
+                vals_row = row
+
+            if vals_row:
+                yield vals_row
+
+
+def subdirs_path(path):
+    """
+    Itera sobre los subdirectorios del path
+    Args:
+        path:
+
+    Yields:
+        nom_subdir, path_subdir
+    """
+    with os.scandir(path) as it:
+        for entry in it:
+            if entry.is_dir():
+                yield entry.name, entry.path
+
+
+def tree_subdirs(path_dir_base, relative_dirs_sel=None, last_level_as_list=False):
+    """
+
+    Args:
+        path_dir_base:
+        relative_dirs_sel (list=None): lista de paths relativos de directorios que se trataran
+        last_level_as_list (bool=False):
+
+    Returns:
+        dict
+    """
+    tree = {}
+
+    f_valid_dir = None
+    valid_dirs_sel = set()
+    if relative_dirs_sel:
+        for dir_sel in relative_dirs_sel:
+            path_dir_rel = os.path.join(path_dir_base, dir_sel)
+            if os.path.exists(path_dir_rel):
+                valid_dirs_sel.add(os.path.normpath(os.path.relpath(path_dir_rel, path_dir_base)).lower())
+
+        def valid_dir(dir_path):
+            valid = False
+            rel_path = os.path.relpath(dir_path, path_dir_base).lower()
+            for dir_sel in valid_dirs_sel:
+                if rel_path == dir_sel or os.path.commonpath((rel_path, dir_sel)):
+                    valid = True
+                    break
+
+            return valid
+
+        f_valid_dir = valid_dir
+
+    for dir_name, dir_path in subdirs_path(path_dir_base):
+        if not f_valid_dir or f_valid_dir(dir_path):
+            dir_path_rel = os.path.relpath(dir_path, path_dir_base).lower()
+            dirs_sel_path = [os.path.relpath(dir_sel, dir_path_rel) for dir_sel in valid_dirs_sel
+                             if os.path.commonpath((dir_path_rel, dir_sel))]
+            tree[dir_name] = tree_subdirs(dir_path, dirs_sel_path)
+
+    if tree:
+        if last_level_as_list and not any(tree.values()):
+            tree = [*tree.keys()]
+
+    return tree
+
+
+def tree_paths(path_dir_base, relative_dirs_sel=None, func_filter_path=None, solo_dirs=False):
+    """
+    Retorna diccionario con el arbol de paths disponibles en el path indicado.
+
+    Con la función F_VALID (-> bool) se podrà filtrar los paths a retornar (por defecto siempre True)
+
+    Args:
+        path_dir_base (str):
+        relative_dirs_sel (list=None): lista de paths relativos de directorios que se trataran
+        func_filter_path (func=None): Func que validará si el nom del path és valid o no per retornar
+        solo_dirs (bool=False):
+
+    Returns:
+        dict
+    """
+    paths = dict()
+
+    valid_dirs_sel = set()
+    if relative_dirs_sel:
+        for dir_sel in relative_dirs_sel:
+            path_dir_rel = os.path.join(path_dir_base, dir_sel)
+            if os.path.exists(path_dir_rel):
+                valid_dirs_sel.add(path_dir_rel)
+
+    for dir_path, dir_names, file_names in os.walk(path_dir_base):
+        if valid_dirs_sel and not any(
+                os.path.samefile(dir_path, a_dir_sel) or is_path_child_from(dir_path, a_dir_sel)
+                for a_dir_sel in valid_dirs_sel):
+            continue
+
+        dir_path = os.path.relpath(dir_path, path_dir_base)
+        dir_name = os.path.basename(dir_path)
+
+        if func_filter_path and not func_filter_path(dir_name):
+            continue
+
+        files_selected = {fn: None for fn in file_names
+                          if not func_filter_path or func_filter_path(fn)}
+
+        if files_selected:
+            subdir_paths = paths
+            # En el caso del primer nivel no se guarda name directorio
+            if dir_path != '.':
+                for d in dir_path.split(os.path.sep):
+                    if d not in subdir_paths:
+                        subdir_paths[d] = dict()
+                    subdir_paths = subdir_paths[d]
+
+            if not solo_dirs:
+                subdir_paths.update(files_selected)
+
+    return paths
+
+
+def iter_tree_paths(tree_paths, path_base=None):
+    """
+
+    Args:
+        tree_paths (dict):
+        path_base (str=None):
+
+    Yields:
+        path_file
+    """
+    for path, sub_tree in tree_paths.items():
+        if sub_tree and isinstance(sub_tree, dict):
+            for sub_path in iter_tree_paths(sub_tree, path):
+                yield os.path.join(path_base, sub_path) if path_base else sub_path
+        else:
+            yield os.path.join(path_base, path) if path_base else path
+
+
+def iter_paths_dir(path_dir_base, relative_dirs_sel=None, func_filter_path=None):
+    """
+    Itera el arbol de paths disponibles en el path indicado.
+
+    Con la función F_VALID (-> bool) se podrà filtrar los paths a retornar (por defecto siempre True)
+
+    Args:
+        path_dir_base (str):
+        relative_dirs_sel (list=None): lista de paths relativos de directorios que se trataran
+        func_filter_path (func=None): Func que validará si el nom del path és valid o no per retornar
+
+    Yields:
+        path (str)
+    """
+    for path in iter_tree_paths(tree_paths(path_dir_base, relative_dirs_sel, func_filter_path), path_dir_base):
+        yield path
+
+
+def is_path_child_from(path, path_parent):
+    """
+    Retorna si path es hijo de path_parent
+
+    Args:
+        path:
+        path_parent:
+
+    Returns:
+        bool
+    """
+    p_path = Path(path)
+    p_path_parent = Path(path_parent)
+
+    return any(p.samefile(p_path_parent) for p in p_path.parents)
 
 
 if __name__ == '__main__':
     import fire
+
     fire.Fire()
