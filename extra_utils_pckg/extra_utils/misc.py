@@ -18,6 +18,8 @@ import subprocess
 import sys
 from calendar import different_locale
 from collections import OrderedDict, namedtuple
+from math import isnan
+from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import jellyfish
@@ -375,6 +377,83 @@ def as_format_floats(obj):
     elif isinstance(obj, (list, tuple)):
         return obj.__class__(as_format_floats(v) for v in obj)
     return obj
+
+
+def nums_from_str(a_string, nan=False):
+    """
+    Retorna lista de numeros en el texto pasado
+
+    Args:
+        a_string (str):
+        nan (bool=FAlse): por defecto no trata los NaN como numeros
+
+    Returns:
+        list
+    """
+    l_nums = []
+
+    for s in a_string.strip().split():
+        try:
+            l_nums.append(int(s))
+        except ValueError:
+            try:
+                fl = float(s)
+                if nan or not isnan(fl):
+                    l_nums.append(fl)
+            except ValueError:
+                pass
+
+    return l_nums
+
+
+def first_num_from_str(a_string, nan=False):
+    """
+    Retorna primer numero encontrado del texto pasado
+
+    Args:
+        a_string (str):
+        nan (bool=FAlse): por defecto no trata los NaN como numeros
+
+    Returns:
+        int OR float
+    """
+    return next(iter(nums_from_str(a_string, nan=nan)), None)
+
+
+def dates_from_str(str, formats=None, seps=None, ret_extra_data=False):
+    """
+    Retorna dict de fechas disponibles con el texto pasado segun formatos indicados
+
+    Args:
+        str (str):
+        formats (list=None): por defecto ['%Y%m%d', '%Y/%m/%d', '%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d']
+        seps (list=None): por defecto [None, '.', ',']
+        ret_extra_data (bool=False): si True retorna tuple con fecha + part_str_src + format utilizado
+
+    Returns:
+        list
+    """
+    l_fechas = list()
+
+    if not formats:
+        formats = ['%Y%m%d', '%Y/%m/%d', '%d/%m/%Y', '%d-%m-%Y', '%Y-%m-%d']
+
+    if not seps:
+        seps = [None, '.', ',']
+
+    str_parts = [s.strip() for sep in seps for s in str.split(sep)]
+
+    for format in formats:
+        for str_part in str_parts:
+            try:
+                val = datetime.datetime.strptime(str_part, format)
+                if ret_extra_data:
+                    val = (val, str_part, format)
+                l_fechas.append(val)
+            except Exception:
+                pass
+
+    return l_fechas
 
 
 def pretty_text(txt):
