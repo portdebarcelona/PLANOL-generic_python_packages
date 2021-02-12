@@ -1781,6 +1781,12 @@ class gestor_oracle(object):
         if tips_geom_tab:
             return tips_geom_tab.get(nom_camp_geom.upper())
 
+    def get_epsg_for_srid(self, srid):
+        """
+        Rertorna WKT con la definicion del SRID dado
+        """
+        return self.callfunc_sql('SDO_CS.MAP_ORACLE_SRID_TO_EPSG', cx_Oracle.NUMBER, srid)
+
     def get_gtype_camp_geom(self, nom_tab_or_view, nom_camp_geom):
         """
         Retorna el tipo GTYPE (int) de la geometria
