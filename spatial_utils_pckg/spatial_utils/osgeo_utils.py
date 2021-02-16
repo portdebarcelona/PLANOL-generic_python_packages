@@ -13,6 +13,7 @@ import math
 from osgeo import ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
     ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource
+from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
 
 from extra_utils import misc as utils
 
@@ -20,16 +21,23 @@ print_debug = logging.debug
 print_warning = logging.warning
 
 
-def srs_ref_from_epsg_code(code_epsg: int) -> osr.SpatialReference:
+def srs_ref_from_epsg_code(code_epsg: int, old_axis_mapping=False) -> osr.SpatialReference:
     """
 
     Args:
         code_epsg (int):
+        old_axis_mapping (bool=False): Por cambio entre GDAL2.0 y GDAL3.0 se (vease
+    https://github.com/OSGeo/gdal/blob/master/gdal/MIGRATION_GUIDE.TXT) por defecto se utiliza el mapeo de ejes
+    clasico LONG,LAT
 
     Returns:
         srs (osr.SpatialReference)
     """
     srs = osr.SpatialReference()
+    if old_axis_mapping:
+        print_debug("OAMS_TRADITIONAL_GIS_ORDER")
+        srs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+
     ret = srs.ImportFromEPSG(code_epsg)
     if ret != 0:
         raise Warning("No se puede retornar un osgeo.osr.SpatialReference EPSG para el codigo '{}'!!".format(code_epsg))
@@ -40,7 +48,8 @@ def srs_ref_from_epsg_code(code_epsg: int) -> osr.SpatialReference:
 def layer_gdal_from_file(path_file: str,
                          nom_driver: str = 'GeoJSON',
                          nom_geom: str = None,
-                         default_srs_epsg_code: int = 4326):
+                         default_srs_epsg_code: int = 4326,
+                         default_order_long_lat: bool = True):
     """
 
     Args:
@@ -49,6 +58,8 @@ def layer_gdal_from_file(path_file: str,
         nom_geom (str=None): si se informa devolverá la layer solo con la geometria especificada
         default_srs_epsg_code (int=4326): codigo del sistema de coordenadas que asignará por defecto si la layer
                                           NO tiene sistema definido
+        default_order_long_lat (bool=True): si no viene informado el SRS y se usa el default EPSG4326 entonces se supone
+                                          por defecto que las geometria vienen en orden antiguo LONGITUD, LATITUD
 
     Returns:
         layer_gdal (osgeo.ogr.Layer), nom_layer (str), datasource_gdal (osgeo.ogr.DataSource)
@@ -91,7 +102,7 @@ def layer_gdal_from_file(path_file: str,
             # Por si no carga el SRS se asigna el :default_srs_epsg_code (defecto epsg:4326)
             for gf in geom_fields_layer_gdal(a_layer):
                 if not gf.GetSpatialRef():
-                    gf.SetSpatialRef(srs_ref_from_epsg_code(default_srs_epsg_code))
+                    gf.SetSpatialRef(srs_ref_from_epsg_code(default_srs_epsg_code, default_order_long_lat))
 
     return a_layer, nom_layer, ds_vector_file
 
@@ -133,7 +144,7 @@ def datasource_gdal_vector_file(nom_driver_gdal, nom_ds, a_dir, create=None, fro
     if not create and os.path.exists(path_file):
         open_path_file = "{}{}".format(vsi_prefix, path_file)
         datasource_gdal = driver.Open(open_path_file, 1)
-        if not datasource_gdal:
+        if datasource_gdal is None:
             datasource_gdal = driver.Open(open_path_file)
 
     if datasource_gdal:
