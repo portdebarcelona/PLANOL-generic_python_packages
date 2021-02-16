@@ -1056,7 +1056,7 @@ class gestor_oracle(object):
         Returns:
             {str} - path del directorio de logs
         """
-        return utils_logging.logs_dir()
+        return utils_logging.logs_dir(True)
 
     def log_name(self):
         """
