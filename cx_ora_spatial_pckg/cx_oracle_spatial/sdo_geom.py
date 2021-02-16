@@ -449,9 +449,9 @@ class sdo_geom(object):
         Returns:
             str
         """
-        shp = self.as_shapely()
-        if shp:
-            return shp.wkt
+        ogr_geom = self.as_ogr_geom()
+        if ogr_geom:
+            return ogr_geom.ExportToWkt()
 
     def as_wkb(self):
         """
@@ -460,9 +460,9 @@ class sdo_geom(object):
         Returns:
             b(str): binary string
         """
-        shp = self.as_shapely()
-        if shp:
-            return shp.to_wkb()
+        ogr_geom = self.as_ogr_geom()
+        if ogr_geom:
+            return ogr_geom.ExportToWkb()
 
     def as_ogr_geom(self):
         """
@@ -472,7 +472,7 @@ class sdo_geom(object):
             osgeo.ogr.Geometry
         """
         if not self.__ogr_geom and self.__type_geojson:
-            self.__ogr_geom = ogr.CreateGeometryFromWkt(self.as_wkt())
+            self.__ogr_geom = ogr.CreateGeometryFromJson(self.as_geojson())
 
         return self.__ogr_geom
 

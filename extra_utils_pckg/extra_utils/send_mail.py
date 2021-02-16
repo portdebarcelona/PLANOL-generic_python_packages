@@ -103,7 +103,7 @@ def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'),
     return codi
 
 
-FROM_MAIL = 'yourcount@mail.com'
+FROM_MAIL = os.getenv('DEFAULT_FROM_MAIL', 'from_your_account@mail.com')
 
 
 def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files):
