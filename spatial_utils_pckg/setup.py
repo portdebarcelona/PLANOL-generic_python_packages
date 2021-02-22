@@ -31,7 +31,6 @@ setup(
     ],
     install_requires=[
         'shapely',
-        #'pyproj',
         'geopandas',
         'extra_utils'
     ],

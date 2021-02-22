@@ -5,8 +5,6 @@
 #   Created: 05/04/2020, 17:47
 #   Last modified: 10/11/2019, 11:24
 #   Copyright (c) 2020
-from __future__ import print_function, division, absolute_import
-
 import json
 import re
 import sys

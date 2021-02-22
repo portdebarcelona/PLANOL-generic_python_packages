@@ -6,8 +6,6 @@
 #   Last modified: 29/01/2020, 19:10
 #   Copyright (c) 2020
 
-from __future__ import print_function, division, absolute_import
-
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
 # EAM - Para evitar error ddl al usar OSGEO.GDAL se asegura import antes de hacer uso del modulo logging
