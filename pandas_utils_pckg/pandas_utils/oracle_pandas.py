@@ -10,7 +10,7 @@ import geopandas as gpd
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from spatial_utils.geopandas_utils import optimize_df
+from .geopandas_utils import optimize_df
 from cx_oracle_spatial.gestor_oracle import sql_tab
 
 
