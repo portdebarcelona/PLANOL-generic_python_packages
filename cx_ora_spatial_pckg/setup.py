@@ -32,6 +32,7 @@ setup(
         'cx_oracle<7',
         'lxml',
         'extra_utils',
+        'osgeo_utils',
         'spatial_utils'
     ],
     python_requires='>=3.7',

@@ -15,7 +15,8 @@ from osgeo import ogr
 from shapely.geometry import shape
 
 from extra_utils.misc import rounded_float
-from spatial_utils import osgeo_utils, shapely_utils
+import osgeo_utils
+from spatial_utils import shapely_utils
 
 
 class sdo_geom(object):
