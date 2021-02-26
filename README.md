@@ -32,3 +32,10 @@ To install:
 ```shell script
 pip install "git+https://github.com/ernestone/python_packages#egg=cx_oracle_spatial&subdirectory=cx_ora_spatial_pckg"
 ```
+### Package _pandas_utils_
+Modules to add functionality over `pandas` and `geopandas` 
+
+To install:
+```shell script
+pip install "git+https://github.com/ernestone/python_packages#egg=pandas_utils&subdirectory=pandas_utils_pckg"
+```
