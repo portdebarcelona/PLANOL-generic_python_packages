@@ -14,13 +14,13 @@ def readme():
 
 
 setup(
-    name='cx_oracle_spatial',
+    name='pandas_utils',
     version='0.9',
     packages=find_packages(),
-    url='https://github.com/ernestone/python_packages/tree/master/cx_ora_spatial_pckg',
+    url='https://github.com/ernestone/python_packages/tree/master/pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
     author_email='ernestone@gmail.com',
-    description='cx_Oracle with spatial capabilities (SDO_GEOM and OGC)',
+    description='Pandas and geopandas utils',
     long_description=readme(),
     # Ver posibles clasifiers aqui [https://pypi.org/classifiers/]
     classifiers=[
@@ -29,11 +29,8 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'cx_oracle<7',
-        'lxml',
-        'extra_utils',
-        'osgeo_utils',
-        'spatial_utils'
+        'geopandas',
+        'cx_oracle_spatial'
     ],
     python_requires='>=3.7',
     package_data={

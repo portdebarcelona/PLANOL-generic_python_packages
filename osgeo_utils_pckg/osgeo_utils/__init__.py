@@ -12,7 +12,7 @@ from collections import OrderedDict, namedtuple
 import math
 from osgeo import ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
-    ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource
+    ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn, ForceToMultiPolygon
 from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
 
 from extra_utils import misc as utils
@@ -128,6 +128,8 @@ def datasource_gdal_vector_file(nom_driver_gdal, nom_ds, a_dir, create=None, fro
         raise Exception("ERROR! - El driver GDAL {} no es de tipo fichero vectorial".format(driver))
 
     base_path_file = os.path.normpath(os.path.join(a_dir, nom_ds.strip().lower()))
+    _, ext_base = os.path.splitext(base_path_file)
+
     vsi_prefix = ""
     if from_zip:
         ext_file = "zip"
@@ -138,7 +140,11 @@ def datasource_gdal_vector_file(nom_driver_gdal, nom_ds, a_dir, create=None, fro
         else:
             ext_file = exts_driver[0]
 
-    path_file = "{}.{}".format(base_path_file, ext_file)
+    if os.path.exists(base_path_file) or ext_base.lower() == f'.{ext_file.lower()}':
+        path_file = base_path_file
+    else:
+        path_file = "{}.{}".format(base_path_file, ext_file)
+
     overwrited = False
     datasource_gdal = None
     if not create and os.path.exists(path_file):
@@ -428,14 +434,16 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         ds_gdal_dest.DeleteLayer(nom_layer)
 
     geom_transform = None
+    srs_lyr_dest = None
     if not srs_lyr_src and epsg_code_src_default:
         srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default)
     if srs_lyr_src:
         if epsg_code_dest:
-            srs_epsg = srs_ref_from_epsg_code(epsg_code_dest)
-            if srs_epsg and not srs_lyr_src.IsSame(srs_epsg):
-                geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_epsg)
+            srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest)
+            if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
+                geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
         else:
+            srs_lyr_dest = srs_lyr_src
             str_epsg_code = srs_lyr_src.GetAuthorityCode("GEOGCS")  # Se presupone SRS tipo GEOGCS
             if str_epsg_code:
                 epsg_code_dest = int(str_epsg_code)
@@ -458,19 +466,21 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                     nom_geom_sel = "GEOMETRY"
             geom_field_out.SetName(nom_geom_sel)
 
-        if not unic_geom:
-            for idx_gfd, gfd in enumerate(geom_fields_layer_gdal(layer_src)):
-                if layer_out_def.GetGeomFieldIndex(gfd.GetNameRef()) < 0:
-                    layer_out_def.AddGeomFieldDefn(gfd)
-
     if layer_out.TestCapability(OLCCreateField):
         for fd in fields_layer_gdal(layer_src):
             nom_fd = fd.GetNameRef().upper()
-            if layer_out.FindFieldIndex(nom_fd, True) < 0 and \
-                    (not sel_camps or nom_fd in sel_camps) and \
+            if layer_out.FindFieldIndex(nom_fd, True) < 0 and (not sel_camps or nom_fd in sel_camps) and \
                     (nom_fd not in geoms_src or not exclude_cols_geoms) and \
                     nom_fd != nom_geom_sel:
-                layer_out.CreateField(fd)
+                if nom_fd in geoms_src:
+                    gfd_src = layer_src_def.GetGeomFieldDefn(layer_src_def.GetGeomFieldIndex(fd.GetNameRef()))
+                    gfd_dest = GeomFieldDefn(gfd_src.GetNameRef(), gfd_src.GetType())
+                    if srs_lyr_dest:
+                        gfd_dest.SetSpatialRef(srs_lyr_dest)
+
+                    layer_out.CreateGeomField(gfd_dest)
+                else:
+                    layer_out.CreateField(fd)
 
     geoms_out = geoms_layer_gdal(layer_out)
     cols_out = cols_layer_gdal(layer_out)
@@ -547,7 +557,7 @@ def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, 
 
     layer_out = ds_gdal_dest.CreateLayer(nom_layer, srs_lyr_out, geom_type=gtype, options=list(opt_list.values()))
 
-    return layer_out, nom_layer
+    return layer_out, layer_out.GetName() if layer_out else None
 
 
 def create_spatial_index_layer_gpkg(ds_gpkg, nom_layer):
@@ -882,8 +892,10 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
         **extra_opt_list (str): Lista claves-valores de opciones para createLayer del driver de ds_gdal indicado
 
     Returns:
-        new_layer_ds_gdal
+        new_layers_ds_gdal (list)
     """
+    new_layers_ds_gdal = []
+
     if not nom_layer:
         nom_layer = layer_gdal.GetName()
 
@@ -904,19 +916,24 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
             for geom_name in geoms_layer:
                 nom_layer = "{}-{}".format(nom_layer_base, geom_name).lower()
                 extra_opt_list["GEOMETRY_NAME"] = "GEOMETRY_NAME={}".format(geom_name)
-                create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, geom_name,
-                                                        tolerance_simplify=tol, null_geoms=null_geoms,
-                                                        epsg_code_dest=srs_epsg_code,
-                                                        **extra_opt_list)
+                lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, geom_name,
+                                                              tolerance_simplify=tol, null_geoms=null_geoms,
+                                                              epsg_code_dest=srs_epsg_code,
+                                                              **extra_opt_list)
+                new_layers_ds_gdal.append(lyr)
         else:
-            create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, unic_geom=False,
-                                                    exclude_cols_geoms=False,
-                                                    null_geoms=True,
-                                                    tolerance_simplify=tol,
-                                                    epsg_code_dest=srs_epsg_code,
-                                                    **extra_opt_list)
+            lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, unic_geom=False,
+                                                          exclude_cols_geoms=False,
+                                                          null_geoms=True,
+                                                          tolerance_simplify=tol,
+                                                          epsg_code_dest=srs_epsg_code,
+                                                          **extra_opt_list)
+            new_layers_ds_gdal.append(lyr)
     else:
-        copy_layer_gdal_to_ds_gdal(layer_gdal, ds_gdal, nom_layer.lower())
+        lyr = copy_layer_gdal_to_ds_gdal(layer_gdal, ds_gdal, nom_layer.lower())
+        new_layers_ds_gdal.append(lyr)
+
+    return new_layers_ds_gdal
 
 
 def copy_layers_gpkg(ds_gpkg, driver, dir_base, lite=False, srs_epsg_code=None, zipped=True):

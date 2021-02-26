@@ -6,7 +6,7 @@
 #   Last modified: 29/01/2020, 19:16
 #   Copyright (c) 2020
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 
 def readme():
@@ -15,13 +15,13 @@ def readme():
 
 
 setup(
-    name='spatial_utils',
+    name='osgeo_utils',
     version='0.9',
-    packages=['spatial_utils'],
-    url='https://github.com/ernestone/python_packages/tree/master/spatial_utils_pckg',
+    packages=find_packages(),
+    url='https://github.com/ernestone/python_packages/tree/master/osgeo_utils_pckg',
     author='Ernesto Arredondo Martinez',
     author_email='ernestone@gmail.com',
-    description='Miscelanous spatial utils for python',
+    description='Osgeo GDAL utils for python',
     long_description=readme(),
     # Ver posibles clasifiers aqui [https://pypi.org/classifiers/]
     classifiers=[
@@ -30,7 +30,6 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'shapely',
         'extra_utils'
     ],
     python_requires='>=3.7'

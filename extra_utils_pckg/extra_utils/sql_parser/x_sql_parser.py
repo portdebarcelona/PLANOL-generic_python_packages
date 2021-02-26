@@ -5,8 +5,6 @@
 #  Last modified: 25/4/18 15:27
 #  Copyright (c) 2019
 
-from __future__ import print_function, division, absolute_import
-
 import math
 import re
 

@@ -13,5 +13,7 @@ dependencies:
 - pip:
   - --editable extra_utils_pckg
   - --editable spatial_utils_pckg
+  - --editable osgeo_utils_pckg
+  - --editable pandas_utils_pckg
   - --editable cx_ora_spatial_pckg
   # - --requirement file:requirements.txt
