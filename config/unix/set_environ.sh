@@ -7,3 +7,4 @@ PROJECT_DIR=`pwd` # Guarda directorio donde estan todos los sources de los packa
 echo "PROJECT_DIR = ${PROJECT_DIR}"
 
 CONDA_ENV=python_packages
+PATH_DEVELOPER_MODE=${PROJECT_DIR}

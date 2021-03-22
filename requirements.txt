@@ -1,13 +1,2 @@
-docutils-python3==0.13
-fire
-jellyfish
-Pillow
-lxml
-pyparsing<2.4
-sqlparse==0.2.4
-pyyaml
-geos
-shapely
-pyproj
-pandas
-geopandas
+ # Install all packages via requirements and not provoque PIP conflict between local packages
+--editable pandas_utils_pckg
