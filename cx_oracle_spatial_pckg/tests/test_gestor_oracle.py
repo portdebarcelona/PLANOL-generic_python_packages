@@ -28,7 +28,7 @@ class MyTestCase(unittest.TestCase):
         self.assertIsNotNone(self.gest_ora)
 
     def test_call_func(self):
-        ret = self.gest_ora.callfunc_sql('SDO_UTILS.FROM_WKTGEOMETRY',
+        ret = self.gest_ora.callfunc_sql('SDO_UTIL.FROM_WKTGEOMETRY',
                                          self.gest_ora.con_db.gettype("MDSYS.SDO_GEOMETRY"),
                                          'POINT (2.180045275 41.372005989)')
         self.assertIsNotNone(ret)

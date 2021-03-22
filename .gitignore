@@ -127,7 +127,7 @@ About
 anaconda-project-local.yml
 /node_modules
 *.lnk
-*.egg-info/
+**/.egg-info/
 /extra_utils_pckg/dist/
 /extra_utils_pckg/build/
 

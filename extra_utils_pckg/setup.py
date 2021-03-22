@@ -7,6 +7,9 @@
 #   Copyright (c) 2020
 
 from setuptools import setup, find_packages
+import os
+
+GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/ernestone/python_packages')
 
 
 def readme():
@@ -18,7 +21,7 @@ setup(
     name='extra_utils',
     version='0.9',
     packages=find_packages(),
-    url='https://github.com/ernestone/python_packages/tree/master/extra_utils_pckg',
+    url=f'{GIT_REPO}/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
     author_email='ernestone@gmail.com',
     description='Miscelanous utils for python',

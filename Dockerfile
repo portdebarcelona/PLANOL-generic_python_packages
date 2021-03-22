@@ -16,4 +16,12 @@ RUN apt-get install libaio1
 
 # conda !NO funcionan los environments dentro!
 RUN conda install --file environment.docker.yml
-RUN pip3 install -r requirements.docker.txt
+
+ENV PATH_DEVELOPER_MODE /project
+RUN pip install --editable extra_utils_pckg
+RUN pip install --editable osgeo_utils_pckg
+RUN pip install --editable spatial_utils_pckg
+RUN pip install --editable cx_oracle_spatial_pckg
+RUN pip install --editable pandas_utils_pckg
+
+RUN /project/config/unix/post_install_python.sh

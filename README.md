@@ -26,12 +26,27 @@ To install:
 pip install "git+https://github.com/ernestone/python_packages#egg=osgeo_utils&subdirectory=osgeo_utils_pckg"
 ```
 ### Package _cx_oracle_spatial_
-Modules to connect to `Oracle` database and treat his objects in a `sqlalchemy` style but dealing with spatial data as one more type. Added the functionality of common used libraries in this kind of projects from the `spatial_utils` package to convert the `Oracle` data on different open source data types.
+Modules to connect to `Oracle` database and treat his objects in a `sqlalchemy` style but dealing with spatial data as 
+one more type. Added the functionality of common used libraries in this kind of projects from the `osgeo_utils` and 
+`spatial_utils` packages to convert the `Oracle` data on different open source spatial data types.
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=cx_oracle_spatial&subdirectory=cx_ora_spatial_pckg"
+pip install "git+https://github.com/ernestone/python_packages#egg=cx_oracle_spatial&subdirectory=cx_oracle_spatial_pckg"
 ```
+
+Problems:
+If trying install _cx_oracle_spatial_ an error with `cx_oracle` occurred, try pre-install it with this command in your 
+requirements:
+```shell
+pip install cx_Oracle<7 --upgrade
+```
+See details here https://cx-oracle.readthedocs.io/en/6.4.1/installation.html  
+
+if you use conda with this:
+ ```shell
+ conda install cx_Oracle<7
+ ```
 ### Package _pandas_utils_
 Modules to add functionality over `pandas` and `geopandas` 
 
