@@ -9,7 +9,7 @@
 from setuptools import setup, find_packages
 import os
 
-GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/ernestone/python_packages')
+GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/portdebarcelona/PLANOL-generic_python_packages')
 
 
 def format_requirement(n_pckg):

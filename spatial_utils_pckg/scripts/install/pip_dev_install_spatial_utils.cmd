@@ -1,1 +1,1 @@
-pip install -e "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=spatial_utils_pckg"
+pip install -e "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=python_packages&subdirectory=spatial_utils_pckg"

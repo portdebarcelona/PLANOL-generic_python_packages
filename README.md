@@ -7,7 +7,7 @@ logging, sql, xml and others.
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=extra_utils&subdirectory=extra_utils_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=extra_utils&subdirectory=extra_utils_pckg"
 ```
 ### Package _spatial_utils_
 Modules to deal with spatial data using common used spatial libraries as `Shapely`, 
@@ -15,7 +15,7 @@ Modules to deal with spatial data using common used spatial libraries as `Shapel
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=spatial_utils&subdirectory=spatial_utils_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=spatial_utils&subdirectory=spatial_utils_pckg"
 ```
 ### Package _osgeo_utils_
 Modules to add common functionality to `OSGEO GDAL`. Requires `GDAL` library C previously installed 
@@ -23,7 +23,7 @@ Modules to add common functionality to `OSGEO GDAL`. Requires `GDAL` library C p
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=osgeo_utils&subdirectory=osgeo_utils_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=osgeo_utils&subdirectory=osgeo_utils_pckg"
 ```
 ### Package _cx_oracle_spatial_
 Modules to connect to `Oracle` database and treat his objects in a `sqlalchemy` style but dealing with spatial data as 
@@ -32,7 +32,7 @@ one more type. Added the functionality of common used libraries in this kind of 
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=cx_oracle_spatial&subdirectory=cx_oracle_spatial_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=cx_oracle_spatial&subdirectory=cx_oracle_spatial_pckg"
 ```
 
 Problems:
@@ -52,5 +52,5 @@ Modules to add functionality over `pandas` and `geopandas`
 
 To install:
 ```shell script
-pip install "git+https://github.com/ernestone/python_packages#egg=pandas_utils&subdirectory=pandas_utils_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=pandas_utils&subdirectory=pandas_utils_pckg"
 ```
