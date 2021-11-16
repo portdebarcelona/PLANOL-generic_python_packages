@@ -47,6 +47,6 @@ setup(
     python_requires='>=3.7',
     package_data={
         # If any package contains *.txt, *.md or *.yml files, include them:
-        "": ["*.txt", "*.md", "*.yml"]
+        "": ["*.txt", "*.md", "*.yml", "*.sql", "*.cmd"]
     }
 )
