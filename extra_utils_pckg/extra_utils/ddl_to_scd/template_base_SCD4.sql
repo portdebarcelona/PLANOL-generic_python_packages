@@ -46,7 +46,7 @@ CREATE SEQUENCE "{self.nom_seq_vers}" INCREMENT BY 1 MAXVALUE 999999999 MINVALUE
 /
 
 /* TRIGGERS TABLA ORIGINAL */
-{ self.triggers_extra_tab_base}
+{self.triggers_extra_tab_base}
 
 create or replace TRIGGER {self.nom_trigger_ins_upd_tab_base}
 BEFORE INSERT OR UPDATE ON {self.nom_taula}
