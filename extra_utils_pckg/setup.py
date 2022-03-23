@@ -28,7 +28,7 @@ setup(
     long_description=readme(),
     # Ver posibles clasifiers aqui [https://pypi.org/classifiers/]
     classifiers=[
-        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3',
         'Topic :: Utilities',
         'Operating System :: OS Independent'
     ],
@@ -44,7 +44,7 @@ setup(
         'psycopg2-binary',
         'sqlalchemy'
     ],
-    python_requires='>=3.7',
+    python_requires='>=3.6',
     package_data={
         # If any package contains *.txt, *.md or *.yml files, include them:
         "": ["*.txt", "*.md", "*.yml", "*.sql", "*.cmd"]
