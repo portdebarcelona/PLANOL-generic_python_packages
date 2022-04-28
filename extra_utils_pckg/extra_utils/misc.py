@@ -164,15 +164,15 @@ def is_pathname_valid(pathname):
         # the drive to which Windows was installed (e.g., the "%HOMEDRIVE%"
         # environment variable); else, the typical root directory.
         root_dirname = os.environ.get('HOMEDRIVE', 'C:') \
-            if sys.platform == 'win32' else os.path.sep
+            if sys.platform == 'win32' else os.sep
         assert os.path.isdir(root_dirname)  # ...Murphy and her ironclad Law
 
         # Append a path separator to this directory if needed.
-        root_dirname = root_dirname.rstrip(os.path.sep) + os.path.sep
+        root_dirname = root_dirname.rstrip(os.sep) + os.sep
 
         # Test whether each path component split from this pathname is valid or
         # not, ignoring non-existent and non-readable path components.
-        for pathname_part in pathname.split(os.path.sep):
+        for pathname_part in pathname.split(os.sep):
             try:
                 os.lstat(root_dirname + pathname_part)
             # If an OS-specific exception is raised, its error code
@@ -763,7 +763,7 @@ def tree_paths(path_dir_base, relative_dirs_sel=None, func_filter_path=None, sol
             subdir_paths = paths
             # En el caso del primer nivel no se guarda name directorio
             if dir_path != '.':
-                for d in dir_path.split(os.path.sep):
+                for d in dir_path.split(os.sep):
                     if d not in subdir_paths:
                         subdir_paths[d] = dict()
                     subdir_paths = subdir_paths[d]
