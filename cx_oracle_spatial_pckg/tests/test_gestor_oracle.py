@@ -10,11 +10,13 @@ path_data = os.path.join(path_project, 'resources/data')
 
 
 class MyTestCase(unittest.TestCase):
-    dsn_ora = cx_Oracle.makedsn(host="db_ora_pyckg", port=1521, sid='xe')
+    dsn_ora = None
     cache_gest = None
 
     def setUp(self) -> None:
-        g = gestor_oracle("system", "oracle", self.dsn_ora)
+        self.dsn_ora = cx_Oracle.makedsn(host=os.getenv("HOST_DB_ORA", "db_ora_pyckg"),
+                                         port=os.getenv('PORT_DB_ORA', 1521), sid='xe')
+        self.cache_gest = g = gestor_oracle("GIS", "GIS123", self.dsn_ora)
         g.run_sql_script(os.path.join(os.path.dirname(__file__), 'init_db.sql'))
         g.run_sql_script(os.path.join(path_project, 'resources', 'ddls', 'edificacio.sql'))
 
@@ -38,11 +40,13 @@ class MyTestCase(unittest.TestCase):
         ds_csv, ovrwrt = osgeo_utils.datasource_gdal_vector_file(
             'CSV', 'edificacio.zip', path_data, create=False, from_zip=True)
         lyr_orig = ds_csv.GetLayer(0)
+        geoms_lyr_orig = [*map(lambda fn: fn.replace('geom_', ''),
+                               osgeo_utils.geoms_layer_gdal(lyr_orig))]
         pk_ora = g.get_primary_key_table('edificacio')
         for vals, wkt in ((nt, g.ExportToIsoWkt() if g else None) for f, g, nt in
                           osgeo_utils.feats_layer_gdal(lyr_orig, 'punt_base')):
             alfa_vals = {k: val for k, val in vals._asdict().items()
-                         if k not in osgeo_utils.geoms_layer_gdal(lyr_orig)}
+                         if k.upper() not in geoms_lyr_orig}
             key_vals = {k: val for k, val in alfa_vals.items() if k in pk_ora}
             r_tab = g.row_table_at('edificacio', *key_vals.values())
             if r_tab:
