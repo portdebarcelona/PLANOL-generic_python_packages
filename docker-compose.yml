@@ -16,7 +16,9 @@ services:
     volumes:
       - oracle_xe-vol:/u01/app/oracle
     ports:
-      - 49161:1521
+      - 25521:1521
+    environment:
+      - ORACLE_DISABLE_ASYNCH_IO=true
   python_packages:
     container_name: conda_python_packages
     build: .

@@ -131,3 +131,4 @@ anaconda-project-local.yml
 /extra_utils_pckg/dist/
 /extra_utils_pckg/build/
 
+!/resources/data/edificacio.zip

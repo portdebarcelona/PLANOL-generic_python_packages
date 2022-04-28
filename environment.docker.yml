@@ -1,7 +1,5 @@
 python >=3.7,<4
 nodejs <13
-eumetsat::oracle-instantclient
-conda-forge::gdal >=3,<4
-conda-forge::geopandas >=0.8,<0.9
-cx_Oracle<7
+oracle-instantclient
+cx_Oracle >=8,<9
 pip >=20

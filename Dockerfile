@@ -1,4 +1,4 @@
-FROM continuumio/miniconda3:latest
+FROM continuumio/miniconda3:4.3.27
 #FROM osgeo/gdal
 ENV PYTHONUNBUFFERED 1
 ENV LANG C.UTF-8
@@ -15,9 +15,10 @@ RUN apt-get install libaio1
 #    && apt-get install -y --fix-missing --no-install-recommends python3-pip
 
 # conda !NO funcionan los environments dentro!
-RUN conda install --file environment.docker.yml
+RUN conda install --file environment.docker.yml -c defaults -c anaconda -c javascript -c eumetsat
+RUN conda install --file environment.conda-forge.docker.yml -c conda-forge
 
-ENV PATH_DEVELOPER_MODE /project
+ENV PATH_DEVELOPER_MODE=/project
 RUN pip install --editable extra_utils_pckg
 RUN pip install --editable osgeo_utils_pckg
 RUN pip install --editable spatial_utils_pckg
