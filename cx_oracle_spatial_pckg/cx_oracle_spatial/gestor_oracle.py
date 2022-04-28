@@ -1530,7 +1530,7 @@ class gestor_oracle(object):
 
         ok = self.exec_trans_db(a_sql_res, *params)
         if ok:
-            pk_vals = {k: curs_var.getvalue() for k, curs_var in pk_binds.items()}
+            pk_vals = {k: curs_var.getvalue(0)[0] for k, curs_var in pk_binds.items()}
             return self.exist_row_tab(nom_tab, pk_vals)
 
         return ok
