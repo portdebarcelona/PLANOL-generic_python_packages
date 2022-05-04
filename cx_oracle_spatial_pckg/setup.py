@@ -45,7 +45,7 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'cx_oracle <7',
+        'cx_oracle <9',
         'lxml',
         format_requirement('osgeo_utils'),
         format_requirement('spatial_utils')
