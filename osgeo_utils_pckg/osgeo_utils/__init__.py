@@ -12,8 +12,7 @@ from collections import OrderedDict, namedtuple
 import math
 from osgeo import ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
-    ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn, ForceToMultiPolygon
-from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+    ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn
 
 from extra_utils import misc as utils
 
@@ -35,8 +34,12 @@ def srs_ref_from_epsg_code(code_epsg: int, old_axis_mapping=False) -> osr.Spatia
     """
     srs = osr.SpatialReference()
     if old_axis_mapping:
-        print_debug("OAMS_TRADITIONAL_GIS_ORDER")
-        srs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+        try:
+            from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+            print_debug("OAMS_TRADITIONAL_GIS_ORDER")
+            srs.SetAxisMappingStrategy(OAMS_TRADITIONAL_GIS_ORDER)
+        except ImportError:
+            print_warning("OAMS_TRADITIONAL_GIS_ORDER not available")
 
     ret = srs.ImportFromEPSG(code_epsg)
     if ret != 0:
