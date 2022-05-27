@@ -7,6 +7,7 @@
 
 import logging
 import os
+import re
 from collections import OrderedDict, namedtuple
 
 import math
@@ -15,6 +16,8 @@ from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTr
     ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn
 
 from extra_utils import misc as utils
+
+SUFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 
 print_debug = logging.debug
 print_warning = logging.warning
@@ -381,7 +384,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     if nom_geom:
         nom_geom = nom_geom.upper()
         if len(geoms_src) > 1:
-            if nom_geom not in geoms_src:
+            if nom_geom not in map(lambda ng: ng.upper(), geoms_src):
                 raise Exception("Argumento :NOM_GEOM = '{}' erróneo ya que "
                                 "LAYER_GDAL original no contiene dicha geometria".format(nom_geom))
         elif len(geoms_src) == 0:
@@ -415,7 +418,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
             idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom)
             if idx_act_geom_field >= 0:
                 act_geom_field = layer_src_def.GetGeomFieldDefn(idx_act_geom_field)
-                nom_geom_sel = nom_geom
+                nom_geom_sel = fix_suffix_geom_name_layer_gdal(nom_geom, layer_src)
 
         gtype = act_geom_field.GetType()
         if gtype_layer_from_geoms and not gtype:
@@ -426,12 +429,13 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
     if sel_camps:
         sel_camps = {c.strip().upper() for c in sel_camps}
+
+    geoms_src_minus_suffix = geoms_layer_gdal(layer_src, SUFFIX_GEOMS_LAYERS_GDAL)
     if exclude_cols_geoms:
-        geoms_exc = geoms_layer_gdal(layer_src)
         if sel_camps:
-            sel_camps.difference_update(geoms_exc)
+            sel_camps.difference_update(geoms_src_minus_suffix)
         else:
-            sel_camps = cols_layer_gdal(layer_src).difference(geoms_exc)
+            sel_camps = cols_layer_gdal(layer_src).difference(geoms_src_minus_suffix)
 
     if ds_gdal_dest.TestCapability(ODsCDeleteLayer) and ds_gdal_dest.GetLayerByName(nom_layer):
         ds_gdal_dest.DeleteLayer(nom_layer)
@@ -473,17 +477,20 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         for fd in fields_layer_gdal(layer_src):
             nom_fd = fd.GetNameRef().upper()
             if layer_out.FindFieldIndex(nom_fd, True) < 0 and (not sel_camps or nom_fd in sel_camps) and \
-                    (nom_fd not in geoms_src or not exclude_cols_geoms) and \
-                    nom_fd != nom_geom_sel:
-                if nom_fd in geoms_src:
-                    gfd_src = layer_src_def.GetGeomFieldDefn(layer_src_def.GetGeomFieldIndex(fd.GetNameRef()))
-                    gfd_dest = GeomFieldDefn(gfd_src.GetNameRef(), gfd_src.GetType())
-                    if srs_lyr_dest:
-                        gfd_dest.SetSpatialRef(srs_lyr_dest)
+                    nom_fd not in (gn.upper() for gn in geoms_src_minus_suffix):
+                layer_out.CreateField(fd)
 
-                    layer_out.CreateGeomField(gfd_dest)
-                else:
-                    layer_out.CreateField(fd)
+        for gfd in geom_fields_layer_gdal(layer_src):
+            nom_gfd = fix_suffix_geom_name_layer_gdal(gfd.GetNameRef(), layer_src).upper()
+            if (not sel_camps or nom_gfd in sel_camps) and \
+                    (nom_gfd not in geoms_src or not exclude_cols_geoms) and \
+                    nom_gfd != nom_geom_sel:
+                gfd_def_src = layer_src_def.GetGeomFieldDefn(layer_src_def.GetGeomFieldIndex(gfd.GetNameRef()))
+                gfd_def_dest = GeomFieldDefn(gfd_def_src.GetNameRef(), gfd_def_src.GetType())
+                gfd_def_dest.SetName(nom_gfd)
+                if srs_lyr_dest:
+                    gfd_def_dest.SetSpatialRef(srs_lyr_dest)
+                layer_out.CreateGeomField(gfd_def_dest)
 
     geoms_out = geoms_layer_gdal(layer_out)
     cols_out = cols_layer_gdal(layer_out)
@@ -498,8 +505,8 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         vals_camps = {nc: val for nc, val in nt_src._asdict().items()
                       if nc.upper() in cols_out_chk}
         if null_geoms or not geom_field_out or geom_src:
-            if nom_geom and nom_geom.upper() not in vals_camps:
-                vals_camps[nom_geom.upper()] = geom_src
+            if nom_geom_sel:
+                vals_camps[nom_geom_sel.upper()] = geom_src
 
             add_feature_to_layer_gdal(layer_out,
                                       tolerance_simplify=tolerance_simplify,
@@ -696,19 +703,23 @@ def format_nom_column(nom_col):
     return nom_col.replace(" ", "_")
 
 
-def namedtuple_layer_gdal(layer_gdal):
+def namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld=None):
     """
     Devuelve namedTuple con los campos del layer pasado por parametro
 
     Args:
         layer_gdal:
+        extract_suffix_geom_fld (str=None):
 
     Returns:
         namedtuple: con nombre "gdalFeatDef_{NOM_LAYER}" y con los campos de la layer
     """
-    camps_layer = []
+    camps_layer = set()
     for fld in fields_layer_gdal(layer_gdal):
-        camps_layer.append(format_nom_column(fld.GetNameRef()))
+        camps_layer.add(format_nom_column(fld.GetNameRef()))
+
+    for nom_geom in geoms_layer_gdal(layer_gdal, extract_suffix=extract_suffix_geom_fld):
+        camps_layer.add(format_nom_column(nom_geom))
 
     nom_layer = layer_gdal.GetName().upper().split(".")[0].replace("-", "_")
     return namedtuple(f"gdalFeatDef_{nom_layer}", camps_layer)
@@ -736,7 +747,7 @@ def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
         yield feat, geom, vals
 
 
-def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None):
+def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_geom_fld=SUFFIX_GEOMS_LAYERS_GDAL):
     """
     Itera las features (registros de una layer de gdal) y los devuelve como un namdtuple
 
@@ -745,12 +756,17 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None):
         nom_geom (str=None): Por defecto la geometria activa o principal
         filter_sql (str=None): Si viene informado se aplicará como filtro sql a la layer seleccionada.
                             Utiliza OGR SQL (vease https://www.gdal.org/ogr_sql.html)
+        extract_suffix_geom_fld (str=SUFFIX_GEOMS_LAYERS_GDAL): Por defecto quita el sufijo 'geom_' a los campos geom
 
     Returns:
         ogr.Feature, ogr.Geometry, namedtuple_layer_gdal
     """
     layer_gdal.ResetReading()
-    ntup_layer = namedtuple_layer_gdal(layer_gdal)
+    ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld)
+    n_geoms_layer = dict(zip(
+        geoms_layer_gdal(layer_gdal),
+        [*map(format_nom_column, geoms_layer_gdal(layer_gdal, extract_suffix_geom_fld))]
+    ))
 
     if filter_sql:
         layer_gdal.SetAttributeFilter(filter_sql)
@@ -758,10 +774,12 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None):
     def vals_feature_gdal(feat_gdal):
         vals = {}
         for camp, val in feat_gdal.items().items():
-            idx_geom = feat_gdal.GetGeomFieldIndex(camp)
-            if idx_geom >= 0:
-                val = feat_gdal.GetGeomFieldRef(idx_geom)
             vals[format_nom_column(camp)] = val
+
+        for camp_geom, camp_geom_val in n_geoms_layer.items():
+            idx_geom = feat_gdal.GetGeomFieldIndex(camp_geom)
+            if idx_geom >= 0:
+                vals[camp_geom_val] = feat_gdal.GetGeomFieldRef(idx_geom)
 
         return vals
 
@@ -859,12 +877,13 @@ def cols_layer_gdal(layer_gdal):
     return camps
 
 
-def geoms_layer_gdal(layer_gdal):
+def geoms_layer_gdal(layer_gdal, extract_suffix=None):
     """
     Retorna lista con las columnas geométricas de una layer gdal
 
     Args:
         layer_gdal:
+        extract_suffix (str=None=): if informed extract the suffix passed
 
     Returns:
         set
@@ -872,9 +891,35 @@ def geoms_layer_gdal(layer_gdal):
     camps_geom = set()
     for gdf in geom_fields_layer_gdal(layer_gdal):
         # camps_geom.add(gdf.GetName().upper())
-        camps_geom.add(gdf.GetNameRef())
+        name_ref = gdf.GetNameRef()
+        if extract_suffix:
+            name_ref = fix_suffix_geom_name_layer_gdal(name_ref, layer_gdal, extract_suffix)
+        camps_geom.add(name_ref)
 
     return camps_geom
+
+
+def fix_suffix_geom_name_layer_gdal(geom_name, layer_gdal, suffix=SUFFIX_GEOMS_LAYERS_GDAL):
+    """
+    Extract suffix SUFFIX_GEOMS_LAYERS_GDAL from name geoms if correspond with other column
+    Fix GDAL > 3.4 where geoms on GeoCSV arrive with suffix 'geom_'
+
+    Args:
+          geom_name (str):
+          layer_gdal:
+          suffix (str=SUFFIX_GEOMS_LAYERS_GDAL):
+
+    Returns:
+        str
+    """
+    cols_layer = cols_layer_gdal(layer_gdal)
+    geom_name_layer = geom_name
+    if geom_name.lower().startswith(suffix):
+        geom_name_aux = re.sub(suffix, '', geom_name, flags=re.IGNORECASE)
+        if geom_name_aux.lower() in (col.lower() for col in cols_layer):
+            geom_name_layer = geom_name_aux
+
+    return geom_name_layer
 
 
 def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, srs_epsg_code=None, multi_geom=False,
@@ -917,8 +962,11 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
         nom_layer_base = nom_layer.split("-")[0]
         if not multi_geom:
             for geom_name in geoms_layer:
-                nom_layer = "{}-{}".format(nom_layer_base, geom_name).lower()
-                extra_opt_list["GEOMETRY_NAME"] = "GEOMETRY_NAME={}".format(geom_name)
+                # Fix GDAL > 3.4 where geoms on GeoCSV arrive with suffix 'geom_'
+                geom_name_layer = fix_suffix_geom_name_layer_gdal(geom_name, layer_gdal)
+
+                nom_layer = "{}-{}".format(nom_layer_base, geom_name_layer).lower()
+                extra_opt_list["GEOMETRY_NAME"] = "GEOMETRY_NAME={}".format(geom_name_layer)
                 lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, geom_name,
                                                               tolerance_simplify=tol, null_geoms=null_geoms,
                                                               epsg_code_dest=srs_epsg_code,
