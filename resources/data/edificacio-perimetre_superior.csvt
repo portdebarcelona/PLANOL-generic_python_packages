@@ -1,1 +1,1 @@
-WKT,Integer,Integer,String,String,String,String,Integer,String,Real,Real
+WKT,Integer,Integer,String(31),String(40),String(50),String(125),Integer,String(375),String(1),Real,Real
