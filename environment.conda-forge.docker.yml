@@ -1,2 +1,1 @@
-gdal >=3,<4
-geopandas >=0.8,<0.9
+geopandas
