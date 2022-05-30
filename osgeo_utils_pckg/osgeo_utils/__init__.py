@@ -949,7 +949,7 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
 
     geoms_layer = geoms_layer_gdal(layer_gdal)
     if nom_geom:
-        if nom_geom.upper() not in geoms_layer:
+        if nom_geom.upper() not in (g.upper() for g in geoms_layer):
             Exception("!ERROR! - Nombre de geometria '{}' no existe en la layer GDAL origen")
         else:
             geoms_layer = (nom_geom,)

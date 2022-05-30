@@ -4,7 +4,6 @@ from functools import reduce
 import osgeo_utils
 import os
 
-
 PASSWORD_DB_POSTGRES = 'eam123'
 USER_DB_POSTGRES = 'eam'
 
@@ -85,6 +84,19 @@ class TestOsgeoUtils(unittest.TestCase):
             self.ds_gpkg, lyr_orig, overwrite='OVERWRITE=YES', promote_to_multi='PROMOTE_TO_MULTI=YES')
         self.assertIsNotNone(lyrs_dest)
         self.assertEqual(4, len(lyrs_dest))
+
+    def test_create_mono_geom_from_csv(self):
+        layer_gdal, nom_layer_gdal, ds_gdal = osgeo_utils.layer_gdal_from_file(
+            os.path.join(path_data, 'edificacio.zip'), 'CSV', default_order_long_lat=False)
+        for nom_geom in osgeo_utils.geoms_layer_gdal(layer_gdal):
+            fix_nom_geom = osgeo_utils.fix_suffix_geom_name_layer_gdal(nom_geom, layer_gdal)
+            ds_gdal_geojson, overwrited = osgeo_utils.datasource_gdal_vector_file(
+                'GEOJSON',
+                "{}-{}".format(nom_layer_gdal, fix_nom_geom.lower()),
+                path_data,
+                create=True)
+            osgeo_utils.add_layer_gdal_to_ds_gdal(ds_gdal_geojson, layer_gdal, lite=True, srs_epsg_code=4326,
+                                                  nom_geom=nom_geom)
 
 
 if __name__ == '__main__':
