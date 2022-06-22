@@ -1,1 +1,0 @@
-pip install -e "git+https://github.com/ernestone/python_packages#egg=python_packages&subdirectory=osgeo_utils_pckg"

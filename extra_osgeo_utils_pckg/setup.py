@@ -31,10 +31,10 @@ def readme():
 
 
 setup(
-    name='osgeo_utils',
+    name='extra_osgeo_utils',
     version='1.0',
     packages=find_packages(),
-    url=f'{GIT_REPO}/tree/master/osgeo_utils_pckg',
+    url=f'{GIT_REPO}/tree/master/extra_osgeo_utils_pckg',
     author='Ernesto Arredondo Martinez',
     author_email='ernestone@gmail.com',
     description='Osgeo GDAL utils for python',

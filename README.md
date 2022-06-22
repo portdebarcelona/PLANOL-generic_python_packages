@@ -17,13 +17,13 @@ To install:
 ```shell script
 pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=spatial_utils&subdirectory=spatial_utils_pckg"
 ```
-### Package _osgeo_utils_
+### Package _extra_osgeo_utils_
 Modules to add common functionality to `OSGEO GDAL`. Requires `GDAL` library C previously installed 
 (see how here https://gdal.org/download.html#binaries).
 
 To install:
 ```shell script
-pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=osgeo_utils&subdirectory=osgeo_utils_pckg"
+pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=extra_osgeo_utils&subdirectory=osgeo_utils_pckg"
 ```
 ### Package _cx_oracle_spatial_
 Modules to connect to `Oracle` database and treat his objects in a `sqlalchemy` style but dealing with spatial data as 

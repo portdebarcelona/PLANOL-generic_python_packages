@@ -3,7 +3,7 @@ import unittest
 
 import cx_Oracle
 from cx_oracle_spatial.gestor_oracle import gestor_oracle
-import osgeo_utils
+import extra_osgeo_utils
 
 path_project = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 path_data = os.path.join(path_project, 'resources/data')
@@ -37,14 +37,14 @@ class MyTestCase(unittest.TestCase):
 
     def test_transactions_ora(self):
         g = self.gest_ora
-        ds_csv, ovrwrt = osgeo_utils.datasource_gdal_vector_file(
+        ds_csv, ovrwrt = extra_osgeo_utils.datasource_gdal_vector_file(
             'CSV', 'edificacio.zip', path_data, create=False, from_zip=True)
         lyr_orig = ds_csv.GetLayer(0)
         geoms_lyr_orig = [*map(lambda fn: fn.replace('geom_', ''),
-                               osgeo_utils.geoms_layer_gdal(lyr_orig))]
+                               extra_osgeo_utils.geoms_layer_gdal(lyr_orig))]
         pk_ora = g.get_primary_key_table('edificacio')
         for vals, wkt in ((nt, g.ExportToIsoWkt() if g else None) for f, g, nt in
-                          osgeo_utils.feats_layer_gdal(lyr_orig, 'punt_base')):
+                          extra_osgeo_utils.feats_layer_gdal(lyr_orig, 'punt_base')):
             alfa_vals = {k: val for k, val in vals._asdict().items()
                          if k.upper() not in geoms_lyr_orig}
             key_vals = {k: val for k, val in alfa_vals.items() if k in pk_ora}

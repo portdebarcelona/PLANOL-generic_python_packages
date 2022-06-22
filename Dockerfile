@@ -20,7 +20,7 @@ RUN conda install --file environment.conda-forge.docker.yml -c conda-forge
 
 ENV PATH_DEVELOPER_MODE=/project
 RUN pip install --editable extra_utils_pckg
-RUN pip install --editable osgeo_utils_pckg
+RUN pip install --editable extra_osgeo_utils_pckg
 RUN pip install --editable spatial_utils_pckg
 RUN pip install --editable cx_oracle_spatial_pckg
 RUN pip install --editable pandas_utils_pckg

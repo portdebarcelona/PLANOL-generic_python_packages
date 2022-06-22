@@ -15,7 +15,7 @@ from osgeo import ogr
 from shapely.geometry import shape
 
 from extra_utils.misc import rounded_float
-import osgeo_utils
+import extra_osgeo_utils
 from spatial_utils import shapely_utils
 
 
@@ -596,7 +596,7 @@ class sdo_geom(object):
         if not geom_formatted:
             a_ogr_geom = self.as_ogr_geom()
             if srid and srid != self.__SDO_SRID:
-                a_ogr_geom = osgeo_utils.transform_ogr_geom(a_ogr_geom, self.__SDO_SRID, srid)
+                a_ogr_geom = extra_osgeo_utils.transform_ogr_geom(a_ogr_geom, self.__SDO_SRID, srid)
 
             if a_format in formats:
                 geom_formatted = getattr(a_ogr_geom,

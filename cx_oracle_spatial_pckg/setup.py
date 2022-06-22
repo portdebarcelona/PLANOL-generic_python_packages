@@ -31,7 +31,7 @@ def readme():
 
 setup(
     name='cx_oracle_spatial',
-    version='0.9',
+    version='1.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/cx_oracle_spatial_pckg',
     author='Ernesto Arredondo Martínez',
@@ -47,7 +47,7 @@ setup(
     install_requires=[
         'cx_oracle <9',
         'lxml',
-        format_requirement('osgeo_utils'),
+        format_requirement('extra_osgeo_utils'),
         format_requirement('spatial_utils')
     ],
     python_requires='>=3.6',
