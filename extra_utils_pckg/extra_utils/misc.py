@@ -10,6 +10,7 @@ import csv
 import datetime
 import errno
 import inspect
+import json
 import locale
 import os
 import re
@@ -21,6 +22,97 @@ from math import isnan
 from pathlib import Path
 from zipfile import ZipFile, ZIP_DEFLATED
 import jellyfish
+from urllib.request import build_opener, urlopen, Request
+from io import BytesIO
+
+
+def download_latest_release_repo_github(owner, repo, download_to, token=None):
+    """
+
+    Args:
+        owner:
+        repo:
+        download_to:
+        token:
+
+    Returns:
+        path_res
+    """
+    latest_headers = {
+        'Accept': 'application/vnd.github.v3+json'
+    }
+    if token:
+        latest_headers['Authorization'] = f'token {token}'
+
+    url_github = f'https://api.github.com/repos/{owner}/{repo}/releases/latest'
+
+    req = Request(url_github, headers=latest_headers, method='GET')
+    info_latest_release = {}
+    with urlopen(req) as resp_latest:
+        if resp_latest:
+            info_latest_release = json.load(resp_latest)
+
+    tag_name = info_latest_release.get('tag_name')
+    if tag_name:
+        html_release = f'https://github.com/{owner}/{repo}/archive/refs/tags/{tag_name}.zip'
+        download_header = {
+            'Accept': 'application/octet-stream'
+        }
+        if token:
+            download_header['Authorization'] = f'token {token}'
+
+        download_and_unzip(html_release,
+                           extract_to=download_to,
+                           headers=[(k, v) for k, v in download_header.items()])
+        path_res = os.path.join(download_to, f'{repo}-{tag_name}')
+        return path_res
+
+
+def download_branch_repo_github(owner, repo, branch, download_to, token=None):
+    """
+
+    Args:
+        owner:
+        repo:
+        branch:
+        download_to:
+        token:
+
+    Returns:
+        path_res
+    """
+    html_release = f'https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip'
+    download_header = {
+        'Accept': 'application/octet-stream'
+    }
+    if token:
+        download_header['Authorization'] = f'token {token}'
+
+    download_and_unzip(html_release,
+                       extract_to=download_to,
+                       headers=[(k, v) for k, v in download_header.items()])
+    path_res = os.path.join(download_to, f'{repo}-{branch}')
+    return path_res
+
+
+def download_and_unzip(url, extract_to=os.path.curdir, headers=None):
+    """
+
+    Args:
+        url (str):
+        extract_to (str=current_directory):
+        headers (list=None)
+
+    Returns:
+        path_zip (str)
+    """
+    opener = build_opener()
+    if headers:
+        opener.addheaders = headers
+
+    with opener.open(url) as http_response:
+        zipfile = ZipFile(BytesIO(http_response.read()))
+        zipfile.extractall(path=extract_to)
 
 
 def caller_name(skip=2):
