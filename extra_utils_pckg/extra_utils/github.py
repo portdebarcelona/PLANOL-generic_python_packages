@@ -74,7 +74,8 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
     path_res = os.path.join(dir_temp, name_zip)
 
     if os.path.exists(path_res):
-        remove_content_dir(path_repo)
+        if os.path.exists(path_repo):
+            remove_content_dir(path_repo)
         shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
         shutil.rmtree(path_res, ignore_errors=True)
 
