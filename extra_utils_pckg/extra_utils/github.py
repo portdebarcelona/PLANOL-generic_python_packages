@@ -37,7 +37,7 @@ def request_api_github(owner, repo, api_request, token=None):
     return info_response
 
 
-def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_update=False):
+def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_update=False, remove_prev=False):
     """
     
     Args:
@@ -47,6 +47,7 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
         path_repo (str):
         header (dict=None):
         force_update (bool=False):
+        remove_prev (bool=False):
 
     Returns:
         updated (bool)
@@ -74,7 +75,7 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
     path_res = os.path.join(dir_temp, name_zip)
 
     if os.path.exists(path_res):
-        if os.path.exists(path_repo):
+        if remove_prev and os.path.exists(path_repo):
             remove_content_dir(path_repo)
         shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
         shutil.rmtree(path_res, ignore_errors=True)
@@ -109,7 +110,8 @@ def download_latest_release_repo_github(owner, repo, download_to, token=None, fo
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to, header=header, force_update=force)
+        update_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to,
+                           header=header, force_update=force, remove_prev=force)
 
         return tag_name
 
@@ -140,6 +142,7 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_branch, sha_commit, f'{repo}-{branch}', download_to, header=header, force_update=force)
+        update_repo_github(html_branch, sha_commit, f'{repo}-{branch}', download_to,
+                           header=header, force_update=force, remove_prev=force)
 
         return sha_commit
