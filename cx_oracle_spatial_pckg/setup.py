@@ -5,8 +5,11 @@
 #   Created: 05/04/2020, 00:21
 #   Last modified: 05/04/2020, 00:21
 #   Copyright (c) 2020
-from setuptools import setup, find_packages
+import importlib
 import os
+
+from setuptools import setup, find_packages
+
 
 GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/portdebarcelona/PLANOL-generic_python_packages')
 
@@ -14,11 +17,18 @@ GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/portdebarcelona/PLANOL-gene
 def format_requirement(n_pckg):
     str_req = f'{n_pckg} @ git+{GIT_REPO}#egg={n_pckg}&subdirectory={n_pckg}_pckg'
 
-    path_dev = os.getenv('PATH_DEVELOPER_MODE')
-    if path_dev and os.path.exists(path_dev):
-        str_req = f'{n_pckg} @ ' \
-                  f'file://{os.path.join(path_dev, "{}_pckg".format(n_pckg))}' \
-                  f'#egg={n_pckg}'
+    path_dev = os.getenv('PATH_DEVELOPER_MODE', '')
+    path_pckg = os.path.join(path_dev, "{}_pckg".format(n_pckg))
+    if os.path.exists(path_pckg):
+        str_req = f'{n_pckg}'
+        try:
+            importlib.import_module(n_pckg)
+            print(f"In 'developer mode' no file path for required package '{n_pckg}' already installed")
+        except ImportError:
+            print(f"In 'developer mode' install required package '{n_pckg} from file path")
+            str_req = f'{n_pckg} @ ' \
+                      f'file://{path_pckg}' \
+                      f'#egg={n_pckg}'
 
     print(str_req)
     return str_req
