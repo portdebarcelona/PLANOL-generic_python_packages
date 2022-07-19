@@ -33,8 +33,8 @@ def set_instantclient_oracle():
             temp_zip = os.path.join(tempdir, zip_name)
             if not os.path.exists(temp_zip):
                 shutil.copy(path_instant_client_zip, tempdir)
-                zipfile = ZipFile(temp_zip)
-                zipfile.extractall(path=path_extract)
+            zipfile = ZipFile(temp_zip)
+            zipfile.extractall(path=path_extract)
         else:
             # Decide wich system
             sys_name = system().lower()
