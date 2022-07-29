@@ -5,11 +5,12 @@ channels:
 - anaconda
 - javascript
 dependencies:
-- python >=3.7,<4
-- nodejs <13
-- conda-forge::gdal >=3,<4
-- conda-forge::geopandas >=0.8,<0.9
-- cx_Oracle <9
-- pip >=20
+- python
+- nodejs=10.13
+- conda-forge::gdal=3.5
+- conda-forge::geopandas=0.8
+- ipython
+- cython
+- pip
 - pip:
    - --requirement file:requirements.txt

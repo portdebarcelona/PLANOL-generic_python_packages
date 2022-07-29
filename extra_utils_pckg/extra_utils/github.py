@@ -37,7 +37,7 @@ def request_api_github(owner, repo, api_request, token=None):
     return info_response
 
 
-def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_update=False):
+def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_update=False, remove_prev=False):
     """
     
     Args:
@@ -47,6 +47,7 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
         path_repo (str):
         header (dict=None):
         force_update (bool=False):
+        remove_prev (bool=False):
 
     Returns:
         updated (bool)
@@ -74,7 +75,7 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
     path_res = os.path.join(dir_temp, name_zip)
 
     if os.path.exists(path_res):
-        if os.path.exists(path_repo):
+        if remove_prev and os.path.exists(path_repo):
             remove_content_dir(path_repo)
         shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
         shutil.rmtree(path_res, ignore_errors=True)
@@ -87,50 +88,57 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
     return updated
 
 
-def download_latest_release_repo_github(owner, repo, download_to, token=None, force=False):
+def download_release_repo_github(owner, repo, download_to, tag_release=None, token=None, force=False):
     """
+    Download release Github repository on the path selected
 
     Args:
-        owner (str):
-        repo (str):
-        download_to (str):
-        token (str=None):
-        force (bool=False):
+        owner (str): Owner repository Github
+        repo (str): Name repository Github
+        download_to (str): Path to download
+        tag_release (str=None): if not informed get 'latest' release
+        token (str=None): Github token for private access
+        force (bool=False): Force update if exists previous sources
 
     Returns:
         tag_name (str)
     """
-    info_latest_release = request_api_github(owner, repo, 'releases/latest', token)
+    if not tag_release:
+        info_release = request_api_github(owner, repo, 'releases/latest', token)
+    else:
+        info_release = request_api_github(owner, repo, f'releases/tags/{tag_release}', token)
 
-    tag_name = info_latest_release.get('tag_name')
+    tag_name = info_release.get('tag_name')
     if tag_name:
         html_release = f'https://github.com/{owner}/{repo}/archive/refs/tags/{tag_name}.zip'
         header = {}
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to, header=header, force_update=force)
+        update_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to,
+                           header=header, force_update=force, remove_prev=force)
 
         return tag_name
 
 
 def download_branch_repo_github(owner, repo, branch, download_to, token=None, force=False):
     """
+    Download the branch selected for the Github repo on the path selected
 
     Args:
-        owner (str):
-        repo (str):
-        branch (str):
-        download_to (str):
-        token (str=None):
-        force (bool=False):
+        owner (str): Owner repository Github
+        repo (str): Name repository Github
+        branch (str): Branch repository to download
+        download_to (str): Path to download
+        token (str=None): Github token for private access
+        force (bool=False): Force update if exists previous sources
 
     Returns:
         sha_commit (str)
     """
     branch = branch.lower()
     info_branches = request_api_github(owner, repo, 'branches', token)
-    info_branch = next(filter(lambda el: el.get('name', '').lower() == branch, 
+    info_branch = next(filter(lambda el: el.get('name', '').lower() == branch,
                               info_branches), None)
 
     if info_branch:
@@ -140,6 +148,18 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_branch, sha_commit, f'{repo}-{branch}', download_to, header=header, force_update=force)
+        update_repo_github(html_branch, sha_commit, f'{repo}-{branch}', download_to,
+                           header=header, force_update=force, remove_prev=force)
 
         return sha_commit
+
+
+if __name__ == '__main__':
+    import fire, sys
+
+    sys.exit(fire.Fire(
+        {
+            download_release_repo_github.__name__: download_release_repo_github,
+            download_branch_repo_github.__name__: download_branch_repo_github
+        }
+    ))
