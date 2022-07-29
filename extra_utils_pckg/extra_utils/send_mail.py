@@ -84,10 +84,10 @@ def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'),
         for file_path in files:
             set_attachment_to_msg(msg, file_path)
 
+    context = ssl.create_default_context()
     srv = None
     try:
         codi = 0
-        context = ssl.create_default_context()
         srv = smtplib.SMTP(server)
         srv.ehlo()
         srv.starttls(context=context)
@@ -120,9 +120,9 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
         *attach_path_files: PATHs de ficheros a adjuntar
 
     Returns:
-        ok (bool)
+        codi (int)
     """
-    ok = False
+    codi = 1
     subject = "{} {}".format(os.getenv("COMPUTERNAME"), subject)
 
     # SendMail
@@ -136,11 +136,12 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
                                   files=list(attach_path_files),
                                   to_html=to_html)
 
-        ok = (codi == 0)
-    except:
+    except Exception as exc:
+        import traceback
+        print(traceback.format_exc())
         warnings.warn("No se ha podido enviar el mail con subject '{subject}'".format(subject=subject))
 
-    return ok
+    return codi
 
 
 if __name__ == '__main__':
