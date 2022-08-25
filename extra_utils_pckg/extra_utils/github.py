@@ -4,7 +4,7 @@ import shutil
 from tempfile import mkdtemp
 from urllib.request import Request, urlopen
 
-from extra_utils.misc import download_and_unzip, remove_content_dir
+from extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir
 
 FILE_LAST_TAG_REPO = 'last_tag_repo.txt'
 
@@ -37,7 +37,8 @@ def request_api_github(owner, repo, api_request, token=None):
     return info_response
 
 
-def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_update=False, remove_prev=False):
+def get_resources_from_repo_github(html_repo, tag, name_zip, path_repo, header=None,
+                                   force_update=False, remove_prev=False, as_zip=False):
     """
     
     Args:
@@ -48,6 +49,7 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
         header (dict=None):
         force_update (bool=False):
         remove_prev (bool=False):
+        as_zip (bool=False):
 
     Returns:
         updated (bool)
@@ -75,22 +77,26 @@ def update_repo_github(html_repo, tag, name_zip, path_repo, header=None, force_u
     path_res = os.path.join(dir_temp, name_zip)
 
     if os.path.exists(path_res):
-        if remove_prev and os.path.exists(path_repo):
-            remove_content_dir(path_repo)
-        shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
-        shutil.rmtree(path_res, ignore_errors=True)
+        if as_zip:
+            zip_dir(path_res, os.path.join(path_repo, f'{name_zip}.zip'))
+        else:
+            if remove_prev and os.path.exists(path_repo):
+                remove_content_dir(path_repo)
+            shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
+            shutil.rmtree(path_res, ignore_errors=True)
 
-        with open(log_last_tag, "w+") as fw:
-            fw.write(tag)
+            with open(log_last_tag, "w+") as fw:
+                fw.write(tag)
 
         updated = True
 
     return updated
 
 
-def download_release_repo_github(owner, repo, download_to, tag_release=None, token=None, force=False):
+def download_release_repo_github(owner, repo, download_to, tag_release=None, token=None, force=False, as_zip=False,
+                                 remove_prev=False):
     """
-    Download release Github repository on the path selected
+    Download release Github repository on the path selected.
 
     Args:
         owner (str): Owner repository Github
@@ -99,6 +105,8 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         tag_release (str=None): if not informed get 'latest' release
         token (str=None): Github token for private access
         force (bool=False): Force update if exists previous sources
+        remove_prev (bool=False): Remove all previous resources
+        as_zip (bool=False): Retorna como ZIP
 
     Returns:
         tag_name (str)
@@ -115,13 +123,14 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to,
-                           header=header, force_update=force, remove_prev=force)
+        get_resources_from_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to,
+                                       header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
 
         return tag_name
 
 
-def download_branch_repo_github(owner, repo, branch, download_to, token=None, force=False):
+def download_branch_repo_github(owner, repo, branch, download_to, token=None, force=False, as_zip=False,
+                                remove_prev=False):
     """
     Download the branch selected for the Github repo on the path selected
 
@@ -132,6 +141,8 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         download_to (str): Path to download
         token (str=None): Github token for private access
         force (bool=False): Force update if exists previous sources
+        remove_prev (bool=False): Remove all previous resources
+        as_zip (bool=False): Retorna como ZIP
 
     Returns:
         sha_commit (str)
@@ -148,8 +159,15 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         if token:
             header['Authorization'] = f'token {token}'
 
-        update_repo_github(html_branch, sha_commit, f'{repo}-{branch}', download_to,
-                           header=header, force_update=force, remove_prev=force)
+        name_zip = f'{repo}-{branch}'
+        get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
+                                       header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
+
+        if as_zip:
+            path_zip = os.path.join(download_to, f'{name_zip}.zip')
+            if os.path.exists(path_zip):
+                new_path_zip = os.path.join(download_to, f'{name_zip}-{sha_commit}.zip')
+                os.rename(path_zip, new_path_zip)
 
         return sha_commit
 
