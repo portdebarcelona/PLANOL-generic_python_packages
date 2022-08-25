@@ -504,8 +504,8 @@ def zip_files(zip_path, file_paths, base_path=None, compression=ZIP_DEFLATED):
     with ZipFile(zip_path, "w", compression=compression, allowZip64=True) as my_zip:
         for file_path in file_paths:
             if base_path:
-                re_base_path = re.compile(os.path.normpath(base_path), re.IGNORECASE)
-                arch_name = re_base_path.sub('', os.path.normpath(file_path))
+                re_base_path = re.compile(os.path.normpath(base_path).replace(os.sep, '/'), re.IGNORECASE)
+                arch_name = re_base_path.sub('', os.path.normpath(file_path).replace(os.sep, '/'))
             else:
                 arch_name = os.path.basename(file_path)
 
