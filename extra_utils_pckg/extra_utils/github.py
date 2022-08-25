@@ -4,9 +4,9 @@ import shutil
 from tempfile import mkdtemp
 from urllib.request import Request, urlopen
 
-from extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir
+from extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir, create_dir
 
-FILE_LAST_TAG_REPO = 'last_tag_repo.txt'
+PREFIX_FILE_LAST_TAG_REPO = 'last_tag_repo_github_'
 
 
 def request_api_github(owner, repo, api_request, token=None):
@@ -37,14 +37,14 @@ def request_api_github(owner, repo, api_request, token=None):
     return info_response
 
 
-def get_resources_from_repo_github(html_repo, tag, name_zip, path_repo, header=None,
+def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_repo, header=None,
                                    force_update=False, remove_prev=False, as_zip=False):
     """
     
     Args:
         html_repo (str):
         tag (str):
-        name_zip (str):
+        expected_name_zip_repo (str):
         path_repo (str):
         header (dict=None):
         force_update (bool=False):
@@ -55,7 +55,7 @@ def get_resources_from_repo_github(html_repo, tag, name_zip, path_repo, header=N
         updated (bool)
     """
     updated = False
-    log_last_tag = os.path.join(path_repo, FILE_LAST_TAG_REPO)
+    log_last_tag = os.path.join(path_repo, f'.{PREFIX_FILE_LAST_TAG_REPO}{expected_name_zip_repo}')
 
     if not force_update:
         last_tag = None
@@ -74,19 +74,22 @@ def get_resources_from_repo_github(html_repo, tag, name_zip, path_repo, header=N
     download_and_unzip(html_repo,
                        extract_to=dir_temp,
                        headers=[(k, v) for k, v in header.items()])
-    path_res = os.path.join(dir_temp, name_zip)
+    path_res = os.path.join(dir_temp, expected_name_zip_repo)
 
     if os.path.exists(path_res):
+        create_dir(path_repo)
+
         if as_zip:
-            zip_dir(path_res, os.path.join(path_repo, f'{name_zip}.zip'))
+            zip_dir(path_res, os.path.join(path_repo, f'{expected_name_zip_repo}.zip'))
         else:
             if remove_prev and os.path.exists(path_repo):
                 remove_content_dir(path_repo)
             shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
-            shutil.rmtree(path_res, ignore_errors=True)
 
-            with open(log_last_tag, "w+") as fw:
-                fw.write(tag)
+        shutil.rmtree(path_res, ignore_errors=True)
+
+        with open(log_last_tag, "w+") as fw:
+            fw.write(tag)
 
         updated = True
 
@@ -167,6 +170,8 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
             path_zip = os.path.join(download_to, f'{name_zip}.zip')
             if os.path.exists(path_zip):
                 new_path_zip = os.path.join(download_to, f'{name_zip}-{sha_commit}.zip')
+                if os.path.exists(new_path_zip):
+                    os.remove(new_path_zip)
                 os.rename(path_zip, new_path_zip)
 
         return sha_commit
