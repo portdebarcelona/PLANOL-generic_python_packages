@@ -1,7 +1,7 @@
 name: python_packages_DEV
 channels:
-- defaults
 - conda-forge
+- defaults
 - anaconda
 - javascript
 dependencies:
