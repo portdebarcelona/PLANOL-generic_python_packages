@@ -374,9 +374,10 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         layer_out (ogr.Layer)
     """
     desc_ds_gdal = ds_gdal_dest.GetDescription()
+    drvr_name = ds_gdal_dest.GetDriver().GetName().upper()
     print_debug("Inici crear layer '{}' en ds_gdal '{}'".format(
         (nom_layer if nom_layer else layer_src.GetName()).upper(),
-        desc_ds_gdal if desc_ds_gdal else ds_gdal_dest.GetDriver().GetName()))
+        desc_ds_gdal if desc_ds_gdal else drvr_name))
 
     geoms_src = geoms_layer_gdal(layer_src)
     camps_src = cols_layer_gdal(layer_src)
@@ -455,7 +456,10 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
             if str_epsg_code:
                 epsg_code_dest = int(str_epsg_code)
 
-    drvr_name = ds_gdal_dest.GetDriver().GetName().upper()
+        if epsg_code_dest == 4326 and drvr_name in ('KML', ):
+            srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping=False) # Long-Lat
+            geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
+
     if ds_gdal_dest.TestCapability(ODsCCreateLayer):
         layer_out, nom_layer = create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom_sel, gtype, epsg_code_dest,
                                                        **extra_opt_list)
