@@ -14,6 +14,7 @@ from math import atan2, degrees
 from osgeo import ogr
 from shapely.geometry import shape
 
+from extra_osgeo_utils import srs_ref_from_epsg_code
 from extra_utils.misc import rounded_float
 import extra_osgeo_utils
 from spatial_utils import shapely_utils
@@ -217,21 +218,26 @@ class sdo_geom(object):
         """
         return [tuple(rounded_float(v) for v in c) for c in self._sdo_ordinates_as_coords(idx_ini, idx_fi)]
 
-    def coords_elems_geom(self, grup_holes=True):
+    def coords_elems_geom(self, grup_holes=True, inverse_coords=False):
         """
         Devuelve las coordenadas agrupadas por listas para cada sub-elemento (poligono, agujero) que compone la geom
         Args:
-            grup_holes: Por defecto agrupa los agujeros en una lista
+            grup_holes (bool=True): Por defecto agrupa los agujeros en una lista
+            inverse_coords (bool=False): En Oracle viene en formato LONG-LAT y
+                                        ahora OGC GDAL desde v3.4 el estandard WKT LAT-LONG
 
         Returns:
             list
         """
         coords_elems = []
+
         if re.match(r'.*Polygon', self.__type_geojson, re.IGNORECASE):
             pols = None
             holes = None
             for elems_geom in self.iter_elems_geom():
                 crds = elems_geom[1]
+                if inverse_coords:
+                    crds = [(c[1], c[0]) for c in crds]
                 if elems_geom[0] == "Polygon":
                     pols = []
                     holes = None
@@ -249,10 +255,15 @@ class sdo_geom(object):
                 coords_elems = coords_elems[0]
         elif re.match(r'Multi.*', self.__type_geojson, re.IGNORECASE):
             for elems_geom in self.iter_elems_geom():
-                coords_elems.append(elems_geom[1])
+                crds = elems_geom[1]
+                if inverse_coords:
+                    crds = [(c[1], c[0]) for c in crds]
+                coords_elems.append(crds)
         else:
             for elems_geom in self.iter_elems_geom():
                 for c in elems_geom[1]:
+                    if inverse_coords and isinstance(c, tuple):
+                        c = (c[1], c[0])
                     coords_elems.append(c)
 
         return coords_elems
@@ -471,7 +482,15 @@ class sdo_geom(object):
             osgeo.ogr.Geometry
         """
         if not self.__ogr_geom and self.__type_geojson:
-            self.__ogr_geom = ogr.CreateGeometryFromJson(self.as_geojson())
+            ogr_geom = ogr.CreateGeometryFromJson(self.as_geojson())
+            try:
+                # Check if GDAL is version with SRS strategy
+                from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
+                ogr_geom.TransformTo(srs_ref_from_epsg_code(4326, old_axis_mapping=False))
+            except ModuleNotFoundError:
+                pass
+
+            self.__ogr_geom = ogr_geom
 
         return self.__ogr_geom
 
