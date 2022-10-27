@@ -14,7 +14,6 @@ from math import atan2, degrees
 from osgeo import ogr
 from shapely.geometry import shape
 
-from extra_osgeo_utils import srs_ref_from_epsg_code
 from extra_utils.misc import rounded_float
 import extra_osgeo_utils
 from spatial_utils import shapely_utils
@@ -482,15 +481,7 @@ class sdo_geom(object):
             osgeo.ogr.Geometry
         """
         if not self.__ogr_geom and self.__type_geojson:
-            ogr_geom = ogr.CreateGeometryFromJson(self.as_geojson())
-            try:
-                # Check if GDAL is version with SRS strategy
-                from osgeo.osr import OAMS_TRADITIONAL_GIS_ORDER
-                ogr_geom.TransformTo(srs_ref_from_epsg_code(4326, old_axis_mapping=False))
-            except ModuleNotFoundError:
-                pass
-
-            self.__ogr_geom = ogr_geom
+            self.__ogr_geom = ogr.CreateGeometryFromJson(self.as_geojson())
 
         return self.__ogr_geom
 
