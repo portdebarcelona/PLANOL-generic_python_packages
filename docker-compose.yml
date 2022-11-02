@@ -20,7 +20,7 @@ services:
     environment:
       - ORACLE_DISABLE_ASYNCH_IO=true
   python_packages:
-    container_name: conda_python_packages
+    container_name: python_packages
     build: .
     volumes:
       - .:/project
