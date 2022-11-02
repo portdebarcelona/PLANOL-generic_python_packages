@@ -17,6 +17,7 @@ from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTr
 
 from extra_utils import misc as utils
 
+DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG')
 SUFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 
 print_debug = logging.debug
@@ -94,10 +95,8 @@ def layer_gdal_from_file(path_file: str,
                 elif idx_geom > 0:
                     # Convertimos a layer en MEMORY para poder cambiar estructura
                     ds_mem = ds_gdal_memory()
-                    a_layer = create_layer_from_layer_gdal_on_ds_gdal(
-                        ds_mem, a_layer, nom_layer,
-                        nom_geom, unic_geom=False, exclude_cols_geoms=False,
-                        null_geoms=True)
+                    a_layer = create_layer_from_layer_gdal_on_ds_gdal(ds_mem, a_layer, nom_layer, nom_geom,
+                                                                      exclude_cols_geoms=False, null_geoms=True)
                     if a_layer:
                         ds_vector_file = ds_mem
 
@@ -342,10 +341,10 @@ def layer_gtype_from_geoms(layer_gdal, nom_geom=None):
                     layer_gdal.GetGeomType())
 
 
-def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=None, nom_geom=None, unic_geom=True,
-                                            sel_camps=None, exclude_cols_geoms=True, tolerance_simplify=None,
-                                            null_geoms=False, gtype_layer_from_geoms=True, epsg_code_dest=None,
-                                            epsg_code_src_default=4326, **extra_opt_list):
+def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=None, nom_geom=None, sel_camps=None,
+                                            exclude_cols_geoms=True, tolerance_simplify=None, null_geoms=False,
+                                            gtype_layer_from_geoms=True, epsg_code_dest=None,
+                                            epsg_code_src_default=4326, old_axis_mapping_srs=None, **extra_opt_list):
     """
     Crea nuevo layer a partir de layer_gdal.
 
@@ -355,8 +354,6 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         nom_layer (str=None):
         nom_geom (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
                             como ALIAS de la geometria 0 (la defecto) de la nueva layer resultante
-        unic_geom (bool=True): Por defecto solo se cogerá la geometria activa o la que se corresponda
-                                con el arg. NOM_GEOM para la nueva layer_out aunque la original sea multigeometria
         sel_camps (list=None): OPC - Lista de campos a escoger de la layer original
         exclude_cols_geoms (bool=True): Por defecto de la lista de columnas alfanuméricas (no geometrias) excluirá las
                                        columnas que hagan referencia a alguna de las geometrias
@@ -368,6 +365,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                                 encontrada en la layer_origen
         epsg_code_dest (int=None): Codigo EPSG para le que se transformarán las geometrias desde el SRS original
         epsg_code_src_default (int=4326): Codigo EPSG que se usará para las layer_src que NO tengan SRS asignado
+        old_axis_mapping_srs (bool=None): setea si quieres usar old mapping axes en (LONG, LAT) (GDAL >3.2)  
         **extra_opt_list (str): Lista claves-valores de opciones para createLayer del driver de ds_gdal indicado
 
     Returns:
@@ -444,24 +442,20 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     geom_transform = None
     srs_lyr_dest = None
     if not srs_lyr_src and epsg_code_src_default:
-        srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default)
+        srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default, old_axis_mapping=old_axis_mapping_srs)
     if srs_lyr_src:
+        if old_axis_mapping_srs is None and epsg_code_dest == 4326:
+            old_axis_mapping_srs = drvr_name in DRIVERS_OLD_SRS_AXIS_MAPPING_4326
+
         if epsg_code_dest:
-            srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest)
+            srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping=old_axis_mapping_srs)
             if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
                 geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
         else:
             srs_lyr_dest = srs_lyr_src
-            str_epsg_code = srs_lyr_src.GetAuthorityCode("GEOGCS")  # Se presupone SRS tipo GEOGCS
-            if str_epsg_code:
-                epsg_code_dest = int(str_epsg_code)
-
-        if epsg_code_dest == 4326 and drvr_name in ('KML', ):
-            srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping=False) # Long-Lat
-            geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
 
     if ds_gdal_dest.TestCapability(ODsCCreateLayer):
-        layer_out, nom_layer = create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom_sel, gtype, epsg_code_dest,
+        layer_out, nom_layer = create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom_sel, gtype, srs_lyr_dest,
                                                        **extra_opt_list)
     else:
         layer_out = ds_gdal_dest.GetLayer(0)
@@ -529,7 +523,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     return ds_gdal_dest.GetLayerByName(nom_layer)
 
 
-def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, epsg_code_srs=None, **extra_opt_list):
+def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, srs_lyr_out=None, **extra_opt_list):
     """
 
     Args:
@@ -537,7 +531,7 @@ def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, 
         nom_layer (str):
         nom_geom (str=None):
         gtype (OGRwkbGeometryType=None): Indicar integer representativo del tipo de geometria de la layer (ogr.wkbPoint, ogr.wkbPolygon, ogr.LineString, ...)
-        epsg_code_srs (int=None): codigo epsg del sistema de coordenadas de la geometria
+        srs_lyr_out (osr.SpatialReference=None): codigo epsg del sistema de coordenadas de la geometria
         **extra_opt_list: Calves valores option list creacion layer gdal
 
     Returns:
@@ -548,10 +542,8 @@ def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, 
     opt_list = {k.upper(): v.upper() for k, v in extra_opt_list.items()}
 
     opt_geom_name = "GEOMETRY_NAME"
-    srs_lyr_out = None
     if nom_geom:
         opt_list[opt_geom_name] = "{}={}".format(opt_geom_name, nom_geom.upper())
-        srs_lyr_out = srs_ref_from_epsg_code(epsg_code_srs)
     else:
         if opt_geom_name in opt_list:
             opt_list.pop(opt_geom_name)
@@ -973,16 +965,12 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
                 extra_opt_list["GEOMETRY_NAME"] = "GEOMETRY_NAME={}".format(geom_name_layer)
                 lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, geom_name,
                                                               tolerance_simplify=tol, null_geoms=null_geoms,
-                                                              epsg_code_dest=srs_epsg_code,
-                                                              **extra_opt_list)
+                                                              epsg_code_dest=srs_epsg_code, **extra_opt_list)
                 new_layers_ds_gdal.append(lyr)
         else:
-            lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, unic_geom=False,
-                                                          exclude_cols_geoms=False,
-                                                          null_geoms=True,
-                                                          tolerance_simplify=tol,
-                                                          epsg_code_dest=srs_epsg_code,
-                                                          **extra_opt_list)
+            lyr = create_layer_from_layer_gdal_on_ds_gdal(ds_gdal, layer_gdal, nom_layer, exclude_cols_geoms=False,
+                                                          tolerance_simplify=tol, null_geoms=True,
+                                                          epsg_code_dest=srs_epsg_code, **extra_opt_list)
             new_layers_ds_gdal.append(lyr)
     else:
         lyr = copy_layer_gdal_to_ds_gdal(layer_gdal, ds_gdal, nom_layer.lower())
@@ -1069,20 +1057,18 @@ def set_csvt_for_layer_csv(path_csv, **tipus_camps):
         f_csvt.write(",".join(tips_lyr.values()))
 
 
-def convert_angle(pt_xy, deg_ang, orig_epsg_code, dest_epsg_code):
+def convert_angle(pt_xy, deg_ang, orig_srs, dest_srs):
     """
 
     Args:
         pt_xy (tuple):
         deg_ang (float):
-        orig_epsg_code (int):
-        dest_epsg_code (int):
+        orig_srs (osr.SpatialReference):
+        dest_srs (osr.SpatialReference):
 
     Returns:
 
     """
-    orig_srs = srs_ref_from_epsg_code(orig_epsg_code)
-    dest_srs = srs_ref_from_epsg_code(dest_epsg_code)
     trans = osr.CoordinateTransformation(orig_srs, dest_srs)
     x, y = pt_xy
     dx = math.sin(math.radians(deg_ang)) * 0.00000001
