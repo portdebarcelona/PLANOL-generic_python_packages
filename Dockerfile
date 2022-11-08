@@ -67,10 +67,10 @@ RUN apt-get update \
     && echo $TZ > /etc/timezone
 
 RUN mkdir /venv && \
-    chmod -R o=rx /venv
+    chmod -R o=rwx /venv
 
 # Copy /venv from the previous stage:
-COPY --from=build /venv /venv
+COPY --from=build --chown=appuser /venv /venv
 ENV VIRTUAL_ENV=/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
@@ -81,6 +81,8 @@ ENV TZ=Europe/Madrid
 RUN mkdir /project
 RUN chown -R appuser /project
 WORKDIR /project
+
+RUN python3 -m venv $VIRTUAL_ENV
 
 ENV PATH_DEVELOPER_MODE=/project
 COPY ./extra_utils_pckg/ ./extra_utils_pckg/
