@@ -67,10 +67,11 @@ RUN apt-get update \
     && echo $TZ > /etc/timezone
 
 RUN mkdir /venv && \
-    chmod -R o=rwx /venv
+    chown -R appuser:root /venv && \
+    chmod -R u=rwx,g=rwx,o=rwx /venv
 
 # Copy /venv from the previous stage:
-COPY --from=build --chown=appuser /venv /venv
+COPY --from=build --chown=appuser:root /venv /venv
 ENV VIRTUAL_ENV=/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
@@ -78,30 +79,31 @@ LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
 ENV TZ=Europe/Madrid
 
-RUN mkdir /project
-RUN chown -R appuser /project
+RUN mkdir /project && \
+    chown -R appuser:root /project && \
+    chmod -R u=rwx,g=rwx,o=rwx /project
 WORKDIR /project
 
-RUN python3 -m venv $VIRTUAL_ENV
+USER appuser
+
+RUN python -m venv $VIRTUAL_ENV
 
 ENV PATH_DEVELOPER_MODE=/project
-COPY ./extra_utils_pckg/ ./extra_utils_pckg/
+COPY --chown=appuser:root ./extra_utils_pckg/ ./extra_utils_pckg/
 RUN pip install --editable extra_utils_pckg --no-cache-dir
 
-COPY ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
+COPY --chown=appuser:root ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
 RUN pip install --editable extra_osgeo_utils_pckg --no-cache-dir
 
-COPY ./spatial_utils_pckg/ ./spatial_utils_pckg/
+COPY --chown=appuser:root ./spatial_utils_pckg/ ./spatial_utils_pckg/
 RUN pip install --editable spatial_utils_pckg --no-cache-dir
 
-COPY ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
+COPY --chown=appuser:root ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
 # Set env var for package python cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
 RUN pip install --editable cx_oracle_spatial_pckg --no-cache-dir
 
-COPY ./pandas_utils_pckg/ ./pandas_utils_pckg/
+COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN pip install --editable pandas_utils_pckg --no-cache-dir
-
-USER appuser
 
 CMD ["python"]

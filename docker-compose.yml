@@ -8,7 +8,6 @@ services:
       - ./docker_settings/postgis.env
     networks:
       app_net:
-        ipv4_address: 10.92.1.6
     ports:
       - 25432:5432
     volumes:
@@ -20,7 +19,6 @@ services:
       - oracle_xe-vol:/u01/app/oracle
     networks:
       app_net:
-        ipv4_address: 10.92.1.5
     ports:
       - 25521:1521
     environment:
@@ -33,7 +31,6 @@ services:
       - .:/project
     networks:
       app_net:
-        ipv4_address: 10.92.1.10
     depends_on:
       - db_ora_pyckg
       - db_pg_pyckg
@@ -43,7 +40,7 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: "10.92.1.0/24"
+        - subnet: "10.92.2.0/24"
 
 volumes: 
   oracle_xe-vol:
