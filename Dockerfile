@@ -53,7 +53,8 @@ RUN mkdir --parents $ORACLE_HOME && \
     chmod -R o=rx ${ORACLE_HOME} && \
     mkdir ${TNS_ADMIN}
 
-RUN apt-get update \
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update && apt-get upgrade -yq \
     && apt-get install -yq --no-install-recommends alien libaio1 \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i $rpm; done \
@@ -63,6 +64,7 @@ RUN apt-get update \
     && rm -rf /tmp/oracle \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /app \
+    && apt-get clean \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
