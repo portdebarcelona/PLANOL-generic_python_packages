@@ -217,21 +217,26 @@ class sdo_geom(object):
         """
         return [tuple(rounded_float(v) for v in c) for c in self._sdo_ordinates_as_coords(idx_ini, idx_fi)]
 
-    def coords_elems_geom(self, grup_holes=True):
+    def coords_elems_geom(self, grup_holes=True, inverse_coords=False):
         """
         Devuelve las coordenadas agrupadas por listas para cada sub-elemento (poligono, agujero) que compone la geom
         Args:
-            grup_holes: Por defecto agrupa los agujeros en una lista
+            grup_holes (bool=True): Por defecto agrupa los agujeros en una lista
+            inverse_coords (bool=False): En Oracle viene en formato LONG-LAT y
+                                        ahora OGC GDAL desde v3.4 el estandard WKT LAT-LONG
 
         Returns:
             list
         """
         coords_elems = []
+
         if re.match(r'.*Polygon', self.__type_geojson, re.IGNORECASE):
             pols = None
             holes = None
             for elems_geom in self.iter_elems_geom():
                 crds = elems_geom[1]
+                if inverse_coords:
+                    crds = [(c[1], c[0]) for c in crds]
                 if elems_geom[0] == "Polygon":
                     pols = []
                     holes = None
@@ -249,10 +254,15 @@ class sdo_geom(object):
                 coords_elems = coords_elems[0]
         elif re.match(r'Multi.*', self.__type_geojson, re.IGNORECASE):
             for elems_geom in self.iter_elems_geom():
-                coords_elems.append(elems_geom[1])
+                crds = elems_geom[1]
+                if inverse_coords:
+                    crds = [(c[1], c[0]) for c in crds]
+                coords_elems.append(crds)
         else:
             for elems_geom in self.iter_elems_geom():
                 for c in elems_geom[1]:
+                    if inverse_coords and isinstance(c, tuple):
+                        c = (c[1], c[0])
                     coords_elems.append(c)
 
         return coords_elems
