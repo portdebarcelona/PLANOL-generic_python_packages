@@ -10,53 +10,63 @@ ARG path_oracle_client=./config/oracle/
 ENV PYTHONUNBUFFERED 1
 ENV LANG C.UTF-8
 
+RUN useradd --create-home appuser
+
 RUN mkdir /project
 WORKDIR /project
 
-COPY environment.yml .
+COPY --chown=appuser:root environment.yml .
 RUN conda env create -f environment.yml && conda clean --all
 
-COPY requirements.txt .
+COPY --chown=appuser:root requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
 
-COPY ./config/unix/post_install_python.sh .
+COPY --chown=appuser:root ./config/unix/post_install_python.sh .
 RUN chmod u=rwx post_install_python.sh && conda run -n python_packages ./post_install_python.sh
 
 # Instant client
-COPY $path_oracle_client /tmp/oracle
+COPY --chown=appuser:root $path_oracle_client /tmp/oracle
 ENV ORACLE_HOME=/usr/lib/oracle/${oracle_client_version}/client64
 ENV LD_LIBRARY_PATH=$ORACLE_HOME/lib
 ENV TNS_ADMIN=/usr/lib/oracle/${oracle_client_version}/client64/tns
-RUN apt-get update \
+
+RUN mkdir --parents $ORACLE_HOME && \
+    chmod -R o=rx ${ORACLE_HOME} && \
+    mkdir ${TNS_ADMIN}
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update && apt-get upgrade -yq \
     && apt-get install -yq --no-install-recommends alien libaio1 \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i $rpm; done \
-    && ln -s /usr/include/oracle/${oracle_client_version}/client64 ${ORACLE_HOME}/include \
-    && mkdir ${TNS_ADMIN} \
+    && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
     # Remove alien and unnecesary deps.
     && apt-get -yq remove --auto-remove --purge alien \
     && rm -rf /tmp/oracle \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /app \
+    && apt-get clean \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
+USER appuser
+
 ENV PATH_DEVELOPER_MODE=/project
-COPY ./extra_utils_pckg/ ./extra_utils_pckg/
+COPY --chown=appuser:root ./extra_utils_pckg/ ./extra_utils_pckg/
 RUN conda run -n python_packages pip install --editable extra_utils_pckg --no-cache-dir
 
-COPY ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
+COPY --chown=appuser:root ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
 RUN conda run -n python_packages pip install --editable extra_osgeo_utils_pckg --no-cache-dir
 
-COPY ./spatial_utils_pckg/ ./spatial_utils_pckg/
+COPY --chown=appuser:root ./spatial_utils_pckg/ ./spatial_utils_pckg/
 RUN conda run -n python_packages pip install --editable spatial_utils_pckg --no-cache-dir
 
-COPY ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
+COPY --chown=appuser:root ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
 # Set env var for package python cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
 RUN conda run -n python_packages pip install --editable cx_oracle_spatial_pckg --no-cache-dir
 
-COPY ./pandas_utils_pckg/ ./pandas_utils_pckg/
+COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN conda run -n python_packages pip install --editable pandas_utils_pckg --no-cache-dir
 
 CMD ["conda", "run", "-n", "python_packages", "python"]
