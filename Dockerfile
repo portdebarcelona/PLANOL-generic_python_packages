@@ -77,6 +77,15 @@ COPY --from=build --chown=appuser:root /venv /venv
 ENV VIRTUAL_ENV=/venv
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
+# Set env vars for GDAL & PROJ
+ENV CPL_ZIP_ENCODING=UTF-8
+ENV LC_ALL=C.UTF-8
+ENV GSETTINGS_SCHEMA_DIR=${VIRTUAL_ENV}/share/glib-2.0/schemas
+ENV GDAL_DRIVER_PATH=${VIRTUAL_ENV}/lib/gdalplugins
+ENV GDAL_DATA=${VIRTUAL_ENV}/share/gdal
+ENV PROJ_DATA=${VIRTUAL_ENV}/share/proj
+ENV PROJ_NETWORK=ON
+
 LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
 ENV TZ=Europe/Madrid
