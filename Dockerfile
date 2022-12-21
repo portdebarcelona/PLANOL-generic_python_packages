@@ -57,7 +57,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
     && apt-get install -yq --no-install-recommends alien libaio1 locales locales-all \
     && cd /tmp/oracle \
-    && for rpm in ./*.rpm; do alien -i $rpm; done \
+    && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
     && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
     # Remove alien and unnecesary deps.
     && apt-get -yq remove --auto-remove --purge alien \
