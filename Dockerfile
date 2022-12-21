@@ -55,7 +55,7 @@ RUN mkdir --parents $ORACLE_HOME && \
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends alien libaio1 \
+    && apt-get install -yq --no-install-recommends alien libaio1 locales locales-all \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i $rpm; done \
     && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
@@ -68,6 +68,12 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
     && echo $TZ > /etc/timezone
 
+ARG ARG_LANG=es_ES.UTF-8
+ENV LANG=$ARG_LANG
+ENV LANGUAGE=$ARG_LANG
+ENV LC_ALL=$ARG_LANG
+ENV PYTHONUNBUFFERED 1
+
 RUN mkdir /venv && \
     chown -R appuser:root /venv && \
     chmod -R u=rwx,g=rwx,o=rwx /venv
@@ -79,7 +85,6 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Set env vars for GDAL & PROJ
 ENV CPL_ZIP_ENCODING=UTF-8
-ENV LC_ALL=C.UTF-8
 ENV GSETTINGS_SCHEMA_DIR=${VIRTUAL_ENV}/share/glib-2.0/schemas
 ENV GDAL_DRIVER_PATH=${VIRTUAL_ENV}/lib/gdalplugins
 ENV GDAL_DATA=${VIRTUAL_ENV}/share/gdal
