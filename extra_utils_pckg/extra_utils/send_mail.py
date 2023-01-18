@@ -44,9 +44,8 @@ def set_attachment_to_msg(msg, file_path):
                            filename=os.path.basename(file_path))
 
 
-def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'),
-                       frm='', to='', subject='', body='', lineSep='not_line_separator', files=None,
-                       to_html=False):
+def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'), frm='', to='', subject='', body='',
+                       lineSep='not_line_separator', files=None, to_html=False, tls=True):
     """
     Permet enviar un E-mail des de FROM a TO amb SUBJECT amb BOBY line_separator (cas body amb multilinea) i ATTACH
 
@@ -60,7 +59,7 @@ def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'),
         files (list=None): lista de paths de ficheros a adjuntar
         to_html (bool=False): Si true parsea con docutils (reestructuredText [rst], Latex, ...)
                               el texto del body enviado y lo convierte a html
-
+        tls (bool=True): start TLS
     Returns:
 
     """
@@ -84,17 +83,24 @@ def sendMailWithAttach(server=os.environ.get('MAIL_SERVER', 'server-mail.com'),
         for file_path in files:
             set_attachment_to_msg(msg, file_path)
 
-    context = ssl.create_default_context()
+    context = None
+    if tls:
+        context = ssl.create_default_context()
     srv = None
     try:
         codi = 0
         srv = smtplib.SMTP(server)
         srv.ehlo()
-        srv.starttls(context=context)
+        if tls:
+            try:
+                srv.starttls(context=context)
+            except smtplib.SMTPNotSupportedError as exc:
+                print(f"El server SMTP '{server}' no suporta TLS. Error: {exc}")
         srv.ehlo()
         srv.send_message(msg)
-    except smtplib.SMTPException:
-        # XXX Per motius desconeguts el connection refused tira una excepcio diferent
+    except smtplib.SMTPException as exc:
+        import traceback
+        print(traceback.format_exc())
         codi = 1
     finally:
         if srv:
@@ -130,7 +136,8 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
         codi = sendMailWithAttach(frm=FROM_MAIL,
                                   to=", ".join(user_mail_list),
                                   subject="{} {}".format(subject,
-                                                         datetime.datetime.now().strftime('%Y-%m-%d %H:%M')),
+                                                         datetime.datetime.now().strftime(
+                                                             '%Y-%m-%d %H:%M')),
                                   body=body,
                                   lineSep='$$NEWLINE$$',
                                   files=list(attach_path_files),
