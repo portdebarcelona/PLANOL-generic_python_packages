@@ -72,6 +72,20 @@ __cache_tips_geom_tab = {}
 __cache_row_class_tab = {}
 
 
+def get_oracle_connection(user_ora, psw_ora, dsn_ora=None):
+    """
+    Return cx_Oracle Connection
+    Args:
+        user_ora (str): 
+        psw_ora (str): 
+        dsn_ora (str=None): 
+
+    Returns:
+        cx_Oracle.Connection
+    """
+    return cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
+
+
 def get_nom_conexion(con_db):
     """
     Devuelve el nombre de la conexion a Oracle
@@ -1007,7 +1021,7 @@ class gestor_oracle(object):
     tip_date = cx_Oracle.DATETIME
     tip_fix_char = cx_Oracle.FIXED_CHAR
 
-    __slots__ = 'nom_con_db', 'con_db', 'psw_con_db', 'logger'
+    __slots__ = 'nom_con_db', '__con_db__', '__user_con_db__', '__psw_con_db__', '__dsn_ora__', 'logger'
 
     def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None):
         """
@@ -1021,6 +1035,7 @@ class gestor_oracle(object):
                     según TSN o string tal cual devuelve cx_Oracle.makedsn())
             a_logger:
         """
+        self.__con_db__ = None
         self.logger = a_logger
         self.__set_logger()
         self.__set_conexion(user_ora, psw_ora, dsn_ora)
@@ -1030,8 +1045,8 @@ class gestor_oracle(object):
         Cierra la conexion al matar la instancia
         """
         try:
-            if hasattr(self, "con_db"):
-                self.con_db.close()
+            if hasattr(self, "__con_db__"):
+                self.__con_db__.close()
         except:
             pass
 
@@ -1139,9 +1154,35 @@ class gestor_oracle(object):
         """
         nom_con = "@".join((user_ora.upper(), dsn_ora.upper()))
         self.nom_con_db = nom_con
-        self.con_db = cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
-        self.psw_con_db = psw_ora
+        self.__user_con_db__ = user_ora
+        self.__psw_con_db__ = psw_ora
+        self.__dsn_ora__ = dsn_ora
+        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora)
+        
+    @property
+    @print_to_log_exception(cx_Oracle.Error, lanzar_exc=True)
+    def con_db(self):
+        """
+        Return a cx_Oracle Conection live
+        
+        Returns:
+            cx_Oracle.Connection
+        """
+        if (con_ora := self.__con_db__) is not None:
+            try:
+                con_ora.ping()
+            except cx_Oracle.Error as exc:
+                con_ora.close()
+                self.__con_db__ = con_ora = None
+        
+        if con_ora is None:
+            con_ora = self.__con_db__ = get_oracle_connection(
+                self.__user_con_db__,
+                self.__psw_con_db__,
+                self.__dsn_ora__)
 
+        return con_ora
+        
     @print_to_log_exception(cx_Oracle.DatabaseError)
     def exec_trans_db(self, sql_str, *args_sql, **types_sql_args):
         """
@@ -1689,7 +1730,7 @@ class gestor_oracle(object):
         user_ora = self.con_db.username
         ds_ora = self.con_db.dsn
         nom_con = self.nom_con_db
-        psw_ora = self.psw_con_db
+        psw_ora = self.__psw_con_db__
         if psw_ora is None:
             print("ERROR - Conexión '" + nom_con + "' no está añadida al gestor!!")
             return
