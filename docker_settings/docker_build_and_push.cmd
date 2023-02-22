@@ -1,4 +1,4 @@
-set URL_REPO_GITHUB=https://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@github.com/portdebarcelona/PLANOL-generic_python_packages.git#master
+set URL_REPO_GITHUB=https://github.com/portdebarcelona/PLANOL-generic_python_packages.git#master
 
 set TAG_IMAGE=planolport/python_gdal_oracle_geopandas:latest
 
