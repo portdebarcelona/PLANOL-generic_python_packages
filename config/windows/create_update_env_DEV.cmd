@@ -15,9 +15,9 @@ pushd "%~dp0"
 
 call set_conda_base.cmd
 
-call conda env create --file="../../environment.DEV.yml"
+call conda env create --name=python_packages_DEV --file="../../environment.yml"
 @IF %ERRORLEVEL% NEQ 0 (
-  call conda env update --file="../../environment.DEV.yml"
+  call conda env update --name=python_packages_DEV --file="../../environment.yml"
 )
 
 call conda activate "python_packages_DEV"
