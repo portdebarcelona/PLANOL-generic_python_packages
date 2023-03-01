@@ -2,6 +2,7 @@ import json
 import os
 import shutil
 from tempfile import mkdtemp
+from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
 from extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir, create_dir
@@ -9,8 +10,11 @@ from extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir, cr
 PREFIX_FILE_LAST_TAG_REPO = 'last_tag_repo_github_'
 
 
-def request_api_github(owner, repo, api_request, token=None):
+def get_api_github(owner, repo, api_request, token=None):
     """
+    GET Request for repository GITHUB via API GITHUB.
+
+    See the REST API DOCS here https://docs.github.com/en/rest
 
     Args:
         owner (str):
@@ -30,9 +34,51 @@ def request_api_github(owner, repo, api_request, token=None):
     url_github = f'https://api.github.com/repos/{owner}/{repo}/{api_request}'
     req = Request(url_github, headers=request_headers, method='GET')
     info_response = {}
-    with urlopen(req) as resp_request:
-        if resp_request:
-            info_response = json.load(resp_request)
+    try:
+        with urlopen(req) as resp_request:
+            if resp_request:
+                info_response = json.load(resp_request)
+    except HTTPError as exc:
+        info_response[HTTPError.__name__] = str(exc)
+
+    return info_response
+
+
+def post_api_github(owner, repo, api_request, post_data, token=None):
+    """
+    POST Request on repository GITHUB via API GITHUB
+
+    See the REST API DOCS here https://docs.github.com/en/rest
+
+    Args:
+        owner (str):
+        repo (str):
+        api_request (str):
+        post_data (dict):
+        token (str=None):
+
+    Returns:
+        info_response (dict)
+    """
+    request_headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json; charset=utf-8',
+    }
+    if token:
+        request_headers['Authorization'] = f'token {token}'
+
+    url_github = f'https://api.github.com/repos/{owner}/{repo}/{api_request}'
+
+    post_data_enc = json.dumps(post_data).encode('utf-8')
+
+    req = Request(url_github, headers=request_headers, method='POST')
+    info_response = {}
+    try:
+        with urlopen(req, post_data_enc) as resp_request:
+            if resp_request:
+                info_response = resp_request.__dict__
+    except HTTPError as exc:
+        info_response[HTTPError.__name__] = str(exc)
 
     return info_response
 
@@ -115,9 +161,9 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         tag_name (str)
     """
     if not tag_release:
-        info_release = request_api_github(owner, repo, 'releases/latest', token)
+        info_release = get_api_github(owner, repo, 'releases/latest', token)
     else:
-        info_release = request_api_github(owner, repo, f'releases/tags/{tag_release}', token)
+        info_release = get_api_github(owner, repo, f'releases/tags/{tag_release}', token)
 
     tag_name = info_release.get('tag_name')
     if tag_name:
@@ -151,7 +197,7 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         sha_commit (str)
     """
     branch = branch.lower()
-    info_branches = request_api_github(owner, repo, 'branches', token)
+    info_branches = get_api_github(owner, repo, 'branches', token)
     info_branch = next(filter(lambda el: el.get('name', '').lower() == branch,
                               info_branches), None)
 
@@ -182,6 +228,8 @@ if __name__ == '__main__':
 
     sys.exit(fire.Fire(
         {
+            get_api_github.__name__: get_api_github,
+            post_api_github.__name__: post_api_github,
             download_release_repo_github.__name__: download_release_repo_github,
             download_branch_repo_github.__name__: download_branch_repo_github
         }
