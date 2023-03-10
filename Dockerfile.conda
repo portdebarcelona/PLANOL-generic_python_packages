@@ -4,7 +4,7 @@ LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
 ENV TZ=Europe/Madrid
 
-ARG oracle_client_version=19.15
+ARG oracle_client_version=19.18
 ARG path_oracle_client=./config/oracle/
 
 ENV PYTHONUNBUFFERED 1
