@@ -41,7 +41,7 @@ def readme():
 
 setup(
     name='pandas_utils',
-    version='1.0',
+    version='1.1.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -55,7 +55,7 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'geopandas',
+        'geopandas>=0.12',
         format_requirement('cx_oracle_spatial')
     ],
     python_requires='>=3.6',

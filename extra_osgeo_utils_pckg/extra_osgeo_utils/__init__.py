@@ -739,8 +739,9 @@ def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
     else:
         layer_gdal = ds_gdal.GetLayerByName(nom_layer)
 
-    for feat, geom, vals in feats_layer_gdal(layer_gdal, filter_sql=filter_sql):
-        yield feat, geom, vals
+    if layer_gdal:
+        for feat, geom, vals in feats_layer_gdal(layer_gdal, filter_sql=filter_sql):
+            yield feat, geom, vals
 
 
 def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_geom_fld=SUFFIX_GEOMS_LAYERS_GDAL):

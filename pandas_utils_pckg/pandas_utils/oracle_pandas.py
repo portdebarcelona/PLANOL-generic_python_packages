@@ -43,13 +43,14 @@ def df_for_sqlgen(a_ora_generator, columns_index=None, columns=None,
     return df
 
 
-def gdf_for_sqlgen(a_ora_generator, column_geom, **params_df_for_sqlgen):
+def gdf_for_sqlgen(a_ora_generator, column_geom, crs=None, **params_df_for_sqlgen):
     """
     A partir de generator de gestor_oracle devuelve geopandas.Dataframe
 
     Args:
         a_ora_generator:
         column_geom:
+        crs (str=None): name EPSG crs
         **params_df_for_sqlgen: parametros opcionales funcion df_for_sqlgen()
 
     Returns:
@@ -62,7 +63,8 @@ def gdf_for_sqlgen(a_ora_generator, column_geom, **params_df_for_sqlgen):
 
     gdf = gpd.GeoDataFrame(df_for_sqlgen(a_ora_generator,
                                          **params_df_for_sqlgen),
-                           geometry=column_geom)
+                           geometry=column_geom,
+                           crs=crs)
 
     return gdf
 
@@ -158,18 +160,22 @@ def gdf_table(gest_ora, nom_tab, column_geom, other_cols_geom=False, null_geoms=
         else:
             filter_sql = not_null_geoms_sql
 
-    gdf_tab = gdf_for_sqlgen(
-        gest_ora.generator_rows_sql(sql_tab(nom_tab,
-                                            filter_sql,
-                                            cols_sql(cols,
-                                                     cols_idx,
-                                                     [column_geom])),
-                                    *args_filter_sql,
-                                    geom_format="as_shapely"),
-        columns_index=cols_idx,
-        column_geom=column_geom,
-        columns=cols,
-        **params_gdf_for_sqlgen)
+    crs_epsg = None
+    if (tip_geom := gest_ora.get_tip_camp_geom(nom_tab, column_geom)) and \
+            (epsg_code := gest_ora.get_epsg_for_srid(tip_geom.SRID)):
+        crs_epsg = f'EPSG:{epsg_code}'
+
+    gdf_tab = gdf_for_sqlgen(gest_ora.generator_rows_sql(sql_tab(nom_tab,
+                                                                 filter_sql,
+                                                                 cols_sql(cols,
+                                                                          cols_idx,
+                                                                          [column_geom])),
+                                                         *args_filter_sql,
+                                                         geom_format="as_shapely"),
+                             column_geom=column_geom,
+                             crs=crs_epsg,
+                             columns_index=cols_idx,
+                             columns=cols, **params_gdf_for_sqlgen)
 
     if not cols:
         gdf_tab = gdf_tab[[c for c in dd.cols if c in gdf_tab.columns]]

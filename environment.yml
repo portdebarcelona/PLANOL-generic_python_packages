@@ -1,14 +1,13 @@
 name: python_packages
 channels:
-- conda-forge
 - defaults
+- conda-forge
 - anaconda
 - javascript
 dependencies:
 - python=3.9
 - nodejs=10.13
-- conda-forge::gdal=3.5
-- conda-forge::geopandas=0.8
+- gdal=3.6
 - ipython
 - cython
 - pip
