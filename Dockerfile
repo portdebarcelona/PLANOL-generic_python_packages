@@ -38,7 +38,7 @@ RUN /venv/bin/conda-unpack
 # for us.
 FROM debian:buster AS runtime
 
-ARG oracle_client_version=19.15
+ARG oracle_client_version=19.18
 ARG path_oracle_client=./config/oracle/
 
 RUN useradd --create-home appuser
