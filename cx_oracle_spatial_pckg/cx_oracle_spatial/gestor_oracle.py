@@ -72,18 +72,23 @@ __cache_tips_geom_tab = {}
 __cache_row_class_tab = {}
 
 
-def get_oracle_connection(user_ora, psw_ora, dsn_ora=None):
+def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None):
     """
     Return cx_Oracle Connection
     Args:
-        user_ora (str): 
-        psw_ora (str): 
-        dsn_ora (str=None): 
+        user_ora (str):
+        psw_ora (str):
+        dsn_ora (str=None):
+        call_timeout (int=None): miliseconds
 
     Returns:
         cx_Oracle.Connection
     """
-    return cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
+    connection = cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
+    if call_timeout:
+        connection.call_timeout = call_timeout
+
+    return connection
 
 
 def get_nom_conexion(con_db):
@@ -122,8 +127,9 @@ def new_cursor(con_db, input_handler=None, output_handler=None):
 
         return curs
 
-    except:
-        print("!!ERROR!! - Error al instanciar Cursor para la conexion Oracle ".format(get_nom_conexion(con_db)))
+    except cx_Oracle.Error as exc:
+        print("!!ERROR!! - Error al instanciar Cursor para la conexion Oracle {}\n"
+              "     Error: {}".format(get_nom_conexion(con_db), exc))
         raise
 
 
@@ -1021,9 +1027,10 @@ class gestor_oracle(object):
     tip_date = cx_Oracle.DATETIME
     tip_fix_char = cx_Oracle.FIXED_CHAR
 
-    __slots__ = 'nom_con_db', '__con_db__', '__user_con_db__', '__psw_con_db__', '__dsn_ora__', 'logger'
+    __slots__ = 'nom_con_db', '__con_db__', '__user_con_db__', \
+        '__psw_con_db__', '__dsn_ora__', '__call_timeout__', 'logger'
 
-    def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None):
+    def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None, call_timeout: int = None):
         """
         Inicializa gestor de Oracle para una conexion cx_Oracle a Oracle
         Se puede pasar por parametro un logger o inicializar por defecto
@@ -1033,9 +1040,11 @@ class gestor_oracle(object):
             psw_ora {str}: Password usuario
             dsn_ora {str}: DSN Oracle (Nombre instancia/datasource de Oracle
                     según TSN o string tal cual devuelve cx_Oracle.makedsn())
+            call_timeout (int=None): miliseconds espera per transaccio
             a_logger:
         """
         self.__con_db__ = None
+        self.__call_timeout__ = call_timeout
         self.logger = a_logger
         self.__set_logger()
         self.__set_conexion(user_ora, psw_ora, dsn_ora)
@@ -1157,8 +1166,8 @@ class gestor_oracle(object):
         self.__user_con_db__ = user_ora
         self.__psw_con_db__ = psw_ora
         self.__dsn_ora__ = dsn_ora
-        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora)
-        
+        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora, self.__call_timeout__)
+
     @property
     @print_to_log_exception(cx_Oracle.Error, lanzar_exc=True)
     def con_db(self):
@@ -1174,15 +1183,17 @@ class gestor_oracle(object):
             except cx_Oracle.Error as exc:
                 con_ora.close()
                 self.__con_db__ = con_ora = None
-        
+
         if con_ora is None:
-            con_ora = self.__con_db__ = get_oracle_connection(
+            self.__set_conexion(
                 self.__user_con_db__,
                 self.__psw_con_db__,
                 self.__dsn_ora__)
 
+            con_ora = self.__con_db__
+
         return con_ora
-        
+
     @print_to_log_exception(cx_Oracle.DatabaseError)
     def exec_trans_db(self, sql_str, *args_sql, **types_sql_args):
         """
