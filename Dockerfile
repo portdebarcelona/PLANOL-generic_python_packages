@@ -102,6 +102,8 @@ WORKDIR /project
 
 USER appuser
 
+COPY --chown=appuser:root ./docs/ ./docs/
+
 RUN python -m venv $VIRTUAL_ENV
 
 ENV PATH_DEVELOPER_MODE=/project
