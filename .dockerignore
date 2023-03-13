@@ -356,3 +356,4 @@ cython_debug/
 /**/*.egg-info
 /**/build
 /resources
+/docs/html/

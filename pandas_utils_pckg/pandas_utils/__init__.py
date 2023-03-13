@@ -3,3 +3,6 @@
 #  Author: Ernesto Arredondo Martinez (ernestone@gmail.com)
 #  Created: 
 #  Copyright (c)
+"""
+.. include:: ../README.md
+"""

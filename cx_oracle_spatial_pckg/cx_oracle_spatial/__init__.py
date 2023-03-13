@@ -3,6 +3,10 @@
 #  Author: Ernesto Arredondo Martinez (ernestone@gmail.com)
 #  Created: 
 #  Copyright (c)
+"""
+.. include:: ../README.md
+"""
+
 import os
 import shutil
 import tempfile
