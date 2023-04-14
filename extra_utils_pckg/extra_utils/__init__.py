@@ -5,6 +5,10 @@
 #   Created: 29/01/2020, 19:11
 #   Last modified: 29/01/2020, 19:10
 #   Copyright (c) 2020
+"""
+.. include:: ../README.md
+"""
+
 
 __path__ = __import__('pkgutil').extend_path(__path__, __name__)
 
