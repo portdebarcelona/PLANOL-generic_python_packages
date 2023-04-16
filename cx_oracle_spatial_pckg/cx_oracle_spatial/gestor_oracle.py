@@ -24,6 +24,7 @@ import cx_Oracle
 import lxml.etree as etree
 
 from extra_utils import utils_logging
+from extra_utils.utils_logging import logger_path_logs
 from spatial_utils import topojson_utils
 from . import sdo_geom as m_sdo_geom
 from extra_utils.sql_parser import x_sql_parser
@@ -1111,14 +1112,7 @@ class gestor_oracle(object):
         Returns:
             list:
         """
-        path_logs = []
-        if self.logger:
-            for fn in [hdlr.baseFilename
-                       for hdlr in self.logger.handlers if hasattr(hdlr, "baseFilename")]:
-                if not if_exist or os.path.exists(fn):
-                    path_logs.append(fn)
-
-        return path_logs
+        return logger_path_logs(self.logger)
 
     def print_log(self, msg):
         """
