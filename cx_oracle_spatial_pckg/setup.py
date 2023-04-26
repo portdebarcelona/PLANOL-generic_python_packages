@@ -41,7 +41,7 @@ def readme():
 
 setup(
     name='cx_oracle_spatial',
-    version='1.1.2',
+    version='1.1.3',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/cx_oracle_spatial_pckg',
     author='Ernesto Arredondo Martínez',

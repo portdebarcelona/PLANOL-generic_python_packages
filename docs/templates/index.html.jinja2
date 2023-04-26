@@ -26,7 +26,7 @@
     {% endif %}
 
     {% filter to_html %}
-        {% include 'README.md' %}
+        {% include env['MAIN_README_DOC'] or 'README.md' %}
     {% endfilter %}
 
     </main>
