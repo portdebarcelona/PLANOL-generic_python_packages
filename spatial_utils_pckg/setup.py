@@ -41,7 +41,7 @@ def readme():
 
 setup(
     name='spatial_utils',
-    version='0.9',
+    version='0.9.1',
     packages=['spatial_utils'],
     url=f'{GIT_REPO}/tree/master/spatial_utils_pckg',
     author='Ernesto Arredondo Martinez',
@@ -56,6 +56,7 @@ setup(
     ],
     install_requires=[
         'shapely',
+        'pyproj',
         format_requirement('extra_utils')
     ],
     python_requires='>=3.6'
