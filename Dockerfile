@@ -97,8 +97,11 @@ ENV TZ=Europe/Madrid
 
 RUN mkdir /project && \
     chown -R appuser:root /project && \
-    chmod -R u=rwx,g=rwx,o=rwx /project
+    chmod -R u=rwx,g=rwx,o=rx /project
 WORKDIR /project
+
+COPY --chown=appuser:root ./docs/ ./docs/
+RUN chmod -R u=rwx,g=rwx,o=rx ./docs
 
 USER appuser
 

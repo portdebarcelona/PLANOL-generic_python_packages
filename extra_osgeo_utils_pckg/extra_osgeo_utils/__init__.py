@@ -4,6 +4,9 @@
 #  Created: 7/6/19 18:23
 #  Last modified: 7/6/19 14:27
 #  Copyright (c) 2019
+"""
+.. include:: ../README.md
+"""
 
 import logging
 import os

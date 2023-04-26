@@ -1,0 +1,34 @@
+{% extends "default/index.html.jinja2" %}
+
+{% block title %}Python library generic packages APB{% endblock %}
+
+{% block content %}
+   <header class="pdoc">
+        {% block logo %}
+            {% if logo %}
+                {% if logo_link %}<a href="{{ logo_link }}">{% endif %}
+                <img src="{{ logo }}" alt="project logo"/>
+                {% if logo_link %}</a>{% endif %}
+            {% else %}
+                <a href="https://pdoc.dev">
+                    <img src="data:image/svg+xml,{% filter urlencode %}{% include "resources/pdoc-logo.svg" %}{% endfilter %}"
+                         alt="pdoc"/>
+                </a>
+            {% endif %}
+        {% endblock %}
+        {% if search %}
+            <input type="search" placeholder="Search API Documentation..." aria-label="search box">
+        {% endif %}
+    </header>
+    <main class="pdoc">
+    {% if search %}
+        {% include "search.html.jinja2" %}
+    {% endif %}
+
+    {% filter to_html %}
+        {% include env['MAIN_README_DOC'] or 'README.md' %}
+    {% endfilter %}
+
+    </main>
+    {% include "search.html.jinja2" %}
+{% endblock %}

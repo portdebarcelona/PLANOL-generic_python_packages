@@ -163,3 +163,27 @@ def logs_dir(create=False):
             misc.create_dir(logs_dir)
 
     return logs_dir
+
+
+def logger_path_logs(a_logger=None, if_exist=True):
+    """
+    Returns the file paths where a_logger file handlers put his entries
+
+    Args:
+        a_logger (logging.Logger=None): default is root logger
+        if_exist (bool=True): Returns the path if the file exists
+
+    Returns:
+        list
+    """
+    if a_logger is None:
+        a_logger = get_root_logger()
+
+    path_logs = []
+
+    for fn in [hdlr.baseFilename
+               for hdlr in a_logger.handlers if hasattr(hdlr, "baseFilename")]:
+        if not if_exist or os.path.exists(fn):
+            path_logs.append(fn)
+
+    return path_logs
