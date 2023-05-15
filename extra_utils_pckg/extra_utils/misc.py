@@ -27,25 +27,29 @@ import jellyfish
 from tqdm import tqdm
 
 
-def download_and_unzip(url: str, extract_to: str = os.path.curdir, headers: list[str] = None, remove_zip: bool = True):
+def download_and_unzip(url: str, extract_to: str = None, headers: list = None, remove_zip: bool = True):
     """
 
     Args:
         url (str):
-        extract_to (str=current_directory):
+        extract_to (str=None): if None, extract to current directory
         headers (list=None)
         remove_zip (bool=True):
 
     Returns:
         path_zip (str)
     """
-    if zip_file := download_from_url(url, extract_to, headers):
-        with ZipFile(zip_file, 'r') as zipfile:
-            for member in tqdm(zipfile.infolist(), desc=f'Extracting "{zip_file}"'):
-                zipfile.extract(member, "extracted_files")
+    if zip_file_path := download_from_url(url, extract_to, headers):
+        with ZipFile(zip_file_path, 'r') as zipfile:
+            if not extract_to:
+                extract_to = os.path.abspath(os.path.curdir)
+
+            for member in tqdm(zipfile.infolist(),
+                               desc=f'Extracting {os.path.basename(zip_file_path)} to "{extract_to}"'):
+                zipfile.extract(member, extract_to)
 
         if remove_zip:
-            os.remove(zip_file)
+            os.remove(zip_file_path)
 
         return extract_to
 
