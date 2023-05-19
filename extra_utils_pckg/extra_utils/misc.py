@@ -44,8 +44,14 @@ def download_and_unzip(url: str, extract_to: str = None, headers: list = None, r
             if not extract_to:
                 extract_to = os.path.abspath(os.path.curdir)
 
-            for member in tqdm(zipfile.infolist(),
-                               desc=f'Extracting {os.path.basename(zip_file_path)} to "{extract_to}"'):
+            desc = f"Extracting {zip_file_path} to {extract_to}"
+            if not sys.stdout:
+                print(f'{desc}...')
+                gen_members = zipfile.infolist()
+            else:
+                gen_members = tqdm(zipfile.infolist(), desc=desc)
+
+            for member in gen_members:
                 zipfile.extract(member, extract_to)
 
         if remove_zip:
@@ -80,14 +86,23 @@ def download_from_url(url: str, extract_to: str = None, headers: list[str] = Non
             file_path = os.path.join(extract_to, Path(response.url).name)
 
         with open(file_path, "wb") as out_file:
-            with tqdm(desc=f'Downloading to "{file_path}"',
-                      total=content_length, unit="B", unit_scale=True) as progress_bar:
+            def get_resp_data():
                 while True:
                     data = response.read(1024)
                     if not data:
                         break
+                    yield data
+
+            desc = f'Downloading to "{file_path}"'
+            if not sys.stdout:
+                print(f'{desc}...')
+                for data in get_resp_data():
                     out_file.write(data)
-                    progress_bar.update(len(data))
+            else:
+                with tqdm(desc=desc, total=content_length, unit="B", unit_scale=True) as progress_bar:
+                    for data in get_resp_data():
+                        out_file.write(data)
+                        progress_bar.update(len(data))
 
             return file_path
 
