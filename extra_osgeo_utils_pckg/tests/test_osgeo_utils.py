@@ -47,14 +47,14 @@ class TestOsgeoUtils(unittest.TestCase):
         self.assertEqual(lyr_orig.GetFeatureCount(), lyr_dest.GetFeatureCount())
 
     def test_postgis_conn(self):
-        ds = extra_osgeo_utils.ds_postgis(
-            dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES, password=PASSWORD_DB_POSTGRES)
+        ds = extra_osgeo_utils.ds_postgis(dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES,
+                                          password=PASSWORD_DB_POSTGRES)
         self.assertIsNotNone(ds)
 
     def test_add_layer_mono_geom_to_postgis(self):
         lyr_orig = self.ds_gpkg.GetLayerByName('edificacio-perimetre_superior')
-        ds = extra_osgeo_utils.ds_postgis(
-            dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES, password=PASSWORD_DB_POSTGRES)
+        ds = extra_osgeo_utils.ds_postgis(dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES,
+                                          password=PASSWORD_DB_POSTGRES)
         lyrs_dest = extra_osgeo_utils.add_layer_gdal_to_ds_gdal(
             ds, lyr_orig, nom_layer='edificacio', nom_geom='perimetre_superior', overwrite='OVERWRITE=YES')
         self.assertIsNotNone(lyrs_dest)
@@ -66,8 +66,8 @@ class TestOsgeoUtils(unittest.TestCase):
             'CSV', 'edificacio.zip', path_data, create=False, from_zip=True)
         lyr_orig = ds_csv.GetLayer(0)
 
-        ds = extra_osgeo_utils.ds_postgis(
-            dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES, password=PASSWORD_DB_POSTGRES)
+        ds = extra_osgeo_utils.ds_postgis(dbname='GIS', host=self.host_pg, port=self.port_pg, user=USER_DB_POSTGRES,
+                                          password=PASSWORD_DB_POSTGRES)
         lyrs_dest = extra_osgeo_utils.add_layer_gdal_to_ds_gdal(
             ds, lyr_orig, nom_layer='edificacio', multi_geom=True,
             overwrite='OVERWRITE=YES', promote_to_multi='PROMOTE_TO_MULTI=YES')
