@@ -117,9 +117,7 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
     header['Accept'] = 'application/octet-stream'
 
     dir_temp = mkdtemp()
-    download_and_unzip(html_repo,
-                       extract_to=dir_temp,
-                       headers=[(k, v) for k, v in header.items()])
+    download_and_unzip(html_repo, extract_to=dir_temp, headers=[(k, v) for k, v in header.items()])
     path_res = os.path.join(dir_temp, expected_name_zip_repo)
 
     if os.path.exists(path_res):
