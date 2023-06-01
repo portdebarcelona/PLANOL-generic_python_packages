@@ -1,8 +1,9 @@
+import os
 import unittest
 from functools import reduce
 
 import extra_osgeo_utils
-import os
+from extra_osgeo_utils import feats_layer_gdal, geoms_layer_gdal, SUFFIX_GEOMS_LAYERS_GDAL
 
 PASSWORD_DB_POSTGRES = 'eam123'
 USER_DB_POSTGRES = 'eam'
@@ -36,6 +37,12 @@ class TestOsgeoUtils(unittest.TestCase):
         ds, ovrwrt = extra_osgeo_utils.datasource_gdal_vector_file(
             'CSV', 'edificacio.zip', path_data, create=False, from_zip=True)
         lyr = ds.GetLayer(0)
+        for f, g, nt in feats_layer_gdal(lyr):
+            f_vals = f.items()
+            for g in geoms_layer_gdal(lyr, extract_suffix=SUFFIX_GEOMS_LAYERS_GDAL):
+                g_nt = getattr(nt, g)
+                self.assertEqual(f_vals[g], g_nt.ExportToIsoWkt() if g_nt else '')
+
         self.assertIsNotNone(lyr)
 
     def test_copy_layer(self):
