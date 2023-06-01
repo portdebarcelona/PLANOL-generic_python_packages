@@ -19,30 +19,92 @@ from calendar import different_locale
 from collections import OrderedDict
 from math import isnan
 from pathlib import Path
-from zipfile import ZipFile, ZIP_DEFLATED
-import jellyfish
+from tempfile import gettempdir
 from urllib.request import build_opener
-from io import BytesIO
+from zipfile import ZipFile, ZIP_DEFLATED
+
+import jellyfish
+from tqdm import tqdm
 
 
-def download_and_unzip(url, extract_to=os.path.curdir, headers=None):
+def download_and_unzip(url: str, extract_to: str = None, headers: list = None, remove_zip: bool = True):
     """
 
     Args:
         url (str):
-        extract_to (str=current_directory):
+        extract_to (str=None): if None, extract to current directory
         headers (list=None)
+        remove_zip (bool=True):
 
     Returns:
         path_zip (str)
+    """
+    if zip_file_path := download_from_url(url, extract_to, headers):
+        with ZipFile(zip_file_path, 'r') as zipfile:
+            if not extract_to:
+                extract_to = os.path.abspath(os.path.curdir)
+
+            desc = f"Extracting {zip_file_path} to {extract_to}"
+            if not sys.stdout:
+                print(f'{desc}...')
+                gen_members = zipfile.infolist()
+            else:
+                gen_members = tqdm(zipfile.infolist(), desc=desc)
+
+            for member in gen_members:
+                zipfile.extract(member, extract_to)
+
+        if remove_zip:
+            os.remove(zip_file_path)
+
+        return extract_to
+
+
+def download_from_url(url: str, extract_to: str = None, headers: list[str] = None) -> str:
+    """
+
+    Args:
+        url (str): Url to download
+        extract_to (str=None): Directory to save file. Default temporary directory
+        headers (list=None)
+
+    Returns:
+        path_file (str | None)
     """
     opener = build_opener()
     if headers:
         opener.addheaders = headers
 
-    with opener.open(url) as http_response:
-        zipfile = ZipFile(BytesIO(http_response.read()))
-        zipfile.extractall(path=extract_to)
+    with opener.open(url) as response:
+        content_length = response.length
+        if not extract_to:
+            extract_to = gettempdir()
+
+        if n_file := response.headers.get_filename():
+            file_path = os.path.join(extract_to, n_file)
+        else:
+            file_path = os.path.join(extract_to, Path(response.url).name)
+
+        with open(file_path, "wb") as out_file:
+            def get_resp_data():
+                while True:
+                    data = response.read(1024)
+                    if not data:
+                        break
+                    yield data
+
+            desc = f'Downloading to "{file_path}"'
+            if not sys.stdout:
+                print(f'{desc}...')
+                for data in get_resp_data():
+                    out_file.write(data)
+            else:
+                with tqdm(desc=desc, total=content_length, unit="B", unit_scale=True) as progress_bar:
+                    for data in get_resp_data():
+                        out_file.write(data)
+                        progress_bar.update(len(data))
+
+            return file_path
 
 
 def caller_name(skip=2):

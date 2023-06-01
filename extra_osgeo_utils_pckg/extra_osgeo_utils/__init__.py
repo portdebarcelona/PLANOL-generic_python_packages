@@ -487,8 +487,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                     (nom_gfd not in geoms_src or not exclude_cols_geoms) and \
                     nom_gfd != nom_geom_sel:
                 gfd_def_src = layer_src_def.GetGeomFieldDefn(layer_src_def.GetGeomFieldIndex(gfd.GetNameRef()))
-                gfd_def_dest = GeomFieldDefn(gfd_def_src.GetNameRef(), gfd_def_src.GetType())
-                gfd_def_dest.SetName(nom_gfd)
+                gfd_def_dest = GeomFieldDefn(nom_gfd, gfd_def_src.GetType())
                 if srs_lyr_dest:
                     gfd_def_dest.SetSpatialRef(srs_lyr_dest)
                 layer_out.CreateGeomField(gfd_def_dest)
@@ -763,10 +762,8 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_
     """
     layer_gdal.ResetReading()
     ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld)
-    n_geoms_layer = dict(zip(
-        geoms_layer_gdal(layer_gdal),
-        [*map(format_nom_column, geoms_layer_gdal(layer_gdal, extract_suffix_geom_fld))]
-    ))
+    n_geoms_layer = {nom_geom_feat: fix_suffix_geom_name_layer_gdal(nom_geom_feat, layer_gdal, extract_suffix_geom_fld)
+                     for nom_geom_feat in geoms_layer_gdal(layer_gdal)}
 
     if filter_sql:
         layer_gdal.SetAttributeFilter(filter_sql)
@@ -787,8 +784,8 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_
         for f_tab in layer_gdal:
             idx_geom = f_tab.GetGeomFieldIndex(nom_geom) if nom_geom else -1
             yield f_tab, \
-                  f_tab.GetGeomFieldRef(idx_geom) if idx_geom >= 0 else f_tab.geometry(), \
-                  ntup_layer(**vals_feature_gdal(f_tab))
+                f_tab.GetGeomFieldRef(idx_geom) if idx_geom >= 0 else f_tab.geometry(), \
+                ntup_layer(**vals_feature_gdal(f_tab))
 
         layer_gdal.ResetReading()
 
@@ -1111,7 +1108,7 @@ def transform_ogr_geom(a_ogr_geom, from_espg_code, to_epsg_code):
     return a_ogr_geom
 
 
-def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres'):
+def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schema='public'):
     """
     Retorna datasource GDAL para ddbb postgis
 
@@ -1121,11 +1118,12 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
         port:
         user:
         password:
+        schema:
 
     Returns:
         osgeo.ogr.DataSource
     """
-    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}'"
+    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}' active_schema='{schema}'"
     drvr, exts = driver_gdal('PostgreSQL')
     return drvr.Open(pg_conn)
 
