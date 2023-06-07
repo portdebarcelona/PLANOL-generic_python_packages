@@ -47,8 +47,6 @@ WORKDIR /project
 COPY --chown=appuser:root ./docs/ ./docs/
 RUN chmod -R u=rwx,g=rwx,o=rx ./docs
 
-USER appuser
-
 COPY --chown=appuser:root ./requirements.txt ./requirements.txt
 RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 
@@ -69,5 +67,7 @@ RUN pip install --editable cx_oracle_spatial_pckg --no-cache-dir
 
 COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN pip install --editable pandas_utils_pckg --no-cache-dir
+
+USER appuser
 
 CMD ["python"]
