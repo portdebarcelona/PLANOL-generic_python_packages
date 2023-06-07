@@ -349,7 +349,7 @@ def get_matching_val(search_val, matching_vals):
 
     Args:
         search_val (str): Valor propuesto para comparar
-        mathing_vals (list(str)): Lista de valores a comparar
+        matching_vals (list(str)): Lista de valores a comparar
 
     Returns:
         match_val (str), fact_jaro_winkler (float)
@@ -394,7 +394,7 @@ def jaro_winkler(search_val, matching_vals):
 
     """
     ord_vals = OrderedDict()
-    matchings = {jellyfish.jaro_winkler(search_val, match_val): match_val
+    matchings = {jellyfish.jaro_winkler_similarity(search_val, match_val): match_val
                  for match_val in matching_vals}
     for fact in sorted(matchings, reverse=True):
         if fact != 0:
@@ -687,7 +687,6 @@ def month_name(num_month, code_alias_locale="es_cu"):
 
     Args:
         num_month (int):
-        year (int=datetime.date.today().year):
         code_alias_locale (str='es_es'):
 
     Returns:
