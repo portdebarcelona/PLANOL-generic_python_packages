@@ -68,6 +68,8 @@ RUN pip install --editable cx_oracle_spatial_pckg --no-cache-dir
 COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN pip install --editable pandas_utils_pckg --no-cache-dir
 
+# Add local bin for appuser to PATH (for future pip installed scripts)
+ENV PATH=/home/appuser/.local/bin:$PATH
 USER appuser
 
 CMD ["python"]
