@@ -105,6 +105,16 @@ class TestOsgeoUtils(unittest.TestCase):
             extra_osgeo_utils.add_layer_gdal_to_ds_gdal(ds_gdal_geojson, layer_gdal, lite=True, srs_epsg_code=4326,
                                                   nom_geom=nom_geom)
 
+    def test_create_csv_from_csv(self):
+        layer_gdal, nom_layer_gdal, ds_gdal = extra_osgeo_utils.layer_gdal_from_file(
+            os.path.join(path_data, 'edificacio.zip'), 'CSV', default_order_long_lat=False)
+        ds_gdal_csv, overwrited = extra_osgeo_utils.datasource_gdal_vector_file(
+            'CSV',
+            "{}_{}".format(nom_layer_gdal, 25831),
+            path_data,
+            create=True)
+        extra_osgeo_utils.add_layer_gdal_to_ds_gdal(ds_gdal_csv, layer_gdal, lite=True, srs_epsg_code=25831, multi_geom=True)
+
 
 if __name__ == '__main__':
     unittest.main()
