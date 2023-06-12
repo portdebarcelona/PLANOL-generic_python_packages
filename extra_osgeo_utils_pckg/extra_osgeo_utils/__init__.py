@@ -20,6 +20,8 @@ from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTr
 
 from extra_utils import misc as utils
 
+SIMPLIFY_TOLERANCE = 1e-6
+DRIVERS_GDAL_NOT_DELETE_LAYERS = ('POSTGRESQL',)
 DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG')
 SUFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 
@@ -254,7 +256,7 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
         if "GEOMETRY" not in opt_list:
             opt_list["GEOMETRY"] = 'GEOMETRY=AS_WKT'
 
-    if drvr and drvr.GetMetadataItem('DS_LAYER_CREATIONOPTIONLIST'):
+    if drvr.GetMetadataItem('DS_LAYER_CREATIONOPTIONLIST'):
         list_opts_drvr = drvr.GetMetadataItem('DS_LAYER_CREATIONOPTIONLIST')
         keys_opt_list = list(opt_list.keys())
         for n_opt in keys_opt_list:
@@ -344,7 +346,32 @@ def layer_gtype_from_geoms(layer_gdal, nom_geom=None):
                     layer_gdal.GetGeomType())
 
 
-def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=None, nom_geom=None, sel_camps=None,
+def srs_for_layer(layer_src, nom_geom_src=None):
+    """
+    Devuelve el SpatialReference de la layer_gdal
+    Args:
+        layer_src (ogr.Layer)
+        nom_geom_src (str=None): Nombre geometria
+
+    Returns:
+        srs_lyr_src (osgeo.osr.SpatialReference)
+    """
+    srs_lyr_src = layer_src.GetSpatialRef()
+    layer_src_def = layer_src.GetLayerDefn()
+
+    if act_geom_field := layer_src_def.GetGeomFieldDefn(0):
+        if nom_geom_src:
+            idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom_src)
+            if idx_act_geom_field >= 0:
+                act_geom_field = layer_src_def.GetGeomFieldDefn(idx_act_geom_field)
+
+        if act_geom_field.GetSpatialRef():
+            srs_lyr_src = act_geom_field.GetSpatialRef()
+
+    return srs_lyr_src
+
+
+def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=None, nom_geom_src=None, sel_camps=None,
                                             exclude_cols_geoms=True, tolerance_simplify=None, null_geoms=False,
                                             gtype_layer_from_geoms=True, epsg_code_dest=None,
                                             epsg_code_src_default=4326, old_axis_mapping_srs=None, **extra_opt_list):
@@ -355,7 +382,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         ds_gdal_dest (ogr.DataSource):
         layer_src (ogr.Layer):
         nom_layer (str=None):
-        nom_geom (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
+        nom_geom_src (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
                             como ALIAS de la geometria 0 (la defecto) de la nueva layer resultante
         sel_camps (list=None): OPC - Lista de campos a escoger de la layer original
         exclude_cols_geoms (bool=True): Por defecto de la lista de columnas alfanuméricas (no geometrias) excluirá las
@@ -383,15 +410,15 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     geoms_src = geoms_layer_gdal(layer_src)
     camps_src = cols_layer_gdal(layer_src)
 
-    if nom_geom:
-        nom_geom = nom_geom.upper()
+    if nom_geom_src:
+        nom_geom_src = nom_geom_src.upper()
         if len(geoms_src) > 1:
-            if nom_geom not in map(lambda ng: ng.upper(), geoms_src):
+            if nom_geom_src not in map(lambda ng: ng.upper(), geoms_src):
                 raise Exception("Argumento :NOM_GEOM = '{}' erróneo ya que "
-                                "LAYER_GDAL original no contiene dicha geometria".format(nom_geom))
+                                "LAYER_GDAL original no contiene dicha geometria".format(nom_geom_src))
         elif len(geoms_src) == 0:
             raise Exception("Argumento :NOM_GEOM = '{}' erróneo ya que "
-                            "LAYER_GDAL original no contiene geometrias".format(nom_geom))
+                            "LAYER_GDAL original no contiene geometrias".format(nom_geom_src))
 
     if sel_camps:
         sel_camps = {ng.upper() for ng in sel_camps}
@@ -413,18 +440,18 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
     layer_src_def = layer_src.GetLayerDefn()
     act_geom_field = layer_src_def.GetGeomFieldDefn(0)
-    nom_geom_sel = None
+    nom_geom_out = None
 
     if act_geom_field:
-        if nom_geom:
-            idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom)
+        if nom_geom_src:
+            idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom_src)
             if idx_act_geom_field >= 0:
                 act_geom_field = layer_src_def.GetGeomFieldDefn(idx_act_geom_field)
-                nom_geom_sel = fix_suffix_geom_name_layer_gdal(nom_geom, layer_src)
+                nom_geom_out = fix_suffix_geom_name_layer_gdal(nom_geom_src, layer_src)
 
         gtype = act_geom_field.GetType()
         if gtype_layer_from_geoms and not gtype:
-            gtype = layer_gtype_from_geoms(layer_src, nom_geom)
+            gtype = layer_gtype_from_geoms(layer_src, nom_geom_src)
 
         if act_geom_field.GetSpatialRef():
             srs_lyr_src = act_geom_field.GetSpatialRef()
@@ -439,10 +466,6 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         else:
             sel_camps = cols_layer_gdal(layer_src).difference(geoms_src_minus_suffix)
 
-    if ds_gdal_dest.TestCapability(ODsCDeleteLayer) and ds_gdal_dest.GetLayerByName(nom_layer):
-        ds_gdal_dest.DeleteLayer(nom_layer)
-
-    geom_transform = None
     srs_lyr_dest = None
     if not srs_lyr_src and epsg_code_src_default:
         srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default, old_axis_mapping=old_axis_mapping_srs)
@@ -452,13 +475,15 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
         if epsg_code_dest:
             srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping=old_axis_mapping_srs)
-            if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
-                geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
         else:
             srs_lyr_dest = srs_lyr_src
 
     if ds_gdal_dest.TestCapability(ODsCCreateLayer):
-        layer_out, nom_layer = create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom_sel, gtype, srs_lyr_dest,
+        # To avoid message "Warning"
+        if ds_gdal_dest.TestCapability(ODsCDeleteLayer) and ds_gdal_dest.GetLayerByName(nom_layer):
+            ds_gdal_dest.DeleteLayer(nom_layer)
+
+        layer_out, nom_layer = create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom_out, gtype, srs_lyr_dest,
                                                        **extra_opt_list)
     else:
         layer_out = ds_gdal_dest.GetLayer(0)
@@ -468,11 +493,11 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         layer_out_def = layer_out.GetLayerDefn()
         geom_field_out = layer_out_def.GetGeomFieldDefn(0)
         if geom_field_out:
-            if not nom_geom_sel:
-                nom_geom_sel = act_geom_field.GetNameRef()
-                if not nom_geom_sel:
-                    nom_geom_sel = "GEOMETRY"
-            geom_field_out.SetName(nom_geom_sel)
+            if not nom_geom_out:
+                nom_geom_out = act_geom_field.GetNameRef()
+                if not nom_geom_out:
+                    nom_geom_out = "GEOMETRY"
+            geom_field_out.SetName(nom_geom_out)
 
     if layer_out.TestCapability(OLCCreateField):
         for fd in fields_layer_gdal(layer_src):
@@ -485,30 +510,90 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
             nom_gfd = fix_suffix_geom_name_layer_gdal(gfd.GetNameRef(), layer_src).upper()
             if (not sel_camps or nom_gfd in sel_camps) and \
                     (nom_gfd not in geoms_src or not exclude_cols_geoms) and \
-                    nom_gfd != nom_geom_sel:
+                    nom_gfd != nom_geom_out:
                 gfd_def_src = layer_src_def.GetGeomFieldDefn(layer_src_def.GetGeomFieldIndex(gfd.GetNameRef()))
                 gfd_def_dest = GeomFieldDefn(nom_gfd, gfd_def_src.GetType())
                 if srs_lyr_dest:
                     gfd_def_dest.SetSpatialRef(srs_lyr_dest)
                 layer_out.CreateGeomField(gfd_def_dest)
 
-    geoms_out = geoms_layer_gdal(layer_out)
-    cols_out = cols_layer_gdal(layer_out)
+    if not geom_field_out:
+        null_geoms = True # Si no hay geom siempre se añaden
+
+    add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_out, nom_geom_src, nom_geom_out, null_geoms,
+                                tolerance_simplify)
+
+    if drvr_name == "GPKG":
+        create_spatial_index_layer_gpkg(ds_gdal_dest, nom_layer)
+
+    if drvr_name == 'CSV':
+        path_csv = ds_gdal_dest.GetName()
+        with open(path_csv, 'r', encoding='utf-8') as r_file:
+            content_csv = r_file.readlines()
+            first_line = next(iter(content_csv), None)
+
+        if first_line:
+            new_first_line = first_line.replace('_WKT', '')
+            if new_first_line != first_line:
+                content_csv[0] = new_first_line
+                with open(path_csv, 'w', encoding='utf-8') as w_file:
+                    w_file.writelines(content_csv)
+
+    return ds_gdal_dest.GetLayerByName(nom_layer)
+
+
+def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_src=None, nom_geom_dest=None,
+                                null_geoms=False, tolerance_simplify=None, remove_prev_features=False):
+    """
+    From a layer of a dataset, add the features to another layer of another dataset.
+
+    Args:
+        layer_src (ogr.Layer): Layer origen
+        ds_gdal_dest (gdal.Dataset): Dataset destino
+        layer_dest (ogr.Layer): Layer destino
+        nom_geom_src (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
+                            como ALIAS de la geometria 0 (la defecto) de la nueva layer resultante
+        nom_geom_dest (str):
+        null_geoms (bool=False): Por defecto no grabará las filas que la geometria principal (nom_geom) es nula
+        tolerance_simplify (float=None): Tolerancia (distancia minima) en unidades del srs de la layer
+             Mirar método Simplify() sobre osgeo.ogr.Geometry
+        remove_prev_features (bool=False): Si es True, se eliminarán las features previas de la layer_dest
+
+    Returns:
+
+    """
+    geoms_out = geoms_layer_gdal(layer_dest)
+    cols_out = cols_layer_gdal(layer_dest)
+
+    geom_transform = None
+    srs_lyr_src = srs_for_layer(layer_src, nom_geom_src)
+    srs_lyr_dest = srs_for_layer(layer_dest, nom_geom_dest)
+    if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
+        geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
 
     ds_trans = ds_gdal_dest.TestCapability(ODsCTransactions)
+
+    if remove_prev_features:
+        if ds_trans:
+            layer_dest.StartTransaction()
+        for feat in layer_dest:
+            layer_dest.DeleteFeature(feat.GetFID())
+        if ds_trans:
+            layer_dest.CommitTransaction()
+
     if ds_trans:
-        layer_out.StartTransaction()
+        layer_dest.StartTransaction()
 
     i = 0
-    for feat_src, geom_src, nt_src in feats_layer_gdal(layer_src, nom_geom):
+    for feat_src, geom_src, nt_src in feats_layer_gdal(layer_src, nom_geom_src):
         cols_out_chk = [col.upper() for col in cols_out.union(geoms_out)]
         vals_camps = {nc: val for nc, val in nt_src._asdict().items()
                       if nc.upper() in cols_out_chk}
-        if null_geoms or not geom_field_out or geom_src:
-            if nom_geom_sel:
-                vals_camps[nom_geom_sel.upper()] = geom_src
+        if null_geoms or geom_src:
+            if nom_geom_dest:
+                vals_camps[nom_geom_dest.upper()] = geom_src
 
-            add_feature_to_layer_gdal(layer_out,
+            add_feature_to_layer_gdal(layer_dest,
                                       tolerance_simplify=tolerance_simplify,
                                       geom_trans=geom_transform,
                                       **vals_camps)
@@ -517,12 +602,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                 print_debug("{} registres tractats...".format(str(i)))
             i += 1
     if ds_trans:
-        layer_out.CommitTransaction()
-
-    if drvr_name == "GPKG":
-        create_spatial_index_layer_gpkg(ds_gdal_dest, nom_layer)
-
-    return ds_gdal_dest.GetLayerByName(nom_layer)
+        layer_dest.CommitTransaction()
 
 
 def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, srs_lyr_out=None, **extra_opt_list):
@@ -555,7 +635,7 @@ def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, 
 
     opt_list = set_create_option_list_for_driver_gdal(drvr_name, **{k.upper(): v.upper() for k, v in opt_list.items()})
 
-    if ds_gdal_dest.GetLayerByName(nom_layer):
+    if ds_gdal_dest.TestCapability(ODsCDeleteLayer) and ds_gdal_dest.GetLayerByName(nom_layer):
         print_warning("!ATENCION! - Se sobreescribirá la layer '{}' sobre el datasource GDAL '{}'".format(
             nom_layer, ds_gdal_dest.GetDescription()))
         ds_gdal_dest.DeleteLayer(nom_layer)
@@ -954,7 +1034,7 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
     if geoms_layer:
         tol = None
         if lite:
-            tol = 1e-6
+            tol = SIMPLIFY_TOLERANCE
 
         nom_layer_base = nom_layer.split("-")[0]
         if not multi_geom:
@@ -1125,7 +1205,35 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
     """
     pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}' active_schema='{schema}'"
     drvr, exts = driver_gdal('PostgreSQL')
-    return drvr.Open(pg_conn)
+    return drvr.Open(pg_conn, 1)
+
+
+def reset_sequence_layer_postgis(ds_postgis, nom_layer):
+    """
+    Resetea la secuencia de la layer PostGIS indicada
+
+    Args:
+        ds_postgis (osgeo.ogr.DataSource): datasource de la ddbb PostGIS:
+        nom_layer (str): nombre de la layer PostGIS
+
+    Returns:
+        bool: True si se ha reseteado correctamente
+    """
+    ok = False
+    layer_dest = ds_postgis.GetLayerByName(nom_layer)
+    fid_column = layer_dest.GetFIDColumn()
+    get_seq_sql = f"SELECT pg_get_serial_sequence('{nom_layer}', '{fid_column}') FROM information_schema.columns " \
+                  f"WHERE table_name = '{nom_layer}' AND column_default LIKE 'nextval%'"
+
+    if res_get_seq := ds_postgis.ExecuteSQL(get_seq_sql):
+        seq_name = res_get_seq.GetNextFeature().GetField(0)
+        ds_postgis.StartTransaction()
+        reset_seq = f"SELECT setval('{seq_name}', 1, false);"
+        ds_postgis.ExecuteSQL(reset_seq)
+        ds_postgis.CommitTransaction()
+        ok = True
+
+    return ok
 
 
 if __name__ == '__main__':
