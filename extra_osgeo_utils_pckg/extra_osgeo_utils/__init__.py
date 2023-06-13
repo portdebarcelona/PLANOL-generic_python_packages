@@ -518,10 +518,14 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                 layer_out.CreateGeomField(gfd_def_dest)
 
     if not geom_field_out:
-        null_geoms = True # Si no hay geom siempre se añaden
+        null_geoms = True  # Si no hay geom siempre se añaden
 
-    add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_out, nom_geom_src, nom_geom_out, null_geoms,
-                                tolerance_simplify)
+    add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_out, nom_geom_src, nom_geom_out,
+                                epsg_code_dest=epsg_code_dest,
+                                null_geoms=null_geoms,
+                                tolerance_simplify=tolerance_simplify,
+                                epsg_code_src_default=epsg_code_src_default,
+                                old_axis_mapping_srs=old_axis_mapping_srs)
 
     if drvr_name == "GPKG":
         create_spatial_index_layer_gpkg(ds_gdal_dest, nom_layer)
@@ -543,7 +547,8 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
 
 def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_src=None, nom_geom_dest=None,
-                                null_geoms=False, tolerance_simplify=None, remove_prev_features=False):
+                                epsg_code_dest=None, null_geoms=False, tolerance_simplify=None,
+                                remove_prev_features=False, epsg_code_src_default=4326, old_axis_mapping_srs=None):
     """
     From a layer of a dataset, add the features to another layer of another dataset.
 
@@ -554,10 +559,13 @@ def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_sr
         nom_geom_src (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
                             como ALIAS de la geometria 0 (la defecto) de la nueva layer resultante
         nom_geom_dest (str):
+        epsg_code_dest (int=None): EPSG code del srs de la layer_dest
         null_geoms (bool=False): Por defecto no grabará las filas que la geometria principal (nom_geom) es nula
         tolerance_simplify (float=None): Tolerancia (distancia minima) en unidades del srs de la layer
              Mirar método Simplify() sobre osgeo.ogr.Geometry
         remove_prev_features (bool=False): Si es True, se eliminarán las features previas de la layer_dest
+        epsg_code_src_default (int=4326): EPSG code del srs de la layer_src si no se encuentra
+        old_axis_mapping_srs (bool=None): setea si quieres usar old mapping axes en (LONG, LAT) (GDAL >3.2)
 
     Returns:
 
@@ -567,7 +575,14 @@ def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_sr
 
     geom_transform = None
     srs_lyr_src = srs_for_layer(layer_src, nom_geom_src)
-    srs_lyr_dest = srs_for_layer(layer_dest, nom_geom_dest)
+    if not srs_lyr_src:
+        srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default, old_axis_mapping_srs)
+
+    if epsg_code_dest:
+        srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping_srs)
+    else:
+        srs_lyr_dest = srs_for_layer(layer_dest, nom_geom_dest)
+
     if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
         geom_transform = osr.CoordinateTransformation(srs_lyr_src, srs_lyr_dest)
 
