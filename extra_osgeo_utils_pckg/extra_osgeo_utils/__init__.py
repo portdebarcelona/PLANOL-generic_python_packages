@@ -22,7 +22,7 @@ from extra_utils import misc as utils
 
 SIMPLIFY_TOLERANCE = 1e-6
 DRIVERS_GDAL_NOT_DELETE_LAYERS = ('POSTGRESQL',)
-DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG')
+DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG', 'POSTGRESQL')
 SUFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 
 print_debug = logging.debug
@@ -521,7 +521,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         null_geoms = True  # Si no hay geom siempre se añaden
 
     add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_out, nom_geom_src, nom_geom_out,
-                                epsg_code_dest=epsg_code_dest,
+                                srs_lyr_dest=srs_lyr_dest,
                                 null_geoms=null_geoms,
                                 tolerance_simplify=tolerance_simplify,
                                 epsg_code_src_default=epsg_code_src_default,
@@ -547,7 +547,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
 
 def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_src=None, nom_geom_dest=None,
-                                epsg_code_dest=None, null_geoms=False, tolerance_simplify=None,
+                                srs_lyr_dest=None, null_geoms=False, tolerance_simplify=None,
                                 remove_prev_features=False, epsg_code_src_default=4326, old_axis_mapping_srs=None):
     """
     From a layer of a dataset, add the features to another layer of another dataset.
@@ -559,7 +559,7 @@ def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_sr
         nom_geom_src (str=None): Si el nombre no se corresponde con ninguna de las geometrias de la layer_src se utilizará
                             como ALIAS de la geometria 0 (la defecto) de la nueva layer resultante
         nom_geom_dest (str):
-        epsg_code_dest (int=None): EPSG code del srs de la layer_dest
+        srs_lyr_dest (ogr.SpatialReference=None): Spatial Reference System de la layer_dest
         null_geoms (bool=False): Por defecto no grabará las filas que la geometria principal (nom_geom) es nula
         tolerance_simplify (float=None): Tolerancia (distancia minima) en unidades del srs de la layer
              Mirar método Simplify() sobre osgeo.ogr.Geometry
@@ -578,9 +578,7 @@ def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_sr
     if not srs_lyr_src:
         srs_lyr_src = srs_ref_from_epsg_code(epsg_code_src_default, old_axis_mapping_srs)
 
-    if epsg_code_dest:
-        srs_lyr_dest = srs_ref_from_epsg_code(epsg_code_dest, old_axis_mapping_srs)
-    else:
+    if srs_lyr_dest is None:
         srs_lyr_dest = srs_for_layer(layer_dest, nom_geom_dest)
 
     if srs_lyr_dest and not srs_lyr_src.IsSame(srs_lyr_dest):
@@ -1069,7 +1067,12 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
                                                           epsg_code_dest=srs_epsg_code, **extra_opt_list)
             new_layers_ds_gdal.append(lyr)
     else:
-        lyr = copy_layer_gdal_to_ds_gdal(layer_gdal, ds_gdal, nom_layer.lower())
+        if ds_gdal.GetDriver().GetName() == 'PostgreSQL':
+            extra_opt_list.update(dict(
+                precision=extra_opt_list.get('precision', 'PRECISION=NO')
+            ))
+
+        lyr = copy_layer_gdal_to_ds_gdal(layer_gdal, ds_gdal, nom_layer.lower(), **extra_opt_list)
         new_layers_ds_gdal.append(lyr)
 
     return new_layers_ds_gdal
