@@ -3,7 +3,7 @@ import unittest
 from functools import reduce
 
 import extra_osgeo_utils
-from extra_osgeo_utils import feats_layer_gdal, geoms_layer_gdal, SUFFIX_GEOMS_LAYERS_GDAL
+from extra_osgeo_utils import feats_layer_gdal, geoms_layer_gdal, PREFFIX_GEOMS_LAYERS_GDAL
 
 PASSWORD_DB_POSTGRES = 'eam123'
 USER_DB_POSTGRES = 'eam'
@@ -39,7 +39,7 @@ class TestOsgeoUtils(unittest.TestCase):
         lyr = ds.GetLayer(0)
         for f, g, nt in feats_layer_gdal(lyr):
             f_vals = f.items()
-            for g in geoms_layer_gdal(lyr, extract_suffix=SUFFIX_GEOMS_LAYERS_GDAL):
+            for g in geoms_layer_gdal(lyr, extract_affix=PREFFIX_GEOMS_LAYERS_GDAL):
                 g_nt = getattr(nt, g)
                 self.assertEqual(f_vals[g], g_nt.ExportToIsoWkt() if g_nt else '')
 
@@ -96,7 +96,7 @@ class TestOsgeoUtils(unittest.TestCase):
         layer_gdal, nom_layer_gdal, ds_gdal = extra_osgeo_utils.layer_gdal_from_file(
             os.path.join(path_data, 'edificacio.zip'), 'CSV', default_order_long_lat=False)
         for nom_geom in extra_osgeo_utils.geoms_layer_gdal(layer_gdal):
-            fix_nom_geom = extra_osgeo_utils.fix_suffix_geom_name_layer_gdal(nom_geom, layer_gdal)
+            fix_nom_geom = extra_osgeo_utils.fix_affix_geom_name_layer_gdal(nom_geom, layer_gdal)
             ds_gdal_geojson, overwrited = extra_osgeo_utils.datasource_gdal_vector_file(
                 'GEOJSON',
                 "{}-{}".format(nom_layer_gdal, fix_nom_geom.lower()),

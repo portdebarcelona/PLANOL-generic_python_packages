@@ -23,7 +23,8 @@ from extra_utils import misc as utils
 SIMPLIFY_TOLERANCE = 1e-6
 DRIVERS_GDAL_NOT_DELETE_LAYERS = ('POSTGRESQL',)
 DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG', 'POSTGRESQL')
-SUFFIX_GEOMS_LAYERS_GDAL = 'geom_'
+PREFFIX_GEOMS_LAYERS_GDAL = 'geom_'
+PREFFIX_GEOMS_LAYERS_GDAL_CSV = '_WKT'
 
 print_debug = logging.debug
 print_warning = logging.warning
@@ -447,7 +448,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
             idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom_src)
             if idx_act_geom_field >= 0:
                 act_geom_field = layer_src_def.GetGeomFieldDefn(idx_act_geom_field)
-                nom_geom_out = fix_suffix_geom_name_layer_gdal(nom_geom_src, layer_src)
+                nom_geom_out = fix_affix_geom_name_layer_gdal(nom_geom_src, layer_src)
 
         gtype = act_geom_field.GetType()
         if gtype_layer_from_geoms and not gtype:
@@ -459,12 +460,12 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     if sel_camps:
         sel_camps = {c.strip().upper() for c in sel_camps}
 
-    geoms_src_minus_suffix = geoms_layer_gdal(layer_src, SUFFIX_GEOMS_LAYERS_GDAL)
+    geoms_src_minus_affix = geoms_layer_gdal(layer_src, PREFFIX_GEOMS_LAYERS_GDAL)
     if exclude_cols_geoms:
         if sel_camps:
-            sel_camps.difference_update(geoms_src_minus_suffix)
+            sel_camps.difference_update(geoms_src_minus_affix)
         else:
-            sel_camps = cols_layer_gdal(layer_src).difference(geoms_src_minus_suffix)
+            sel_camps = cols_layer_gdal(layer_src).difference(geoms_src_minus_affix)
 
     srs_lyr_dest = None
     if not srs_lyr_src and epsg_code_src_default:
@@ -503,11 +504,11 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         for fd in fields_layer_gdal(layer_src):
             nom_fd = fd.GetNameRef().upper()
             if layer_out.FindFieldIndex(nom_fd, True) < 0 and (not sel_camps or nom_fd in sel_camps) and \
-                    nom_fd not in (gn.upper() for gn in geoms_src_minus_suffix):
+                    nom_fd not in (gn.upper() for gn in geoms_src_minus_affix):
                 layer_out.CreateField(fd)
 
         for gfd in geom_fields_layer_gdal(layer_src):
-            nom_gfd = fix_suffix_geom_name_layer_gdal(gfd.GetNameRef(), layer_src).upper()
+            nom_gfd = fix_affix_geom_name_layer_gdal(gfd.GetNameRef(), layer_src).upper()
             if (not sel_camps or nom_gfd in sel_camps) and \
                     (nom_gfd not in geoms_src or not exclude_cols_geoms) and \
                     nom_gfd != nom_geom_out:
@@ -532,18 +533,31 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
 
     if drvr_name == 'CSV':
         path_csv = ds_gdal_dest.GetName()
-        with open(path_csv, 'r', encoding='utf-8') as r_file:
-            content_csv = r_file.readlines()
-            first_line = next(iter(content_csv), None)
-
-        if first_line:
-            new_first_line = first_line.replace('_WKT', '')
-            if new_first_line != first_line:
-                content_csv[0] = new_first_line
-                with open(path_csv, 'w', encoding='utf-8') as w_file:
-                    w_file.writelines(content_csv)
+        if os.path.exists(path_csv):
+            rename_wkt_geoms_csv(path_csv)
 
     return ds_gdal_dest.GetLayerByName(nom_layer)
+
+
+def rename_wkt_geoms_csv(path_csv):
+    """
+    Remove "_WKT" affix from WKT geometry fields in CSV file
+
+    Args:
+        path_csv (str): Path to CSV file
+
+    Returns:
+
+    """
+    with open(path_csv, 'r', encoding='utf-8') as r_file:
+        content_csv = r_file.readlines()
+        first_line = next(iter(content_csv), None)
+    if first_line:
+        new_first_line = first_line.replace(PREFFIX_GEOMS_LAYERS_GDAL_CSV, '')
+        if new_first_line != first_line:
+            content_csv[0] = new_first_line
+            with open(path_csv, 'w', encoding='utf-8') as w_file:
+                w_file.writelines(content_csv)
 
 
 def add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_dest, nom_geom_src=None, nom_geom_dest=None,
@@ -794,13 +808,13 @@ def format_nom_column(nom_col):
     return nom_col.replace(" ", "_")
 
 
-def namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld=None):
+def namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld=None):
     """
     Devuelve namedTuple con los campos del layer pasado por parametro
 
     Args:
         layer_gdal:
-        extract_suffix_geom_fld (str=None):
+        extract_affix_geom_fld (str=None):
 
     Returns:
         namedtuple: con nombre "gdalFeatDef_{NOM_LAYER}" y con los campos de la layer
@@ -809,7 +823,7 @@ def namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld=None):
     for fld in fields_layer_gdal(layer_gdal):
         camps_layer.add(format_nom_column(fld.GetNameRef()))
 
-    for nom_geom in geoms_layer_gdal(layer_gdal, extract_suffix=extract_suffix_geom_fld):
+    for nom_geom in geoms_layer_gdal(layer_gdal, extract_affix=extract_affix_geom_fld):
         camps_layer.add(format_nom_column(nom_geom))
 
     nom_layer = layer_gdal.GetName().upper().split(".")[0].replace("-", "_")
@@ -839,7 +853,7 @@ def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
             yield feat, geom, vals
 
 
-def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_geom_fld=SUFFIX_GEOMS_LAYERS_GDAL):
+def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_geom_fld=PREFFIX_GEOMS_LAYERS_GDAL):
     """
     Itera las features (registros de una layer de gdal) y los devuelve como un namdtuple
 
@@ -848,14 +862,14 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_suffix_
         nom_geom (str=None): Por defecto la geometria activa o principal
         filter_sql (str=None): Si viene informado se aplicará como filtro sql a la layer seleccionada.
                             Utiliza OGR SQL (vease https://www.gdal.org/ogr_sql.html)
-        extract_suffix_geom_fld (str=SUFFIX_GEOMS_LAYERS_GDAL): Por defecto quita el sufijo 'geom_' a los campos geom
+        extract_affix_geom_fld (str=SUFFIX_GEOMS_LAYERS_GDAL): Por defecto quita el sufijo 'geom_' a los campos geom
 
     Returns:
         ogr.Feature, ogr.Geometry, namedtuple_layer_gdal
     """
     layer_gdal.ResetReading()
-    ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_suffix_geom_fld)
-    n_geoms_layer = {nom_geom_feat: fix_suffix_geom_name_layer_gdal(nom_geom_feat, layer_gdal, extract_suffix_geom_fld)
+    ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld)
+    n_geoms_layer = {nom_geom_feat: fix_affix_geom_name_layer_gdal(nom_geom_feat, layer_gdal, extract_affix_geom_fld)
                      for nom_geom_feat in geoms_layer_gdal(layer_gdal)}
 
     if filter_sql:
@@ -967,13 +981,13 @@ def cols_layer_gdal(layer_gdal):
     return camps
 
 
-def geoms_layer_gdal(layer_gdal, extract_suffix=None):
+def geoms_layer_gdal(layer_gdal, extract_affix=None):
     """
     Retorna lista con las columnas geométricas de una layer gdal
 
     Args:
         layer_gdal:
-        extract_suffix (str=None=): if informed extract the suffix passed
+        extract_affix (str=None=): if informed extract the affix passed
 
     Returns:
         set
@@ -982,30 +996,30 @@ def geoms_layer_gdal(layer_gdal, extract_suffix=None):
     for gdf in geom_fields_layer_gdal(layer_gdal):
         # camps_geom.add(gdf.GetName().upper())
         name_ref = gdf.GetNameRef()
-        if extract_suffix:
-            name_ref = fix_suffix_geom_name_layer_gdal(name_ref, layer_gdal, extract_suffix)
+        if extract_affix:
+            name_ref = fix_affix_geom_name_layer_gdal(name_ref, layer_gdal, extract_affix)
         camps_geom.add(name_ref)
 
     return camps_geom
 
 
-def fix_suffix_geom_name_layer_gdal(geom_name, layer_gdal, suffix=SUFFIX_GEOMS_LAYERS_GDAL):
+def fix_affix_geom_name_layer_gdal(geom_name, layer_gdal, affix=PREFFIX_GEOMS_LAYERS_GDAL):
     """
-    Extract suffix SUFFIX_GEOMS_LAYERS_GDAL from name geoms if correspond with other column
-    Fix GDAL > 3.4 where geoms on GeoCSV arrive with suffix 'geom_'
+    Extract affix (default=PREFFIX_GEOMS_LAYERS_GDAL) from name geoms if correspond with other column
+    Fix GDAL > 3.4 where geoms on GeoCSV arrive with preffix 'geom_'
 
     Args:
           geom_name (str):
           layer_gdal:
-          suffix (str=SUFFIX_GEOMS_LAYERS_GDAL):
+          affix (str=PREFFIX_GEOMS_LAYERS_GDAL):
 
     Returns:
         str
     """
     cols_layer = cols_layer_gdal(layer_gdal)
     geom_name_layer = geom_name
-    if geom_name.lower().startswith(suffix):
-        geom_name_aux = re.sub(suffix, '', geom_name, flags=re.IGNORECASE)
+    if geom_name.lower().startswith(affix):
+        geom_name_aux = re.sub(affix, '', geom_name, flags=re.IGNORECASE)
         if geom_name_aux.lower() in (col.lower() for col in cols_layer):
             geom_name_layer = geom_name_aux
 
@@ -1052,8 +1066,8 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
         nom_layer_base = nom_layer.split("-")[0]
         if not multi_geom:
             for geom_name in geoms_layer:
-                # Fix GDAL > 3.4 where geoms on GeoCSV arrive with suffix 'geom_'
-                geom_name_layer = fix_suffix_geom_name_layer_gdal(geom_name, layer_gdal)
+                # Fix GDAL > 3.4 where geoms on GeoCSV arrive with preffix 'geom_'
+                geom_name_layer = fix_affix_geom_name_layer_gdal(geom_name, layer_gdal)
 
                 nom_layer = "{}-{}".format(nom_layer_base, geom_name_layer).lower()
                 extra_opt_list["GEOMETRY_NAME"] = "GEOMETRY_NAME={}".format(geom_name_layer)
