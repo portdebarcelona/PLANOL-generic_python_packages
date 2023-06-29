@@ -19,6 +19,7 @@ from calendar import different_locale
 from collections import OrderedDict
 from math import isnan
 from pathlib import Path
+import socket
 from tempfile import gettempdir
 from urllib.request import build_opener
 from zipfile import ZipFile, ZIP_DEFLATED
@@ -908,6 +909,34 @@ def is_path_child_from(path, path_parent):
     p_path_parent = Path(path_parent)
 
     return any(p.samefile(p_path_parent) for p in p_path.parents)
+
+
+def machine_name():
+    """
+    Retorna el nombre de la maquina
+
+    Returns:
+        str
+    """
+    # TODO - Get host from docker machine when we are in a container
+    # TODO - import docker
+    # TODO -
+    # TODO - client = docker.from_env()
+    # TODO - container_info = client.containers.get(socket.gethostname())
+    # TODO - docker_host_ip = container_info.attrs['NetworkSettings']['IPAddress']
+    # TODO - print(docker_host_ip)
+
+    return socket.getfqdn().upper()
+
+
+def machine_apb():
+    """
+    Retorna el nombre de la maquina
+
+    Returns:
+        bool
+    """
+    return socket.getfqdn().lower().endswith('.apb.es')
 
 
 if __name__ == '__main__':

@@ -14,6 +14,8 @@ import smtplib, ssl
 import warnings
 import docutils.core
 
+from extra_utils.misc import machine_apb, machine_name
+
 
 def set_attachment_to_msg(msg, file_path):
     """
@@ -129,7 +131,8 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
         codi (int)
     """
     codi = 1
-    subject = "{} {}".format(os.getenv("COMPUTERNAME"), subject)
+    if machine_apb():
+        subject = f"[{machine_name()}] {subject}"
 
     # SendMail
     try:

@@ -55,9 +55,8 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
             misc.create_dir(dir_log)
 
         sub_parts_nom = []
-        nom_pc = os.getenv("COMPUTERNAME")
-        if nom_pc:
-            sub_parts_nom.append(nom_pc)
+        if misc.machine_apb():
+            sub_parts_nom.append(misc.machine_name())
         sub_parts_nom.append(nom_base_log)
         if sufix_date:
             sub_parts_nom.append(datetime.datetime.today().strftime('%Y%m%d_%H%M%S'))
