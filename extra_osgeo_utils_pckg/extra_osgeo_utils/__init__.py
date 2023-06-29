@@ -1170,6 +1170,39 @@ def set_csvt_for_layer_csv(path_csv, **tipus_camps):
         f_csvt.write(",".join(tips_lyr.values()))
 
 
+def zip_and_clean_ds_csv(ds_gdal_csv):
+    """
+    # Zipea datasource osgeo CSV y como GDAL no crea los tipos WKT para las geometrias en el CSVT se fuerza
+
+    Args:
+        ds_gdal_csv (osgeo.ogr.DataSource): Datasource osgeo CSV
+
+    Returns:
+        zip_path (str)
+    """
+    layer_csv = ds_gdal_csv.GetLayer(0)
+    tips_geoms = {gn: "WKT" for gn in
+                  (*geoms_layer_gdal(layer_csv, extract_affix=PREFFIX_GEOMS_LAYERS_GDAL),
+                   *geoms_layer_gdal(layer_csv, extract_affix=PREFFIX_GEOMS_LAYERS_GDAL_CSV))}
+    path_csv = ds_gdal_csv.GetDescription()
+    ds_gdal_csv = None  # Cerramos el datasource para que se guarden los cambios
+    if path_csv and os.path.exists(path_csv):
+        if tips_geoms:
+            set_csvt_for_layer_csv(path_csv, **tips_geoms)
+        rename_wkt_geoms_csv(path_csv)
+    dir_base_csv = os.path.dirname(path_csv)
+    nom_layer = os.path.basename(path_csv).split(".")[0]
+    l_files_csv = [os.path.join(dir_base_csv, nf) for nf in os.listdir(dir_base_csv)
+                   if nf.lower().startswith(nom_layer.lower()) and
+                   any(nf.lower().endswith(ext) for ext in ('csv', 'csvt'))]
+    zip_path = utils.zip_files(os.path.join(dir_base_csv, "{}.zip".format(nom_layer)), l_files_csv)
+    if zip_path:
+        for fl_csv in l_files_csv:
+            os.remove(fl_csv)
+
+    return zip_path
+
+
 def convert_angle(pt_xy, deg_ang, orig_srs, dest_srs):
     """
 
