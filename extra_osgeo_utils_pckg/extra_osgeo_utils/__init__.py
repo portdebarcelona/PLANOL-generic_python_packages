@@ -1170,16 +1170,18 @@ def set_csvt_for_layer_csv(path_csv, **tipus_camps):
         f_csvt.write(",".join(tips_lyr.values()))
 
 
-def zip_and_clean_ds_csv(ds_gdal_csv):
+def zip_and_clean_ds_csv(path_csv):
     """
     # Zipea datasource osgeo CSV y como GDAL no crea los tipos WKT para las geometrias en el CSVT se fuerza
 
     Args:
-        ds_gdal_csv (osgeo.ogr.DataSource): Datasource osgeo CSV
+        path_csv (str): path Datasource osgeo CSV
 
     Returns:
         zip_path (str)
     """
+    ds_gdal_csv, dummy = datasource_gdal_vector_file("CSV", os.path.basename(path_csv).split(".")[0],
+                                                     os.path.dirname(path_csv))
     layer_csv = ds_gdal_csv.GetLayer(0)
     tips_geoms = {gn: "WKT" for gn in
                   (*geoms_layer_gdal(layer_csv, extract_affix=PREFFIX_GEOMS_LAYERS_GDAL),
