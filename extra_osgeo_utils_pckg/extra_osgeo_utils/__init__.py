@@ -723,7 +723,7 @@ def add_feature_to_layer_gdal(layer_gdal, tolerance_simplify=None, geom_trans=No
             if val:
                 if tolerance_simplify:
                     val = val.Simplify(tolerance_simplify)
-                if geom_trans:
+                if val and geom_trans:
                     val.Transform(geom_trans)
 
             dd_feat.SetGeomField(idx_geom, val)
