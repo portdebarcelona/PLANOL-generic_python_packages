@@ -17,7 +17,7 @@ from . import get_root_logger
 from . import misc
 
 
-def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True):
+def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True, encoding='utf-8'):
     """
     Crea logger para el contexto desde donde se llama con el nivel de logging.
 
@@ -32,13 +32,14 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
         parent_func {bool, optional} (default=False): Si se indica parent_func=True entonces devuelve el nombre del
                                  contexto que llama a la funcion
         sufix_date {bool, optional} (default=True):
+        encoding {str, optional} (default='utf-8'): Codificacion del fichero de log
     Returns:
         {logging.logger}: Instancia de logger para la funcion desde donde se llama
 
     """
     root_logger = get_root_logger()
     if not level:
-        level = root_logger.level
+        level = max(logging.INFO, root_logger.level)
 
     skip_ctxt = 1
     if parent_func:
@@ -73,7 +74,7 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
             path_log = ".".join(["{}{}".format(path_base_log, sufix_level),
                                  "log"])
 
-            a_file_handler = logging.FileHandler(path_log, mode="w", encoding="cp1252", delay=True)
+            a_file_handler = logging.FileHandler(path_log, mode="w", encoding=encoding, delay=True)
 
             a_file_handler.setLevel(hdlr.level)
             a_frm = hdlr.formatter
