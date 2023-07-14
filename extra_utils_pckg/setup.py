@@ -9,7 +9,7 @@
 from setuptools import setup, find_packages
 import os
 
-GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/portdebarcelona/PLANOL-generic_python_packages')
+GIT_REPO = 'https://github.com/portdebarcelona/PLANOL-generic_python_packages'
 
 
 def readme():
@@ -19,7 +19,7 @@ def readme():
 
 setup(
     name='extra_utils',
-    version='1.2.3',
+    version='1.2.4',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
