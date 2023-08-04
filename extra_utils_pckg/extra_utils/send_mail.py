@@ -156,7 +156,7 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
     return codi
 
 
-def send_grid(subject=None, body=None, user_mail_list=[], api_key=None, *attach_path_files):
+def send_grid(subject=None, body=None, user_mail_list=[], api_key=None, sender=None, *attach_path_files):
     """
     Envia mail desde la api de sendGrid
 
@@ -173,9 +173,12 @@ def send_grid(subject=None, body=None, user_mail_list=[], api_key=None, *attach_
     """
     if api_key is None:
         api_key = os.environ.get('SENDGRID_API_KEY')
+
+    if sender is None:
+        sender = os.environ.get('SENDGRID_SENDER')
     try:
         message = Mail(
-            from_email='from_email@example.com',
+            from_email=sender,
             to_emails=user_mail_list,
             subject=subject,
             html_content=body)

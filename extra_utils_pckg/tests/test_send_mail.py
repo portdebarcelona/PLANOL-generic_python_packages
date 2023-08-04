@@ -8,6 +8,7 @@ class MyTestMails(unittest.TestCase):
     def setUp(self) -> None:
         self.mail = 'ernesto.arredondo@portdebarcelona.cat'
         self.api_key = os.getenv('SEND_GRID_API_KEY')
+        self.sender = os.getenv('SEND_GRID_SENDER')
 
     def test_enviar_mail(self):
         codi = enviar_mail('Test', 'This is a test', [self.mail])
@@ -16,8 +17,10 @@ class MyTestMails(unittest.TestCase):
     def test_sendgrid(self):
         result = send_grid(subject='prova',
                            body='prova',
+                           user_mail_list=['afeliu@nexusgeographics.com'],
                            api_key=self.api_key,
-                           user_mail_list=['afeliu@nexusgeographics.com'])
+                           sender=self.sender
+                           )
         self.assertIsTrue(result)
 
 
