@@ -19,7 +19,7 @@ def readme():
 
 setup(
     name='extra_utils',
-    version='1.2.5',
+    version='1.2.6',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
@@ -43,7 +43,8 @@ setup(
         'openpyxl',
         'psycopg2-binary',
         'sqlalchemy',
-        'tdqm'
+        'tdqm',
+        'sendgrid==6.10.0'
     ],
     python_requires='>=3.6',
     package_data={
