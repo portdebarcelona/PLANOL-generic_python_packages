@@ -207,8 +207,8 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
             header['Authorization'] = f'token {token}'
 
         name_zip = f'{repo}-{branch}'
-        get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
-                                       header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
+        updated = get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
+                                                 header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
 
         if as_zip:
             path_zip = os.path.join(download_to, f'{name_zip}.zip')
@@ -218,7 +218,7 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
                     os.remove(new_path_zip)
                 os.rename(path_zip, new_path_zip)
 
-        return sha_commit
+        return sha_commit, updated
 
 
 if __name__ == '__main__':

@@ -10,12 +10,17 @@ import os
 
 from setuptools import setup
 
-
-GIT_REPO = os.getenv('GIT_REPO', 'https://github.com/portdebarcelona/PLANOL-generic_python_packages')
+GIT_REPO = 'https://github.com/portdebarcelona/PLANOL-generic_python_packages'
 
 
 def format_requirement(n_pckg):
-    str_req = f'{n_pckg} @ git+{GIT_REPO}#egg={n_pckg}&subdirectory={n_pckg}_pckg'
+    git_repo = os.getenv('GIT_REPO', GIT_REPO)
+
+    if git_repo_branch := os.getenv('GIT_REPO_BRANCH'):
+        if not git_repo.endswith(f'@{git_repo_branch}'):
+            git_repo = f'{git_repo}@{git_repo_branch}'
+
+    str_req = f'{n_pckg} @ git+{git_repo}#egg={n_pckg}&subdirectory={n_pckg}_pckg'
 
     path_dev = os.getenv('PATH_DEVELOPER_MODE', '')
     path_pckg = os.path.join(path_dev, "{}_pckg".format(n_pckg))
@@ -41,7 +46,7 @@ def readme():
 
 setup(
     name='spatial_utils',
-    version='0.9.1',
+    version='0.9.2',
     packages=['spatial_utils'],
     url=f'{GIT_REPO}/tree/master/spatial_utils_pckg',
     author='Ernesto Arredondo Martinez',

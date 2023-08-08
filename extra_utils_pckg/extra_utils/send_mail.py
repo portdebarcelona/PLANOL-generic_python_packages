@@ -15,6 +15,8 @@ import warnings
 import docutils.core
 
 from extra_utils.misc import machine_apb, machine_name
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 
 def set_attachment_to_msg(msg, file_path):
@@ -154,9 +156,52 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
     return codi
 
 
+def send_grid(subject=None, body=None, user_mail_list=[], api_key=None, sender=None, *attach_path_files):
+    """
+    Envia mail desde la api de sendGrid
+
+    Args:
+        api_key(str): Api key del send grid a utilitzar. Si no el passen, agafem variable d'entorn
+        subject (str): Tema a enviar en el correo
+        body (str): Texto con el cuerpo del mail. Por defecto buscará '$$NEWLINE$$' para substituir por saltos de línea
+        user_mail_list (list): Lista de strings con los correos
+        *attach_path_files: PATHs de ficheros a adjuntar
+
+    Returns:
+        Api executada correctament
+
+    """
+    if api_key is None:
+        api_key = os.environ.get('SENDGRID_API_KEY')
+
+    if sender is None:
+        sender = os.environ.get('SENDGRID_SENDER')
+    try:
+        message = Mail(
+            from_email=sender,
+            to_emails=user_mail_list,
+            subject=subject,
+            html_content=body)
+        sg = SendGridAPIClient(api_key)
+        response = sg.send(message)
+        print(response.status_code)
+        print(response.body)
+        print(response.headers)
+
+        sended = True
+
+    except Exception as exc:
+        import traceback
+        print(traceback.format_exc())
+        warnings.warn("No se ha podido enviar el mail con subject '{subject}'".format(subject=subject))
+        sended = False
+    return sended
+
+
 if __name__ == '__main__':
     import fire
 
     fire.Fire({
         enviar_mail.__name__: enviar_mail,
+        send_grid.__name__: send_grid
     })
