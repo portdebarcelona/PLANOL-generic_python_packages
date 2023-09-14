@@ -2,8 +2,9 @@ FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3 AS runtime
 
 ARG oracle_client_version=19.18
 ARG path_oracle_client=./config/oracle/
+ARG CUSTOM_UID=65535
 
-RUN useradd --create-home appuser
+RUN useradd --create-home -u ${CUSTOM_UID} appuser
 
 # Instant client
 COPY $path_oracle_client /tmp/oracle
