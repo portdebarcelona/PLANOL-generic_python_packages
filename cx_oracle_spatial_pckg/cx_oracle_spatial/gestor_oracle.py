@@ -1175,6 +1175,7 @@ class gestor_oracle(object):
             try:
                 con_ora.ping()
             except cx_Oracle.Error as exc:
+                # TODO - Borra las entradas de cache de las conexion que acabamos de borrar
                 con_ora.close()
                 self.__con_db__ = con_ora = None
 
