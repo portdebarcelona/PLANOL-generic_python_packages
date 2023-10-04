@@ -73,7 +73,27 @@ __cache_tips_geom_tab = {}
 __cache_row_class_tab = {}
 
 
-def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None):
+def del_cache_rel_con_db(con_db_name: str):
+    """
+    Borra las Caches para atributos de tablas_o_vistas de Oracle
+    Args:
+        con_db_name: nom de la connexió
+
+    Returns:
+
+    """
+    all_cache = [__cache_pks_tab, __cache_row_desc_tab, __cache_tips_geom_tab, __cache_row_class_tab]
+    for cache_dic in all_cache:
+        # alamcenamos las claves porque no se puede eliminar del diccionario mientras se itera
+        keys_remove = []
+        for key in cache_dic:
+            if key.startswith(con_db_name):
+                keys_remove.append(key)
+        for key_r in keys_remove:
+            del cache_dic[key_r]
+
+
+def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None, schema_ora=None):
     """
     Return cx_Oracle Connection
     Args:
@@ -81,6 +101,7 @@ def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None):
         psw_ora (str):
         dsn_ora (str=None):
         call_timeout (int=None): miliseconds
+        schema_ora(str=None): indicate scheme when it is different from the user, default schema = user
 
     Returns:
         cx_Oracle.Connection
@@ -88,6 +109,9 @@ def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None):
     connection = cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
     if call_timeout:
         connection.call_timeout = call_timeout
+
+    if schema_ora:
+        connection.current_schema = schema_ora
 
     return connection
 
@@ -1031,7 +1055,7 @@ class gestor_oracle(object):
     __slots__ = 'nom_con_db', '__con_db__', '__user_con_db__', \
         '__psw_con_db__', '__dsn_ora__', '__call_timeout__', 'logger'
 
-    def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None, call_timeout: int = None):
+    def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None, call_timeout: int = None, schema_ora=None):
         """
         Inicializa gestor de Oracle para una conexion cx_Oracle a Oracle
         Se puede pasar por parametro un logger o inicializar por defecto
@@ -1043,12 +1067,13 @@ class gestor_oracle(object):
                     según TSN o string tal cual devuelve cx_Oracle.makedsn())
             call_timeout (int=None): miliseconds espera per transaccio
             a_logger:
+            schema_ora(str=None): indicate scheme when it is different from the user, default schema = user
         """
         self.__con_db__ = None
         self.__call_timeout__ = call_timeout
         self.logger = a_logger
         self.__set_logger()
-        self.__set_conexion(user_ora, psw_ora, dsn_ora)
+        self.__set_conexion(user_ora, psw_ora, dsn_ora, schema_ora=schema_ora)
 
     def __del__(self):
         """
@@ -1142,7 +1167,7 @@ class gestor_oracle(object):
         self.logger.exception(msg)
 
     @print_to_log_exception(lanzar_exc=True)
-    def __set_conexion(self, user_ora, psw_ora, dsn_ora):
+    def __set_conexion(self, user_ora, psw_ora, dsn_ora, schema_ora=None):
         """
         Añade conexion Oracle al gestor a partir de nombre de usuario/schema (user_ora), contraseña (psw_ora) y
         nombre datasource de la bbdd según tns_names (ds_ora).
@@ -1153,14 +1178,16 @@ class gestor_oracle(object):
             user_ora {str}: Usuario/schema Oracle
             psw_ora {str}: Password usuario
             dsn_ora {str}: DSN Oracle (Nombre instancia/datasource de Oracle según TSN o string tal cual devuelve cx_Oracle.makedsn())
+            schema_ora(str=None): indicate scheme when it is different from the user, default schema = user
 
         """
         nom_con = "@".join((user_ora.upper(), dsn_ora.upper()))
         self.nom_con_db = nom_con
         self.__user_con_db__ = user_ora
         self.__psw_con_db__ = psw_ora
+        self.__schema_con_db__ = schema_ora
         self.__dsn_ora__ = dsn_ora
-        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora, self.__call_timeout__)
+        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora, self.__call_timeout__, schema_ora=schema_ora)
 
     @property
     @print_to_log_exception(cx_Oracle.Error, lanzar_exc=True)
@@ -1171,18 +1198,24 @@ class gestor_oracle(object):
         Returns:
             cx_Oracle.Connection
         """
+        reconnect = False
         if (con_ora := self.__con_db__) is not None:
             try:
                 con_ora.ping()
             except cx_Oracle.Error as exc:
-                con_ora.close()
+                # Borramos las entradas de cache asociadas a la conexión que no responde
+                del_cache_rel_con_db(get_nom_conexion(con_ora))
+                try:
+                    con_ora.close()
+                except cx_Oracle.InterfaceError:
+                    pass
                 self.__con_db__ = con_ora = None
 
         if con_ora is None:
             self.__set_conexion(
                 self.__user_con_db__,
                 self.__psw_con_db__,
-                self.__dsn_ora__)
+                self.__dsn_ora__, schema_ora=self.__schema_con_db__)
 
             con_ora = self.__con_db__
 
