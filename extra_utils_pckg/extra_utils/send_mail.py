@@ -10,13 +10,15 @@
 import datetime
 import mimetypes
 import os
-import smtplib, ssl
+import smtplib
+import ssl
 import warnings
-import docutils.core
 
-from extra_utils.misc import machine_apb, machine_name
+import docutils.core
 from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
+
+from extra_utils.misc import machine_apb, machine_name
 
 
 def set_attachment_to_msg(msg, file_path):
@@ -156,46 +158,50 @@ def enviar_mail(subject, body, user_mail_list, to_html=False, *attach_path_files
     return codi
 
 
-def send_grid(subject=None, body=None, user_mail_list=[], api_key=None, sender=None, *attach_path_files):
+def send_grid(subject: str, body: str, user_mail_list: list, sender: str = None, api_key: str = None):
     """
     Envia mail desde la api de sendGrid
 
     Args:
-        api_key(str): Api key del send grid a utilitzar. Si no el passen, agafem variable d'entorn
         subject (str): Tema a enviar en el correo
         body (str): Texto con el cuerpo del mail. Por defecto buscará '$$NEWLINE$$' para substituir por saltos de línea
         user_mail_list (list): Lista de strings con los correos
-        *attach_path_files: PATHs de ficheros a adjuntar
+        sender (str=None): Mail del sender. Si no el passen, agafem variable d'entorn SENDGRID_SENDER
+        api_key(str=None): Api key del send grid a utilitzar. Si no el passen, agafem variable d'entorn SENDGRID_API_KEY
 
     Returns:
-        Api executada correctament
+        dict: Diccionario con la respuesta de la api de sendGrid
+            Examples:
+                OK = {'status_code': 202, 'body': ...}
 
     """
-    if api_key is None:
-        api_key = os.environ.get('SENDGRID_API_KEY')
+    if not api_key:
+        api_key = os.getenv('SENDGRID_API_KEY')
 
-    if sender is None:
-        sender = os.environ.get('SENDGRID_SENDER')
+    if not sender:
+        sender = os.getenv('SENDGRID_SENDER')
+
+    resp = dict()
     try:
         message = Mail(
             from_email=sender,
             to_emails=user_mail_list,
             subject=subject,
             html_content=body)
+
         sg = SendGridAPIClient(api_key)
         response = sg.send(message)
-        print(response.status_code)
-        print(response.body)
-        print(response.headers)
 
-        sended = True
+        resp['status_code'] = response.status_code
+        resp['body'] = response.body
 
     except Exception as exc:
-        import traceback
-        print(traceback.format_exc())
-        warnings.warn("No se ha podido enviar el mail con subject '{subject}'".format(subject=subject))
-        sended = False
-    return sended
+        error = f"No se ha podido enviar el mail con subject '{subject}'\n" \
+                f"Error: {exc}"
+        resp['error'] = error
+        warnings.warn(error)
+
+    return resp
 
 
 if __name__ == '__main__':
