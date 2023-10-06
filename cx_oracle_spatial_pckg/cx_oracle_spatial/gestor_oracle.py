@@ -1053,7 +1053,7 @@ class gestor_oracle(object):
     tip_fix_char = cx_Oracle.FIXED_CHAR
 
     __slots__ = 'nom_con_db', '__con_db__', '__user_con_db__', \
-        '__psw_con_db__', '__dsn_ora__', '__call_timeout__', 'logger'
+        '__psw_con_db__', '__dsn_ora__', '__call_timeout__', '__schema_con_db__', 'logger'
 
     def __init__(self, user_ora, psw_ora, dsn_ora, a_logger=None, call_timeout: int = None, schema_ora=None):
         """
