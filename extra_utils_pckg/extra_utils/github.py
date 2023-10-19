@@ -1,3 +1,4 @@
+import functools
 import json
 import os
 import shutil
@@ -81,6 +82,43 @@ def post_api_github(owner, repo, api_request, post_data, token=None):
         info_response[HTTPError.__name__] = str(exc)
 
     return info_response
+
+
+@functools.cache
+def has_changes_in_github(owner, repo, branch, download_to, token=None):
+    """
+    Check if the GitHub repository branch has changes.
+    
+    Args:
+        owner (str): Owner repository Github
+        repo (str): Name repository Github
+        branch (str): Branch repository to check
+        download_to (str): Path to the local repository
+        token (str=None): Github token for private access
+
+    Returns:
+        bool: True if there are changes, False otherwise
+        str: sha_commit of the current branch state
+    """
+    branch = branch.lower()
+    info_branches = get_api_github(owner, repo, 'branches', token)
+    info_branch = next(filter(lambda el: el.get('name', '').lower() == branch,
+                              info_branches), None)
+
+    if not info_branch:
+        return False, None
+
+    sha_commit = info_branch.get('commit').get('sha')
+    expected_name_zip_repo = f'{repo}-{branch}'
+    log_last_tag = os.path.join(download_to, f'.{PREFIX_FILE_LAST_TAG_REPO}{expected_name_zip_repo}')
+
+    if os.path.exists(log_last_tag):
+        with open(log_last_tag) as fr:
+            last_tag = fr.read()
+            if last_tag and last_tag.strip() == sha_commit.strip():
+                return False, sha_commit
+
+    return True, sha_commit
 
 
 def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_repo, header=None,
@@ -192,33 +230,29 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         as_zip (bool=False): Retorna como ZIP
 
     Returns:
-        sha_commit (str)
+        sha_commit (str), updated (boolean)
     """
-    branch = branch.lower()
-    info_branches = get_api_github(owner, repo, 'branches', token)
-    info_branch = next(filter(lambda el: el.get('name', '').lower() == branch,
-                              info_branches), None)
+    has_changes, sha_commit = has_changes_in_github(owner, repo, branch, download_to, token)
+    if not has_changes and not force:
+        return sha_commit, False
+    html_branch = f'https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip'
+    header = {}
+    if token:
+        header['Authorization'] = f'token {token}'
 
-    if info_branch:
-        sha_commit = info_branch.get('commit').get('sha')
-        html_branch = f'https://github.com/{owner}/{repo}/archive/refs/heads/{branch}.zip'
-        header = {}
-        if token:
-            header['Authorization'] = f'token {token}'
+    name_zip = f'{repo}-{branch}'
+    updated = get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
+                                             header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
 
-        name_zip = f'{repo}-{branch}'
-        updated = get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
-                                                 header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
+    if as_zip:
+        path_zip = os.path.join(download_to, f'{name_zip}.zip')
+        if os.path.exists(path_zip):
+            new_path_zip = os.path.join(download_to, f'{name_zip}-{sha_commit}.zip')
+            if os.path.exists(new_path_zip):
+                os.remove(new_path_zip)
+            os.rename(path_zip, new_path_zip)
 
-        if as_zip:
-            path_zip = os.path.join(download_to, f'{name_zip}.zip')
-            if os.path.exists(path_zip):
-                new_path_zip = os.path.join(download_to, f'{name_zip}-{sha_commit}.zip')
-                if os.path.exists(new_path_zip):
-                    os.remove(new_path_zip)
-                os.rename(path_zip, new_path_zip)
-
-        return sha_commit, updated
+    return sha_commit, updated
 
 
 if __name__ == '__main__':
