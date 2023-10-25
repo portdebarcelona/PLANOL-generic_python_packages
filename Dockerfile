@@ -19,18 +19,20 @@ RUN mkdir --parents $ORACLE_HOME && \
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends pip alien libaio1 locales locales-all \
+    && apt-get install -yq --no-install-recommends pip alien libaio1 locales locales-all tzdata \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
     && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
+    # Set timezone \
+    && ln -fs /usr/share/zoneinfo/$TZ /etc/localtime \
+    && dpkg-reconfigure --frontend noninteractive tzdata \
+    && echo $TZ > /etc/timezone \
     # Remove alien and unnecesary deps.
     && apt-get -yq remove --auto-remove --purge alien \
     && rm -rf /tmp/oracle \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /app \
-    && apt-get clean \
-    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
-    && echo $TZ > /etc/timezone
+    && apt-get clean
 
 ARG ARG_LANG=es_ES.UTF-8
 ENV LANG=$ARG_LANG
