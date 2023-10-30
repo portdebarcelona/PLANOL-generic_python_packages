@@ -1,4 +1,6 @@
 version: 1
+disable_existing_loggers: False
+
 
 formatters:
   debug:
@@ -10,7 +12,7 @@ formatters:
     %(message)s'
 
 handlers:
-  DEBUG:
+  console:
     class: logging.StreamHandler
     level: DEBUG
     formatter: debug
@@ -26,6 +28,4 @@ handlers:
 
 root:
   level: DEBUG
-  handlers: [DEBUG, REPORTS, PROBLEMS]
-
-disable_existing_loggers: False
+  handlers: [console]
