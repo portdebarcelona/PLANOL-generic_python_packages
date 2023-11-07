@@ -178,7 +178,7 @@ def create_dir(a_dir):
         try:
             os.makedirs(a_dir)
             ok = True
-        except:
+        except OSError as exc:
             print("ATENCIÓ!! - No se ha podido crear el directorio", a_dir)
 
     return ok

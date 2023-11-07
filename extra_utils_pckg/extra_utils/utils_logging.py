@@ -17,6 +17,9 @@ from . import get_root_logger
 from . import misc
 
 
+ENV_VAR_LOGS_DIR = "PYTHON_LOGS_DIR"
+
+
 def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True, encoding='utf-8'):
     """
     Crea logger para el contexto desde donde se llama con el nivel de logging.
@@ -138,16 +141,15 @@ def logs_dir(create=False):
     Returns:
         str: Retorna path con el directorio de LOGS
     """
-    _env_var_logs_dir_ = "PYTHON_LOGS_DIR"
-    logs_dir = os.getenv(_env_var_logs_dir_, "").strip()
+    path_logs_dir = os.getenv(ENV_VAR_LOGS_DIR, "").strip()
 
-    if logs_dir and create and not misc.create_dir(logs_dir):
+    if path_logs_dir and create and not misc.create_dir(path_logs_dir):
         print("!AVISO! - No se ha podido usar el directorio de logs '{}'"
-              " indicado en la variable de entorno {}".format(logs_dir,
-                                                              _env_var_logs_dir_))
-        logs_dir = None
+              " indicado en la variable de entorno {}".format(path_logs_dir,
+                                                              ENV_VAR_LOGS_DIR))
+        path_logs_dir = None
 
-    if not logs_dir or not misc.is_dir_writable(logs_dir):
+    if not path_logs_dir or not misc.is_dir_writable(path_logs_dir):
         dir_base_logs = os.path.normpath(os.getenv("USERPROFILE", Path.home()))
 
         if not misc.is_path_exists_or_creatable(dir_base_logs):
@@ -155,14 +157,14 @@ def logs_dir(create=False):
 
         dir_base_logs = os.path.join(dir_base_logs, "PYTHON_LOGS")
         if misc.get_environ() == "prod":
-            logs_dir = os.path.join(dir_base_logs, "PROD")
+            path_logs_dir = os.path.join(dir_base_logs, "PROD")
         else:
-            logs_dir = os.path.join(dir_base_logs, "dev")
+            path_logs_dir = os.path.join(dir_base_logs, "dev")
 
         if create:
-            misc.create_dir(logs_dir)
+            misc.create_dir(path_logs_dir)
 
-    return logs_dir
+    return path_logs_dir
 
 
 def logger_path_logs(a_logger=None, if_exist=True):
