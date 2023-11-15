@@ -1,0 +1,106 @@
+FROM mambaorg/micromamba:latest
+
+LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
+
+ENV TZ=Europe/Madrid
+
+ARG oracle_client_version=19.18
+ARG path_oracle_client=./config/oracle/
+ARG NEW_MAMBA_USER=appuser
+ARG NEW_MAMBA_USER_ID=65535
+ARG NEW_MAMBA_USER_GID=65535
+ARG base_path=/home/${NEW_MAMBA_USER}
+ARG MAMBA_DOCKERFILE_ACTIVATE=1
+ARG ARG_ENV_NAME=python_packages
+
+ENV PYTHONUNBUFFERED 1
+ENV LANG C.UTF-8
+
+USER root
+
+RUN if grep -q '^ID=alpine$' /etc/os-release; then \
+      # alpine does not have usermod/groupmod
+      apk add --no-cache --virtual temp-packages shadow; \
+    fi && \
+    usermod "--login=${NEW_MAMBA_USER}" "--home=/home/${NEW_MAMBA_USER}" \
+        --move-home "-u ${NEW_MAMBA_USER_ID}" "${MAMBA_USER}" && \
+    groupmod "--new-name=${NEW_MAMBA_USER}" \
+        "-g ${NEW_MAMBA_USER_GID}" "${MAMBA_USER}" && \
+    if grep -q '^ID=alpine$' /etc/os-release; then \
+      # remove the packages that were only needed for usermod/groupmod
+      apk del temp-packages; \
+    fi && \
+    # Update the expected value of MAMBA_USER for the
+    # _entrypoint.sh consistency check.
+    echo "${NEW_MAMBA_USER}" > "/etc/arg_mamba_user" && \
+    :
+ENV MAMBA_USER=$NEW_MAMBA_USER
+USER $MAMBA_USER
+
+ENV PATH_DEVELOPER_MODE=$base_path/project
+RUN mkdir $PATH_DEVELOPER_MODE
+WORKDIR $PATH_DEVELOPER_MODE
+
+COPY --chown=$MAMBA_USER:root environment.docker.yml .
+RUN micromamba env create -f environment.docker.yml && micromamba clean --all
+ENV ENV_NAME=$ARG_ENV_NAME
+
+COPY --chown=$MAMBA_USER:root requirements.txt .
+RUN micromamba run -n ${ENV_NAME} pip install --requirement requirements.txt --no-cache-dir
+
+COPY --chown=$MAMBA_USER:root ./config/unix/post_install_python.sh .
+RUN chmod u=rwx post_install_python.sh && micromamba run -n ${ENV_NAME} ./post_install_python.sh
+
+# Instant client
+USER root
+
+COPY --chown=$MAMBA_USER:root $path_oracle_client /tmp/oracle
+ENV ORACLE_HOME=/usr/lib/oracle/${oracle_client_version}/client64
+ENV LD_LIBRARY_PATH=$ORACLE_HOME/lib
+ENV TNS_ADMIN=/usr/lib/oracle/${oracle_client_version}/client64/tns
+
+RUN mkdir --parents $ORACLE_HOME && \
+    chmod -R o=rx ${ORACLE_HOME} && \
+    mkdir ${TNS_ADMIN}
+
+RUN export DEBIAN_FRONTEND=noninteractive \
+    && apt-get update && apt-get upgrade -yq \
+    && apt-get install -yq --no-install-recommends alien libaio1 locales locales-all \
+    && cd /tmp/oracle \
+    && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
+    && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
+    # Remove alien and unnecesary deps.
+    && apt-get -yq remove --auto-remove --purge alien \
+    && rm -rf /tmp/oracle \
+    && rm -rf /var/lib/apt/lists/* \
+    && rm -rf /app \
+    && apt-get clean \
+    && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime \
+    && echo $TZ > /etc/timezone
+
+ARG ARG_LANG=es_ES.UTF-8
+ENV LANG=$ARG_LANG
+ENV LANGUAGE=$ARG_LANG
+ENV LC_ALL=$ARG_LANG
+ENV PYTHONUNBUFFERED=1
+
+USER $MAMBA_USER
+
+COPY --chown=$MAMBA_USER:root ./extra_utils_pckg/ ./extra_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --editable extra_utils_pckg --no-cache-dir
+
+COPY --chown=$MAMBA_USER:root ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --editable extra_osgeo_utils_pckg --no-cache-dir
+
+COPY --chown=$MAMBA_USER:root ./spatial_utils_pckg/ ./spatial_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --editable spatial_utils_pckg --no-cache-dir
+
+COPY --chown=$MAMBA_USER:root ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
+# Set env var for package python cx_oracle_spatial
+ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
+RUN micromamba run -n ${ENV_NAME} pip install --editable cx_oracle_spatial_pckg --no-cache-dir
+
+COPY --chown=$MAMBA_USER:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --editable pandas_utils_pckg --no-cache-dir
+
+CMD ["micromamba", "run", "-n", "${ENV_NAME}", "python"]

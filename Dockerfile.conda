@@ -15,8 +15,8 @@ RUN useradd --create-home appuser
 RUN mkdir /project
 WORKDIR /project
 
-COPY --chown=appuser:root environment.yml .
-RUN conda env create -f environment.yml && conda clean --all
+COPY --chown=appuser:root environment.docker.yml .
+RUN conda env create -f environment.docker.yml && conda clean --all
 
 COPY --chown=appuser:root requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir

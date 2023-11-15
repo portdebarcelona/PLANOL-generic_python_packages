@@ -10,8 +10,8 @@ ENV LANG C.UTF-8
 RUN mkdir /project
 WORKDIR /project
 
-COPY environment.yml .
-RUN conda env create -f environment.yml
+COPY environment.docker.yml .
+RUN conda env create -f environment.docker.yml
 
 COPY requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
