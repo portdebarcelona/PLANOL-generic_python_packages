@@ -103,4 +103,7 @@ RUN micromamba run -n ${ENV_NAME} pip install --editable cx_oracle_spatial_pckg 
 COPY --chown=$MAMBA_USER:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN micromamba run -n ${ENV_NAME} pip install --editable pandas_utils_pckg --no-cache-dir
 
+COPY --chown=$MAMBA_USER:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --editable duckdb_utils_pckg --no-cache-dir
+
 CMD ["micromamba", "run", "-n", "${ENV_NAME}", "python"]
