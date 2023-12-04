@@ -10,8 +10,8 @@ ENV LANG C.UTF-8
 RUN mkdir /project
 WORKDIR /project
 
-COPY environment.yml .
-RUN conda env create -f environment.yml
+COPY environment.docker.yml .
+RUN conda env create -f environment.docker.yml
 
 COPY requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
@@ -124,5 +124,8 @@ RUN pip install --editable cx_oracle_spatial_pckg --no-cache-dir
 
 COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN pip install --editable pandas_utils_pckg --no-cache-dir
+
+COPY --chown=appuser:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
+RUN pip install --editable duckdb_utils_pckg --no-cache-dir
 
 CMD ["python"]

@@ -15,8 +15,8 @@ RUN useradd --create-home appuser
 RUN mkdir /project
 WORKDIR /project
 
-COPY --chown=appuser:root environment.yml .
-RUN conda env create -f environment.yml && conda clean --all
+COPY --chown=appuser:root environment.docker.yml .
+RUN conda env create -f environment.docker.yml && conda clean --all
 
 COPY --chown=appuser:root requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
@@ -74,5 +74,8 @@ RUN conda run -n python_packages pip install --editable cx_oracle_spatial_pckg -
 
 COPY --chown=appuser:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
 RUN conda run -n python_packages pip install --editable pandas_utils_pckg --no-cache-dir
+
+COPY --chown=appuser:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
+RUN conda run -n python_packages pip install --editable duckdb_utils_pckg --no-cache-dir
 
 CMD ["conda", "run", "-n", "python_packages", "python"]

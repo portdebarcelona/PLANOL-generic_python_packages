@@ -1,0 +1,10 @@
+name: python_packages
+channels:
+- conda-forge
+- anaconda
+- javascript
+dependencies:
+- python=3.10
+- nodejs=10.13
+- gdal=3.6
+- pip
