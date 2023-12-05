@@ -41,24 +41,39 @@ def download_and_unzip(url: str, extract_to: str = None, headers: list = None, r
         path_zip (str)
     """
     if zip_file_path := download_from_url(url, extract_to, headers):
-        with ZipFile(zip_file_path, 'r') as zipfile:
-            if not extract_to:
-                extract_to = os.path.abspath(os.path.curdir)
-
-            desc = f"Extracting {zip_file_path} to {extract_to}"
-            if not sys.stdout:
-                print(f'{desc}...')
-                gen_members = zipfile.infolist()
-            else:
-                gen_members = tqdm(zipfile.infolist(), desc=desc)
-
-            for member in gen_members:
-                zipfile.extract(member, extract_to)
-
-        if remove_zip:
-            os.remove(zip_file_path)
+        extract_to = unzip(zip_file_path, extract_to, remove_zip)
 
         return extract_to
+
+
+def unzip(zip_file_path, extract_to=None, remove_zip=False):
+    """
+    Unzip file to extract_to directory
+
+    Args:
+        zip_file_path (str): Path to zip file
+        extract_to: (str=None): if None, extract to current directory
+        remove_zip: (bool=False): If True remove zip file after unzip
+
+    Returns:
+        extract_to (str)
+    """
+    with ZipFile(zip_file_path, 'r') as zipfile:
+        if not extract_to:
+            extract_to = os.path.abspath(os.path.curdir)
+
+        desc = f"Extracting {zip_file_path} to {extract_to}"
+        if not sys.stdout:
+            print(f'{desc}...')
+            gen_members = zipfile.infolist()
+        else:
+            gen_members = tqdm(zipfile.infolist(), desc=desc)
+
+        for member in gen_members:
+            zipfile.extract(member, extract_to)
+    if remove_zip:
+        os.remove(zip_file_path)
+    return extract_to
 
 
 def download_from_url(url: str, extract_to: str = None, headers: list[str] = None) -> str:
