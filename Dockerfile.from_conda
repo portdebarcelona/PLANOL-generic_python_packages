@@ -16,9 +16,6 @@ RUN conda env create -f environment.docker.yml
 COPY requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
 
-COPY ./config/unix/post_install_python.sh .
-RUN chmod u=rwx post_install_python.sh && conda run -n python_packages ./post_install_python.sh
-
 # Install conda-pack:
 RUN conda install -c conda-forge conda-pack
 

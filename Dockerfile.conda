@@ -21,9 +21,6 @@ RUN conda env create -f environment.docker.yml && conda clean --all
 COPY --chown=appuser:root requirements.txt .
 RUN conda run -n python_packages pip install --requirement requirements.txt --no-cache-dir
 
-COPY --chown=appuser:root ./config/unix/post_install_python.sh .
-RUN chmod u=rwx post_install_python.sh && conda run -n python_packages ./post_install_python.sh
-
 # Instant client
 COPY --chown=appuser:root $path_oracle_client /tmp/oracle
 ENV ORACLE_HOME=/usr/lib/oracle/${oracle_client_version}/client64
