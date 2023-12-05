@@ -100,5 +100,12 @@ RUN micromamba run -n ${ENV_NAME} pip install --editable pandas_utils_pckg --no-
 
 COPY --chown=$MAMBA_USER:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
 RUN micromamba run -n ${ENV_NAME} pip install --editable duckdb_utils_pckg --no-cache-dir
+# Set extra extensions perinstalled on duckdb
+RUN micromamba run -n ${ENV_NAME} python -c  \
+    "import duckdb; \
+    duckdb.install_extension('sqlite'); \
+    duckdb.install_extension('spatial'); \
+    duckdb.install_extension('json'); \
+    duckdb.install_extension('httpfs')"
 
 CMD ["micromamba", "run", "-n", "${ENV_NAME}", "python"]
