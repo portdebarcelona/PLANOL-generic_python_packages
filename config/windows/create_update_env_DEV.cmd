@@ -4,25 +4,23 @@ rem ===============================================================
 rem Argumentos:
 rem ===============================================================
 
-where conda
+where micromamba
 @if [%errorlevel%] NEQ [0] (
-    @IF NOT DEFINED CONDA_ROOT (SET CONDA_ROOT=E:\Miniconda3)
-    ECHO "CONDA_ROOT=%CONDA_ROOT%"
-    @IF NOT EXIST "%CONDA_ROOT%" SET /p CONDA_ROOT="Enter path Anaconda (default=%CONDA_ROOT%): "
+    @IF NOT DEFINED MAMBA_ROOT_PREFIX (SET MAMBA_ROOT_PREFIX=%USERPROFILE%\micromamba)
+    ECHO "MAMBA_ROOT_PREFIX=%MAMBA_ROOT_PREFIX%"
+    @IF NOT EXIST "%MAMBA_ROOT_PREFIX%" SET /p MAMBA_ROOT_PREFIX="Enter path Micromamba (default=%MAMBA_ROOT_PREFIX%): "
 )
 
 pushd "%~dp0"
 
-call set_conda_base.cmd
+call set_micromamba_base.cmd
 
-call conda env create --name=python_packages_DEV --file="../../environment.yml"
+call micromamba env create --name=python_packages_DEV --file="../../environment.yml"
 @IF %ERRORLEVEL% NEQ 0 (
-  call conda env update --name=python_packages_DEV --file="../../environment.yml"
+  call micromamba update --name=python_packages_DEV --file="../../environment.yml"
 )
 
-call conda activate "python_packages_DEV"
-
-call post_install_python.cmd
+call micromamba activate "python_packages_DEV"
 
 rem Variables to install generic packages from PATH DEV REPO (if exists)
 pushd "%~dp0../.."
@@ -32,3 +30,4 @@ call pip install --editable "%PATH_DEVELOPER_MODE%\extra_osgeo_utils_pckg"
 call pip install --editable "%PATH_DEVELOPER_MODE%\spatial_utils_pckg"
 call pip install --editable "%PATH_DEVELOPER_MODE%\cx_oracle_spatial_pckg"
 call pip install --editable "%PATH_DEVELOPER_MODE%\pandas_utils_pckg"
+call pip install --editable "%PATH_DEVELOPER_MODE%\duckdb_utils_pckg"
