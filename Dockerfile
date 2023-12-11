@@ -56,6 +56,8 @@ COPY --chown=appuser:root ./requirements.txt ./requirements.txt
 RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 
 ENV PATH_DEVELOPER_MODE=/project
+ENV PATH_BASE_PACKAGES=${PATH_DEVELOPER_MODE}
+
 COPY --chown=appuser:root ./extra_utils_pckg/ ./extra_utils_pckg/
 RUN pip install --editable extra_utils_pckg --no-cache-dir
 
