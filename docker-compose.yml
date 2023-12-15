@@ -12,6 +12,7 @@ services:
       - 25432:5432
     volumes:
       - db_postgis_vol:/var/lib/postgresql
+
   db_ora_pyckg:
     image: oracleinanutshell/oracle-xe-11g:latest
     container_name: oracle_xe
@@ -23,9 +24,14 @@ services:
       - 25521:1521
     environment:
       - ORACLE_DISABLE_ASYNCH_IO=true
+
   python_packages:
     container_name: python_packages
-    build: .
+    build:
+      context: .
+      args:
+        - CUSTOM_UID=0
+        - USER_NAME=root
     image: planolport/python_gdal_oracle_geopandas:training
     volumes:
       - .:/project
@@ -35,6 +41,25 @@ services:
     depends_on:
       - db_ora_pyckg
       - db_pg_pyckg
+
+  python_packages_mamba:
+    container_name: python_packages_mamba
+    build:
+      context: .
+      dockerfile: Dockerfile.mamba
+      args:
+        - NEW_MAMBA_USER=appuser
+    image: planolport/mamba_gdal_oracle:training
+    volumes:
+      - .:/home/appuser/project
+      - ${DATA_DIR_DEV:-C:/data}:/home/appuser/project/data
+    networks:
+      app_net:
+    user: root
+    depends_on:
+      - db_ora_pyckg
+      - db_pg_pyckg
+
   python_packages_doc:
     container_name: python_packages_doc
     build: .

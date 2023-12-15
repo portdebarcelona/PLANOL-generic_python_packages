@@ -35,11 +35,17 @@ RUN if grep -q '^ID=alpine$' /etc/os-release; then \
     echo "${NEW_MAMBA_USER}" > "/etc/arg_mamba_user" && \
     :
 ENV MAMBA_USER=$NEW_MAMBA_USER
-USER $MAMBA_USER
 
 ENV PATH_DEVELOPER_MODE=$base_path/project
-RUN mkdir $PATH_DEVELOPER_MODE
+ENV PATH_BASE_PACKAGES=${PATH_DEVELOPER_MODE}
+
+RUN mkdir $PATH_DEVELOPER_MODE && \
+    chown -R $MAMBA_USER:root ${PATH_DEVELOPER_MODE} && \
+    chmod -R u=rwx,g=rwx,o=rx ${PATH_DEVELOPER_MODE}
+
 WORKDIR $PATH_DEVELOPER_MODE
+
+USER $MAMBA_USER
 
 COPY --chown=$MAMBA_USER:root requirements.txt .
 COPY --chown=$MAMBA_USER:root environment.docker.yml .
