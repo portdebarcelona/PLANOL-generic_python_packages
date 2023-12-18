@@ -114,4 +114,4 @@ RUN micromamba run -n ${ENV_NAME} python -c  \
     duckdb.install_extension('json'); \
     duckdb.install_extension('httpfs')"
 
-CMD ["micromamba", "run", "-n", "${ENV_NAME}", "python"]
+CMD ["python"]

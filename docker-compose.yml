@@ -30,8 +30,7 @@ services:
     build:
       context: .
       args:
-        - CUSTOM_UID=0
-        - USER_NAME=root
+        - CUSTOM_UID=1000
     image: planolport/python_gdal_oracle_geopandas:training
     volumes:
       - .:/project
