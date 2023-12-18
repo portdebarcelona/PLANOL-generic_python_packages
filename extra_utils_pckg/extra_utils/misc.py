@@ -52,7 +52,7 @@ def unzip(zip_file_path, extract_to=None, remove_zip=False):
 
     Args:
         zip_file_path (str): Path to zip file
-        extract_to: (str=None): if None, extract to current directory
+        extract_to: (str=None): if None, extract to zip's directory
         remove_zip: (bool=False): If True remove zip file after unzip
 
     Returns:
@@ -60,7 +60,10 @@ def unzip(zip_file_path, extract_to=None, remove_zip=False):
     """
     with ZipFile(zip_file_path, 'r') as zipfile:
         if not extract_to:
-            extract_to = os.path.abspath(os.path.curdir)
+            extract_to = os.path.join(
+                os.path.dirname(zip_file_path),
+                os.path.splitext(os.path.basename(zip_file_path))[0]
+            )
 
         desc = f"Extracting {zip_file_path} to {extract_to}"
         if not sys.stdout:
