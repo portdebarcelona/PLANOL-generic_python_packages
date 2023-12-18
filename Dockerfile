@@ -8,7 +8,7 @@ ARG CUSTOM_UID=65535
 ARG USER_NAME=appuser
 ARG base_path=/home/${USER_NAME}
 
-RUN id -u ${USER_NAME} &>/dev/null || useradd --create-home -u ${CUSTOM_UID} ${USER_NAME}
+RUN getent passwd ${USER_NAME} || useradd --create-home -u ${CUSTOM_UID} ${USER_NAME}
 
 # Instant client
 COPY $path_oracle_client /tmp/oracle
