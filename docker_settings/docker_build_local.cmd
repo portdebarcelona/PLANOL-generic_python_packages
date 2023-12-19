@@ -1,7 +1,7 @@
 pushd %~dp0..
 
-set TAG_IMAGE=planolport/python_gdal_oracle_geopandas:training
+call docker_settings/create_volumes.cmd
 
-docker build --tag %TAG_IMAGE% --file Dockerfile %CD%
+docker compose build python_packages
 
 popd
