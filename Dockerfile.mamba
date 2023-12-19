@@ -35,21 +35,22 @@ RUN if grep -q '^ID=alpine$' /etc/os-release; then \
     echo "${NEW_MAMBA_USER}" > "/etc/arg_mamba_user" && \
     :
 ENV MAMBA_USER=$NEW_MAMBA_USER
-USER $MAMBA_USER
 
 ENV PATH_DEVELOPER_MODE=$base_path/project
-RUN mkdir $PATH_DEVELOPER_MODE
+ENV PATH_BASE_PACKAGES=${PATH_DEVELOPER_MODE}
+
+RUN mkdir $PATH_DEVELOPER_MODE && \
+    chown -R $MAMBA_USER:root ${PATH_DEVELOPER_MODE} && \
+    chmod -R u=rwx,g=rwx,o=rx ${PATH_DEVELOPER_MODE}
+
 WORKDIR $PATH_DEVELOPER_MODE
 
+USER $MAMBA_USER
+
+COPY --chown=$MAMBA_USER:root requirements.txt .
 COPY --chown=$MAMBA_USER:root environment.docker.yml .
 RUN micromamba env create -f environment.docker.yml && micromamba clean --all
 ENV ENV_NAME=$ARG_ENV_NAME
-
-COPY --chown=$MAMBA_USER:root requirements.txt .
-RUN micromamba run -n ${ENV_NAME} pip install --requirement requirements.txt --no-cache-dir
-
-COPY --chown=$MAMBA_USER:root ./config/unix/post_install_python.sh .
-RUN chmod u=rwx post_install_python.sh && micromamba run -n ${ENV_NAME} ./post_install_python.sh
 
 # Instant client
 USER root
@@ -105,5 +106,12 @@ RUN micromamba run -n ${ENV_NAME} pip install --editable pandas_utils_pckg --no-
 
 COPY --chown=$MAMBA_USER:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
 RUN micromamba run -n ${ENV_NAME} pip install --editable duckdb_utils_pckg --no-cache-dir
+# Set extra extensions perinstalled on duckdb
+RUN micromamba run -n ${ENV_NAME} python -c  \
+    "import duckdb; \
+    duckdb.install_extension('sqlite'); \
+    duckdb.install_extension('spatial'); \
+    duckdb.install_extension('json'); \
+    duckdb.install_extension('httpfs')"
 
-CMD ["micromamba", "run", "-n", "${ENV_NAME}", "python"]
+CMD ["python"]
