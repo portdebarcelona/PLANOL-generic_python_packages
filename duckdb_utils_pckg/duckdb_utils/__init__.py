@@ -29,7 +29,7 @@ def set_current_db_path(db_path: str):
     CURRENT_DB_PATH = parse_path(db_path)
 
 
-def get_duckdb_connection(db_path: str = None, as_current: bool = False, extensions: List[str] = None,
+def get_duckdb_connection(db_path: str = None, as_current: bool = False, no_cached: bool = False, extensions: List[str] = None,
                           **connect_args) -> duckdb.DuckDBPyConnection:
     """
     Get duckdb connection
@@ -37,6 +37,7 @@ def get_duckdb_connection(db_path: str = None, as_current: bool = False, extensi
     Args:
         db_path (str=None): path to duckdb database file. By default, use CURRENT_DB_PATH
         as_current (bool=False): set db_path as current db path
+        no_cached (bool=False): not use cached connection
         extensions (List[str]=None): list of extensions to load
         **connect_args (dict): duckdb.connect args 
 
@@ -48,7 +49,7 @@ def get_duckdb_connection(db_path: str = None, as_current: bool = False, extensi
 
     parsed_path = parse_path(db_path)
     k_path = parsed_path.lower()
-    if not (conn_db := CACHE_DUCK_DDBBS.get(k_path)):
+    if no_cached or not (conn_db := CACHE_DUCK_DDBBS.get(k_path)):
         conn_db = CACHE_DUCK_DDBBS[k_path] = duckdb.connect(parsed_path, **connect_args)
 
     if extensions:
