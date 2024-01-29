@@ -16,11 +16,14 @@ from operator import attrgetter
 from . import get_root_logger
 from . import misc
 
-
+LOG_HANDLER = "LOG"
+REPORTS_HANDLER = 'REPORTS'
+CONSOLE_HANDLER = 'console'
 ENV_VAR_LOGS_DIR = "PYTHON_LOGS_DIR"
 
 
-def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True, encoding='utf-8'):
+def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True,
+                    separate_reports=True, encoding='utf-8'):
     """
     Crea logger para el contexto desde donde se llama con el nivel de logging.
 
@@ -29,16 +32,17 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
 
     Args:
-        level {int, optional} (default=logging.INFO): Nivel del logger (logging.DEBUG, logging.INFO,
-                                                    logging.WARNING, ...)
-        path_log {str, optional}: Si se especifica, path fichero valido donde guardar log
-        parent_func {bool, optional} (default=False): Si se indica parent_func=True entonces devuelve el nombre del
-                                 contexto que llama a la funcion
-        sufix_date {bool, optional} (default=True):
-        encoding {str, optional} (default='utf-8'): Codificacion del fichero de log
+        nom_base_log (str=None): Nombre base del log. Si no se especifica se obtiene del contexto donde se lanza
+        level (int=logging.INFO): Nivel del logger (logging.DEBUG, logging.INFO, logging.WARNING, ...)
+        dir_log (str, optional): Si se especifica, directorio donde guardar log
+        parent_func (bool=False): Si se indica parent_func=True entonces devuelve el nombre del
+                    contexto que llama a la funcion
+        sufix_date (bool=True):
+        separate_reports (bool=False): Si se indica separate_reports=True entonces se creará un file
+                handler separado para el log de reports (logging.INFO)
+        encoding (str='utf-8'): Encoding del fichero de log
     Returns:
-        {logging.logger}: Instancia de logger para la funcion desde donde se llama
-
+        logging.logger: Instancia de logger para la funcion desde donde se llama
     """
     root_logger = get_root_logger()
     if not level:
@@ -67,24 +71,42 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
         path_base_log = os.path.normpath(os.path.join(dir_log, "-".join(sub_parts_nom)))
 
-        hdlrs = [h for h in root_handlers() if h.level >= level]
-        sufix_hdlr = (len(hdlrs) > 1)
-        sufix_level = ""
-        for hdlr in hdlrs:
-            if sufix_hdlr:
-                sufix_level = ".{}".format(hdlr.name.upper())
+        config_handlers = {
+            handler.name: handler for handler in root_handlers()
+            if handler.name != CONSOLE_HANDLER
+        }
+
+        def add_config_handler(handler, level_handler=None, sufix_handler=False):
+            """
+            Add handler to logger
+            Args:
+                handler (logging.Handler):
+                level_handler (int, optional): If not specified, handler.level is used
+                sufix_handler (bool=False): If True, handler.name is added to path_log
+            """
+            sufix_level = ""
+            if sufix_handler:
+                sufix_level = ".{}".format(handler.name.upper())
 
             path_log = ".".join(["{}{}".format(path_base_log, sufix_level),
                                  "log"])
 
             a_file_handler = logging.FileHandler(path_log, mode="w", encoding=encoding, delay=True)
 
-            a_file_handler.setLevel(hdlr.level)
-            a_frm = hdlr.formatter
+            a_file_handler.setLevel(handler.level if not level_handler else level_handler)
+            for flt in handler.filters:
+                a_file_handler.addFilter(flt)
+            a_frm = handler.formatter
             if a_frm:
                 a_file_handler.setFormatter(a_frm)
 
             a_logger.addHandler(a_file_handler)
+
+        if separate_reports and level <= logging.INFO:
+            if report_handler := config_handlers.get(REPORTS_HANDLER):
+                add_config_handler(report_handler, sufix_handler=True)
+
+        add_config_handler(config_handlers.get(LOG_HANDLER), level)
 
         a_logger.setLevel(level)
         a_logger.propagate = True
@@ -101,10 +123,10 @@ def get_handler_for_level(level):
     Devuelve el handler del logger root que se corresponde con el level de logging indicado
 
     Args:
-        level {int}: logging level
+        level (int): logging level
 
     Returns:
-        {logging.handler}
+        logging.handler
 
     """
     for hdl in root_handlers():
@@ -136,7 +158,7 @@ def logs_dir(create=False):
         %USERPROFILE%/AppData/Local/Temp/PYTHON_LOGS
 
     Args:
-        create {bool:optional(default=False)}: Si TRUE y el directorio NO existe entonces se intentará crear
+        create (bool=False): Si TRUE y el directorio NO existe entonces se intentará crear
 
     Returns:
         str: Retorna path con el directorio de LOGS
@@ -189,3 +211,21 @@ def logger_path_logs(a_logger=None, if_exist=True):
             path_logs.append(fn)
 
     return path_logs
+
+
+def filter_maker(level):
+    """
+    Returns a filter for logging handlers
+    Args:
+        level (str|int): logging level
+
+    Returns:
+        filter
+    """
+    if isinstance(level, str):
+        level = getattr(logging, level)
+
+    def filter(record):
+        return record.levelno <= level
+
+    return filter
