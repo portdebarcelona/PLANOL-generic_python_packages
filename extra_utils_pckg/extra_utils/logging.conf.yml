@@ -6,10 +6,14 @@ formatters:
   debug:
     format: '%(levelname)s - %(message)s'
   reports:
-    format: '%(message)s'
-  problems:
-    format: '%(levelname)s | %(asctime)s | %(filename)s.%(funcName)s ==>
-    %(message)s'
+    format: '%(asctime)s | %(message)s'
+  log:
+    format: '%(levelname)s | %(asctime)s | %(module)s.%(funcName)s | %(message)s'
+
+filters:
+  problems_filter:
+    (): extra_utils.utils_logging.filter_maker
+    level: INFO
 
 handlers:
   console:
@@ -18,14 +22,15 @@ handlers:
     formatter: debug
     stream: ext://sys.stdout
   REPORTS:
-    class: logging.StreamHandler
+    class: logging.NullHandler
     level: INFO
     formatter: reports
-  PROBLEMS:
-    class: logging.StreamHandler
+    filters: [problems_filter]
+  LOG:
+    class: logging.NullHandler
     level: WARNING
-    formatter: problems
+    formatter: log
 
 root:
   level: DEBUG
-  handlers: [console]
+  handlers: [console, REPORTS, LOG]
