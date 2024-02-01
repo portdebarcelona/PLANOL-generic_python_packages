@@ -128,7 +128,7 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
         add_config_file_handler(config_file_handlers.get(LOG_HANDLER), level)
 
-        a_logger.info("Path LOG base {}: {}".format(
+        get_root_logger().info("Path LOG base {}: {}".format(
             nom_base_log.upper(),
             path_base_log))
 
