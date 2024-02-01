@@ -19,7 +19,7 @@ def readme():
 
 setup(
     name='extra_utils',
-    version='1.3.2',
+    version='1.3.3',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/extra_utils_pckg',
     author='Ernesto Arredondo Martinez',

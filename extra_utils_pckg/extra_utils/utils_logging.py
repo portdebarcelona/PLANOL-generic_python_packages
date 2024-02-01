@@ -13,7 +13,7 @@ from pathlib import Path
 import tempfile
 from operator import attrgetter
 
-from . import get_root_logger
+from . import get_root_logger, get_environ
 from . import misc
 
 LOG_HANDLER = "LOG"
@@ -22,14 +22,44 @@ CONSOLE_HANDLER = 'console'
 ENV_VAR_LOGS_DIR = "PYTHON_LOGS_DIR"
 
 
+def get_base_logger(nom_base_log=None, level=None, parent_func=False):
+    """
+    Creates a logger for the context from where it is called with the logging level.
+
+    Args:
+        nom_base_log (str=None): Base name of the log. If not specified, it is obtained from the context where it is launched
+        level (int=logging.INFO): Logger level (logging.DEBUG, logging.INFO, logging.WARNING, ...)
+        parent_func (bool=False): If parent_func=True is indicated, then it returns the name of the context that calls the function
+
+    Returns:
+        logging.Logger: Logger instance for the function from where it is called
+    """
+    if not level:
+        level = logging.INFO if get_environ() != 'dev' else logging.DEBUG
+
+    skip_ctxt = 1
+    if parent_func:
+        skip_ctxt += 1
+
+    if not nom_base_log:
+        nom_base_log = misc.caller_name(skip_ctxt)
+
+    root_logger = get_root_logger()
+    a_logger = root_logger.getChild(nom_base_log)
+
+    a_logger.setLevel(level)
+    a_logger.propagate = True
+
+    return a_logger
+
+
 def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=False, sufix_date=True,
                     separate_reports=True, encoding='utf-8'):
     """
-    Crea logger para el contexto desde donde se llama con el nivel de logging.
+    Crea logger con FILEHANDLER (filehandlers si separate_reports a True)
 
-    Si path del log (path_log) no se especifica, se crea nombre de log con el nombre del contexto desde donde se llama
-    más el nombre del nivel
-
+    Si nombre del log (nom_base_log) no se especifica, se crea nombre de log con el nombre del contexto desde donde
+    se llama y nombre de máquina si se puede obtener, y siempre la fecha actual
 
     Args:
         nom_base_log (str=None): Nombre base del log. Si no se especifica se obtiene del contexto donde se lanza
@@ -44,18 +74,8 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
     Returns:
         logging.logger: Instancia de logger para la funcion desde donde se llama
     """
-    root_logger = get_root_logger()
-    if not level:
-        level = max(logging.INFO, root_logger.level)
+    a_logger = get_base_logger(nom_base_log, level, parent_func)
 
-    skip_ctxt = 1
-    if parent_func:
-        skip_ctxt += 1
-
-    if not nom_base_log:
-        nom_base_log = misc.caller_name(skip_ctxt)
-
-    a_logger = root_logger.getChild(nom_base_log)
     if not a_logger.handlers:
         if not dir_log:
             dir_log = logs_dir(True)
@@ -71,12 +91,12 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
         path_base_log = os.path.normpath(os.path.join(dir_log, "-".join(sub_parts_nom)))
 
-        config_handlers = {
+        config_file_handlers = {
             handler.name: handler for handler in root_handlers()
             if handler.name != CONSOLE_HANDLER
         }
 
-        def add_config_handler(handler, level_handler=None, sufix_handler=False):
+        def add_config_file_handler(handler, level_handler=None, sufix_handler=False):
             """
             Add handler to logger
             Args:
@@ -102,16 +122,13 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
             a_logger.addHandler(a_file_handler)
 
-        if separate_reports and level <= logging.INFO:
-            if report_handler := config_handlers.get(REPORTS_HANDLER):
-                add_config_handler(report_handler, sufix_handler=True)
+        if separate_reports and a_logger.level <= logging.INFO:
+            if report_handler := config_file_handlers.get(REPORTS_HANDLER):
+                add_config_file_handler(report_handler, sufix_handler=True)
 
-        add_config_handler(config_handlers.get(LOG_HANDLER), level)
+        add_config_file_handler(config_file_handlers.get(LOG_HANDLER), level)
 
-        a_logger.setLevel(level)
-        a_logger.propagate = True
-
-        root_logger.info("Path LOG base {}: {}".format(
+        a_logger.info("Path LOG base {}: {}".format(
             nom_base_log.upper(),
             path_base_log))
 
