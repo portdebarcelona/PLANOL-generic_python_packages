@@ -74,7 +74,9 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
     Returns:
         logging.logger: Instancia de logger para la funcion desde donde se llama
     """
-    a_logger = get_base_logger(nom_base_log, level, parent_func)
+    if not nom_base_log:
+        nom_base_log = misc.caller_name(1 if not parent_func else 2)
+    a_logger = get_base_logger(nom_base_log, level)
 
     if not a_logger.handlers:
         if not dir_log:
@@ -128,9 +130,11 @@ def get_file_logger(nom_base_log=None, level=None, dir_log=None, parent_func=Fal
 
         add_config_file_handler(config_file_handlers.get(LOG_HANDLER), level)
 
-        get_root_logger().info("Path LOG base {}: {}".format(
-            nom_base_log.upper(),
-            path_base_log))
+        root_logger = get_root_logger()
+        root_level = root_logger.level
+        root_logger.setLevel(logging.INFO)
+        root_logger.info(f"Path prefix logs for FILE_LOGGER {nom_base_log}: '{path_base_log}'")
+        root_logger.setLevel(root_level)
 
     return a_logger
 
@@ -183,9 +187,10 @@ def logs_dir(create=False):
     path_logs_dir = os.getenv(ENV_VAR_LOGS_DIR, "").strip()
 
     if path_logs_dir and create and not misc.create_dir(path_logs_dir):
-        print("!AVISO! - No se ha podido usar el directorio de logs '{}'"
-              " indicado en la variable de entorno {}".format(path_logs_dir,
-                                                              ENV_VAR_LOGS_DIR))
+        get_root_logger().warning(
+            "No se ha podido usar el directorio de logs '{}'"
+            " indicado en la variable de entorno {}".format(path_logs_dir,
+                                                            ENV_VAR_LOGS_DIR))
         path_logs_dir = None
 
     if not path_logs_dir or not misc.is_dir_writable(path_logs_dir):
@@ -199,6 +204,7 @@ def logs_dir(create=False):
             path_logs_dir = os.path.join(dir_base_logs, "PROD")
         else:
             path_logs_dir = os.path.join(dir_base_logs, "dev")
+        get_root_logger().warning(f'Usado por defecto el directorio de logs para el USERPROFILE: "{path_logs_dir}"')
 
         if create:
             misc.create_dir(path_logs_dir)
