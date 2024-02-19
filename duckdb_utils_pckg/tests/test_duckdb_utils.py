@@ -51,13 +51,11 @@ class UtilsDuckDBTestCase(unittest.TestCase):
     def test_import_csv_with_geoms(self):
         conn = get_duckdb_connection(extensions=['spatial'])
         unzip(os.path.join(RESOURCES_DATA_DIR, 'edificacio.zip'))
-        import_csv_to_duckdb(
-            os.path.join(RESOURCES_DATA_DIR, 'edificacio', 'edificacio.csv'),
-            cols_geom=['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'],
-            conn_db=conn,
-            overwrite=True)
-        row = conn.execute("SELECT * FROM edificacio").fetchone()
-        self.assertIsNotNone(row)
+        import_csv_to_duckdb(os.path.join(RESOURCES_DATA_DIR, 'edificacio', 'edificacio.csv'),
+                             cols_geom=['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'],
+                             conn_db=conn, overwrite=True)
+        row = conn.execute('from edificacio select ST_AsText(ST_Centroid(perimetre_base)) as centroid').fetchone()
+        self.assertTrue(str(row[0]).startswith('POINT'))
 
 
 if __name__ == '__main__':

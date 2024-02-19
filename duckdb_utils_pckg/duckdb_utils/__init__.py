@@ -29,7 +29,8 @@ def set_current_db_path(db_path: str):
     CURRENT_DB_PATH = parse_path(db_path)
 
 
-def get_duckdb_connection(db_path: str = None, as_current: bool = False, no_cached: bool = False, extensions: List[str] = None,
+def get_duckdb_connection(db_path: str = None, as_current: bool = False, no_cached: bool = False,
+                          extensions: List[str] = None,
                           **connect_args) -> duckdb.DuckDBPyConnection:
     """
     Get duckdb connection
@@ -54,6 +55,7 @@ def get_duckdb_connection(db_path: str = None, as_current: bool = False, no_cach
 
     if extensions:
         for ext in extensions:
+            conn_db.install_extension(ext)
             conn_db.load_extension(ext)
 
     if as_current:
@@ -96,7 +98,7 @@ def parse_path(path):
     return normalize_path
 
 
-def import_csv_to_duckdb(csv_path: str, table_name: str = None, cols_geom: List[str] | dict = None,
+def import_csv_to_duckdb(csv_path: str, table_name: str = None, cols_geom: List[str] | dict = None, header: bool = True,
                          conn_db: duckdb.DuckDBPyConnection = None, overwrite=False) -> duckdb.DuckDBPyRelation:
     """
     Import csv file to duckdb
@@ -105,6 +107,7 @@ def import_csv_to_duckdb(csv_path: str, table_name: str = None, cols_geom: List[
         csv_path (str): path to csv file
         table_name (str=None): table name. Default: csv file name without extension
         cols_geom (List[str] | dict=None): list of columns to use as geometry
+        header (bool=True): csv file has header
         conn_db (duckdb.DuckDBPyConnection = None): connection to duckdb
         overwrite (bool=False): overwrite table_name if exists
 
@@ -129,10 +132,13 @@ def import_csv_to_duckdb(csv_path: str, table_name: str = None, cols_geom: List[
     if overwrite:
         conn_db.execute(f"DROP TABLE IF EXISTS {table_name}")
 
-    conn_db.execute(f"""
+    conn_db.execute(
+        f"""
         CREATE TABLE IF NOT EXISTS {table_name} AS 
-        SELECT {sql_cols} FROM read_csv_auto('{csv_path}')
-        """)
+        SELECT {sql_cols} FROM read_csv($csv_path, header=$header, auto_detect=True)
+        """,
+        {"header": header, "csv_path": csv_path}
+    )
     conn_db.sql(f"DESCRIBE {table_name}")
 
     return conn_db.sql(f"SELECT * FROM {table_name}")
