@@ -133,3 +133,10 @@ anaconda-project-local.yml
 
 /docs/html
 !/docs/html/logo.png
+
+resources/data/edificacio_25831.csv
+resources/data/edificacio_25831.csvt
+resources/data/edificacio_25831.prj
+resources/data/test.db
+resources/data/edificacio/edificacio.csv
+resources/data/edificacio/edificacio.csvt
