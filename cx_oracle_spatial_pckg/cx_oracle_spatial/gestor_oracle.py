@@ -1207,7 +1207,7 @@ class gestor_oracle(object):
                 del_cache_rel_con_db(get_nom_conexion(con_ora))
                 try:
                     con_ora.close()
-                except cx_Oracle.InterfaceError:
+                except cx_Oracle.Error:
                     pass
                 self.__con_db__ = con_ora = None
 
