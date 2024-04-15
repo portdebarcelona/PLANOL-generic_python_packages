@@ -1596,10 +1596,12 @@ class gestor_oracle(object):
             if val_camp_str is None:
                 continue
             nom_camps.append(nom_camp)
-            vals_camps.append(val_camp_str)
+            vals_camps.append(str(val_camp_str))
 
         row_desc_tab = get_row_desc_tab(self.con_db, nom_tab)
         pk_binds = {k: new_cursor(self.con_db).var(ora_tip_camp) for k, ora_tip_camp in row_desc_tab.pk_vals().items()}
+        if not pk_binds:
+            pk_binds = {'ROWID': new_cursor(self.con_db).var(cx_Oracle.ROWID)}
         str_pk_camps = ",".join(pk_binds.keys())
         str_pk_binds = ",".join(list(map(lambda x: ":ret_" + str(x), pk_binds.keys())))
         params += list(pk_binds.values())
