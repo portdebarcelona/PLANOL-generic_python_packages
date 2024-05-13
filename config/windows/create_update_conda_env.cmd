@@ -22,6 +22,6 @@ call conda env create --file="../../environment.yml"
 
 call start_conda_env.cmd
 
-call post_install_python.cmd
+rem call post_install_python.cmd
 
 popd
