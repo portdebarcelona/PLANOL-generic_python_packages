@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   db_pg_pyckg:
     image: postgis/postgis:15-3.3
