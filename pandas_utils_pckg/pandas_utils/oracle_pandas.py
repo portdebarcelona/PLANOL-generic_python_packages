@@ -10,8 +10,8 @@ import geopandas as gpd
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
-from .geopandas_utils import optimize_df
 from cx_oracle_spatial.gestor_oracle import sql_tab
+from . import optimize_df
 
 
 def df_for_sqlgen(a_ora_generator, columns_index=None, columns=None,
@@ -142,7 +142,7 @@ def gdf_table(gest_ora, nom_tab, column_geom, other_cols_geom=False, null_geoms=
     """
     dd = gest_ora.get_dd_table(nom_tab)
     column_geom = column_geom.upper()
-    cols = params_gdf_for_sqlgen.pop('columns', None)
+    cols = params_gdf_for_sqlgen.pop('columns', [])
     if not other_cols_geom:
         if not cols:
             cols = [c for c in dd.alfas(include_pk=False)]

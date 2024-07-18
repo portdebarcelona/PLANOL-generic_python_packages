@@ -4,34 +4,38 @@
 #  Created: 7/6/19 18:23
 #  Last modified: 7/6/19 18:21
 #  Copyright (c) 2019
+import json
+from typing import Optional
 
-import pandas as pd
+from geopandas import GeoDataFrame
 
 
-def optimize_df(df):
+def gdf_to_geojson(gdf: GeoDataFrame, name: Optional[str] = None, with_crs: bool = True, show_bbox: bool = True,
+                   drop_id: bool = False, path_file: str = None) -> dict:
     """
-    Retorna el pd.Dataframe optimizado segun columnas que encuentre
+    Convierte un GeoDataFrame a diccionario geojson
 
     Args:
-        df:
+        gdf (GeoDataFrame):
+        name (str=None):
+        with_crs (bool=True):
+        show_bbox (bool=True):
+        drop_id (bool=False):
+        path_file (str=None): Si se indica se guarda el geojson en el path indicado
 
     Returns:
-        opt_df (pandas.Dataframe)
+        dict_geojson (dict)
     """
-    opt_df = df.copy()
-    df_ints = opt_df.select_dtypes(include=['int64'])
-    opt_df[df_ints.columns] = df_ints.apply(pd.to_numeric, downcast='signed')
-    df_floats = opt_df.select_dtypes(include='float')
-    opt_df[df_floats.columns] = df_floats.apply(pd.to_numeric, downcast='float')
-    for col in opt_df.select_dtypes(exclude='datetime').columns:
-        try:
-            unic_vals = opt_df[col].unique()
-        except:
-            continue
+    dict_geojson = gdf.to_geo_dict(show_bbox=show_bbox, drop_id=drop_id)
+    if name:
+        dict_geojson["name"] = name
+    if with_crs and gdf.crs is not None:
+        auth = gdf.crs.to_authority()
+        dict_geojson["crs"] = {"type": "name", "properties": {"name": f"urn:ogc:def:crs:{auth[0]}::{auth[1]}"}}
 
-        num_unique_values = len(unic_vals)
-        num_total_values = len(opt_df[col])
-        if num_unique_values / num_total_values < 0.5:
-            opt_df.loc[:, col] = opt_df[col].astype('category')
+    if path_file:
+        geojson = json.dumps(dict_geojson, default=str, ensure_ascii=False)
+        with open(path_file, 'w', encoding='utf-8') as f:
+            f.write(geojson)
 
-    return opt_df
+    return dict_geojson

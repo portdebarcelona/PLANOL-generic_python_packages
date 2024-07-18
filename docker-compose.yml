@@ -1,27 +1,25 @@
-version: '3'
-
 services:
   db_pg_pyckg:
-    image: kartoza/postgis
+    image: postgis/postgis:15-3.3
     container_name: postgis
     env_file:
       - ./docker_settings/postgis.env
     networks:
       app_net:
     ports:
-      - 25432:5432
+      - "35432:5432"
     volumes:
-      - db_postgis_vol:/var/lib/postgresql
+      - db_postgis_vol-generic_python:/var/lib/postgresql
 
   db_ora_pyckg:
     image: oracleinanutshell/oracle-xe-11g:latest
     container_name: oracle_xe
     volumes:
-      - oracle_xe-vol:/u01/app/oracle
+      - oracle_xe_vol-generic_python:/u01/app/oracle
     networks:
       app_net:
     ports:
-      - 25521:1521
+      - "35521:1521"
     environment:
       - ORACLE_DISABLE_ASYNCH_IO=true
 
@@ -82,7 +80,7 @@ networks:
         - subnet: "10.92.2.0/24"
 
 volumes: 
-  oracle_xe-vol:
+  oracle_xe_vol-generic_python:
     external: True
-  db_postgis_vol:
+  db_postgis_vol-generic_python:
     external: True

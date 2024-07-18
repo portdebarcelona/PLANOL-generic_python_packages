@@ -1,4 +1,4 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.6.3 AS runtime
+FROM ghcr.io/osgeo/gdal:ubuntu-small-3.8.5 AS runtime
 
 LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
