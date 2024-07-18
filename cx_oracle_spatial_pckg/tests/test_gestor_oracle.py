@@ -10,15 +10,12 @@ path_data = os.path.join(path_project, 'resources/data')
 
 
 class MyTestCase(unittest.TestCase):
-    dsn_ora = None
+    """
+    To run the tests over the db Oracle, run with system privileges  init_test_db.sql in the same folder as this file
+    """
+    dsn_ora = cx_Oracle.makedsn(host=os.getenv("HOST_DB_ORA", "db_ora_pyckg"),
+                                port=os.getenv('PORT_DB_ORA', 1521), sid='xe')
     cache_gest = None
-
-    def setUp(self) -> None:
-        self.dsn_ora = cx_Oracle.makedsn(host=os.getenv("HOST_DB_ORA", "db_ora_pyckg"),
-                                         port=os.getenv('PORT_DB_ORA', 1521), sid='xe')
-        self.cache_gest = g = gestor_oracle("GIS", "GIS123", self.dsn_ora)
-        g.run_sql_script(os.path.join(os.path.dirname(__file__), 'init_db.sql'))
-        g.run_sql_script(os.path.join(path_project, 'resources', 'ddls', 'edificacio.sql'))
 
     @property
     def gest_ora(self):

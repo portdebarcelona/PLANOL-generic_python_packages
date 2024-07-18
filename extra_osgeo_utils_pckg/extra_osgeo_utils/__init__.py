@@ -151,7 +151,8 @@ def datasource_gdal_vector_file(nom_driver_gdal, nom_ds, a_dir, create=None, fro
         else:
             ext_file = exts_driver[0]
 
-    if os.path.exists(base_path_file) or ext_base.lower() == f'.{ext_file.lower()}':
+    if (os.path.exists(base_path_file) and os.path.isfile(
+            base_path_file)) or ext_base.lower() == f'.{ext_file.lower()}':
         path_file = base_path_file
     else:
         path_file = "{}.{}".format(base_path_file, ext_file)

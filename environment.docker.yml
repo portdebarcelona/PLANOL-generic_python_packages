@@ -1,10 +1,10 @@
 name: python_packages
 channels:
-- conda-forge
+- defaults
 - anaconda
 dependencies:
 - python=3.10
-- gdal=3.6
+- conda-forge::gdal=3.8.5
 - pip
 - pip:
     - -r requirements.txt
