@@ -7,7 +7,8 @@
 import json
 from typing import Optional
 
-from geopandas import GeoDataFrame
+from geopandas import GeoDataFrame, GeoSeries
+from pandas import DataFrame
 
 
 def gdf_to_geojson(gdf: GeoDataFrame, name: Optional[str] = None, with_crs: bool = True, show_bbox: bool = True,
@@ -39,3 +40,89 @@ def gdf_to_geojson(gdf: GeoDataFrame, name: Optional[str] = None, with_crs: bool
             f.write(geojson)
 
     return dict_geojson
+
+
+def gdf_to_df(gdf: GeoDataFrame, as_wkb=False) -> DataFrame:
+    """
+    Convert a GeoDataFrame to DataFrame converting the geometry columns to a str column in WKT format (WKB if as_wkb=True)
+
+    Args:
+        gdf (GeoDataFrame):
+        as_wkb (bool=False): If True, the geometry column is converted to WKB format
+
+    Returns:
+        DataFrame
+    """
+    f_conv = 'to_wkb' if as_wkb else 'to_wkt'
+
+    # Convert all columns type geometry to WKT
+    gdf_aux = gdf.copy()
+    for col in df_geometry_columns(gdf_aux):
+        gdf_aux[col] = getattr(gdf_aux[col], f_conv)()
+    return DataFrame(gdf_aux)
+
+
+def df_geometry_columns(df: GeoDataFrame | DataFrame) -> list:
+    """
+    Devuelve las columnas tipo geometría de un GeoDataFrame
+
+    Args:
+        df (GeoDataFrame | DataFrame):
+
+    Returns:
+        list
+    """
+    return df.select_dtypes(include=["geometry"]).columns.tolist()
+
+
+def df_to_crs(df: GeoDataFrame | DataFrame, crs: str) -> GeoDataFrame | DataFrame:
+    """
+    Convierte todas las columnas tipo geometría de un GeoDataFrame o DataFrame al CRS indicado
+
+    Args:
+        df (GeoDataFrame | DataFrame):
+        crs (str): name CRS (EPSG) coord .sys. destino de las geometrías (e.g. 'EPSG:25831')
+                    [Can be anything accepted by pyproj.CRS.from_user_input()]
+
+    Returns:
+        GeoDataFrame | DataFrame
+    """
+    df_aux = df.copy()
+    for geom in df_geometry_columns(df_aux):
+        df_aux[geom] = df_aux[geom].to_crs(crs)
+
+    df_aux = df_aux.to_crs(crs)
+
+    return df_aux
+
+
+def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = None) -> GeoDataFrame:
+    """
+    Crea un GeoDataFrame a partir de un DataFrame
+
+    Args:
+        df (DataFrame):
+        geom_col (str): Columna geometría con el que se creará el GeoDataFrame
+        crs (str): CRS (EPSG) coord .sys. origen de las geometrías (e.g. 'EPSG:25831')
+                    [Can be anything accepted by pyproj.CRS.from_user_input()]
+        cols_geom (list=None): Columnas con geometrías
+
+    Returns:
+        GeoDataFrame
+    """
+    if cols_geom is None:
+        cols_geom = []
+
+    cols_geom = set(cols_geom)
+    cols_geom.add(geom_col)
+
+    df_aux = df.copy()
+    for col in (col for col in df_aux.columns if col in cols_geom):
+        if (dtype := df_aux[col].dtype.name) == 'object':
+            df_aux[col] = GeoSeries.from_wkt(df_aux[col].tolist(), crs=crs, on_invalid='warn')
+        elif dtype == 'geometry':
+            df_aux[col] = GeoSeries(df_aux[col].tolist(), crs=crs)
+
+    gdf = GeoDataFrame(df_aux, geometry=geom_col, crs=crs)
+
+    return gdf

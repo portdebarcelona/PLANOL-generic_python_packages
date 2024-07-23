@@ -12,17 +12,22 @@ from typing import Union
 import numpy as np
 import pandas as pd
 from geopandas import GeoDataFrame
-from pandas import DataFrame, Timestamp, NaT
+from pandas import DataFrame, Timestamp, NaT, CategoricalDtype
 
+EXCLUDED_TYPES_TO_CATEGORIZE = ['datetime', 'category', 'geometry']
+DEFAULT_MAX_UNIQUE_VALS_COL_CATEGORY = 0.5
 MAX_DATETIME = datetime(2250, 12, 31, 23, 59, 59)
 
 
-def optimize_df(df: DataFrame | GeoDataFrame) -> DataFrame | GeoDataFrame:
+def optimize_df(df: DataFrame | GeoDataFrame, max_perc_unique_vals: float = DEFAULT_MAX_UNIQUE_VALS_COL_CATEGORY,
+                floats_as_categ: bool = False) -> DataFrame | GeoDataFrame:
     """
     Retorna el pd.Dataframe optimizado segun columnas que encuentre
 
     Args:
         df (Dataframe | GeoDataFrame): Dataframe a optimizar
+        max_perc_unique_vals (float=DEFAULT_MAX_UNIQUE_VALS_COL_CATEGORY): Màxim percentatge de valors únics respecte total files per a convertir en categoria, expressat entre 0 i 1 (Default 0.5 -> 50%)
+        floats_as_categ (bool=False): Si True, els floats es converteixen a categoria
 
     Returns:
         opt_df (Dataframe | GeoDataFrame): Dataframe optimizado
@@ -32,16 +37,24 @@ def optimize_df(df: DataFrame | GeoDataFrame) -> DataFrame | GeoDataFrame:
     opt_df[df_ints.columns] = df_ints.apply(pd.to_numeric, downcast='signed')
     df_floats = opt_df.select_dtypes(include='float')
     opt_df[df_floats.columns] = df_floats.apply(pd.to_numeric, downcast='float')
-    for col in opt_df.select_dtypes(exclude='datetime').columns:
+
+    excl_types_cat = EXCLUDED_TYPES_TO_CATEGORIZE
+    if not floats_as_categ:
+        excl_types_cat.append('float')
+
+    for col in opt_df.select_dtypes(exclude=excl_types_cat).columns:
         try:
             unic_vals = opt_df[col].unique()
-        except pd.errors.DataError:
+        except (pd.errors.DataError, TypeError):
             continue
 
         num_unique_values = len(unic_vals)
-        num_total_values = len(opt_df[col])
-        if num_unique_values / num_total_values < 0.5:
-            opt_df.loc[:, col] = opt_df[col].astype('category')
+        num_total_values = len(opt_df[col]) - len(opt_df.loc[opt_df[col].isnull()])
+        if num_total_values > 0 and (num_unique_values / num_total_values) < max_perc_unique_vals:
+            try:
+                opt_df[col] = opt_df[col].astype(CategoricalDtype(ordered=True))
+            except (NotImplementedError, TypeError):
+                continue
 
     return opt_df
 
@@ -70,13 +83,15 @@ def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, obj
         df = df.reset_index()
 
     def _df_individual_filter(_df_ind: DataFrame, type_col_ind, column: str, value, col_operator: str = '='):
-        if type_col_ind.name == 'object':
+        type_col = type_col_ind.categories.dtype if (type_col_name := type_col_ind.name) == 'category' else type_col_ind
+
+        if type_col_name == 'object':
             if col_operator == '=':
                 _df_ind = _df_ind[_df_ind[column].str.contains(str(value), case=False, na=False)]
             elif col_operator == '-' or col_operator == '!':
                 _df_ind = _df_ind[~_df_ind[column].str.contains(str(value), case=False, na=False)]
         else:
-            value = type_col_ind.type(value)
+            value = type_col.type(value)
             if col_operator == '=':
                 _df_ind = _df_ind.loc[_df_ind[column] == value]
             elif col_operator == '-' or col_operator == '!':
@@ -85,6 +100,7 @@ def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, obj
                 _df_ind = _df_ind.loc[_df_ind[column] > value]
             elif col_operator == '<':
                 _df_ind = _df_ind.loc[_df_ind[column] < value]
+
         return _df_ind
 
     col_names = df.columns.values.tolist()
@@ -228,3 +244,16 @@ def convert_to_datetime_col_df(df: DataFrame, cols: list[str],
         df[col] = df[col].apply(_convert_date)
 
     return df
+
+
+def df_memory_usage(df: DataFrame | GeoDataFrame) -> float:
+    """
+    Return the memory usage of a DataFrame in MB
+
+    Args:
+        df (DataFrame | GeoDataFrame): DataFrame
+
+    Returns:
+        float: Memory usage in MB
+    """
+    return df.memory_usage(deep=True).sum() / 1024 ** 2
