@@ -57,6 +57,9 @@ ENV USER_NAME=${USER_NAME}
 
 USER $USER_NAME
 
+# Add local bin for $USER_NAME to PATH (for future pip installed scripts)
+ENV PATH=/home/$USER_NAME/.local/bin:$PATH
+
 COPY --chown=$USER_NAME:root ./docs/ ./docs/
 RUN chmod -R u=rwx,g=rwx,o=rx ./docs
 
@@ -89,8 +92,5 @@ RUN python -c  \
     duckdb.install_extension('spatial'); \
     duckdb.install_extension('json'); \
     duckdb.install_extension('httpfs')"
-
-# Add local bin for $USER_NAME to PATH (for future pip installed scripts)
-ENV PATH=/home/$USER_NAME/.local/bin:$PATH
 
 CMD ["python"]
