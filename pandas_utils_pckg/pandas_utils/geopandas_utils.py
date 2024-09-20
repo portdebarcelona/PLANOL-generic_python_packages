@@ -117,6 +117,8 @@ def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = N
     cols_geom.add(geom_col)
 
     df_aux = df.copy()
+    idx_prev = df_aux.index
+    df_aux.reset_index(inplace=True)
     for col in (col for col in df_aux.columns if col in cols_geom):
         if (dtype := df_aux[col].dtype.name) == 'object':
             df_aux[col] = GeoSeries.from_wkt(df_aux[col].tolist(), crs=crs, on_invalid='warn')
@@ -124,5 +126,6 @@ def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = N
             df_aux[col] = GeoSeries(df_aux[col].tolist(), crs=crs)
 
     gdf = GeoDataFrame(df_aux, geometry=geom_col, crs=crs)
+    gdf.set_index(idx_prev, inplace=True)
 
     return gdf
