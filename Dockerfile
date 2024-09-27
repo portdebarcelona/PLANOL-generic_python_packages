@@ -67,24 +67,24 @@ COPY --chown=$USER_NAME:root ./requirements.txt ./requirements.txt
 RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./extra_utils_pckg/ ./extra_utils_pckg/
-RUN pip install --editable extra_utils_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable extra_utils_pckg --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
-RUN pip install --editable extra_osgeo_utils_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable extra_osgeo_utils_pckg --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./spatial_utils_pckg/ ./spatial_utils_pckg/
-RUN pip install --editable spatial_utils_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable spatial_utils_pckg --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
 # Set env var for package python cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
-RUN pip install --editable cx_oracle_spatial_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable cx_oracle_spatial_pckg --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
-RUN pip install --editable pandas_utils_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable pandas_utils_pckg --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
-RUN pip install --editable duckdb_utils_pckg --no-cache-dir
+RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable duckdb_utils_pckg --no-cache-dir
 # Set extra extensions perinstalled on duckdb
 RUN python -c  \
     "import duckdb; \

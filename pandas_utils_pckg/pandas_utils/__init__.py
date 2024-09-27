@@ -6,6 +6,8 @@
 """
 .. include:: ../README.md
 """
+from __future__ import annotations
+
 from datetime import datetime, time, date
 from typing import Union
 
@@ -59,7 +61,7 @@ def optimize_df(df: DataFrame | GeoDataFrame, max_perc_unique_vals: float = DEFA
     return opt_df
 
 
-def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, object]) -> DataFrame | GeoDataFrame:
+def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, object]) -> DataFrame | GeoDataFrame | None:
     """
     Filtra el dataframe amb el diccionari passat, on la clau fa referència a la columna i el valor o llistat de valors
     separats per comes son els que s’apliquen al filtre. Si la clau/columna no existeix es desestima. Si la clau/columna
@@ -83,7 +85,7 @@ def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, obj
         df = df.reset_index()
 
     def _df_individual_filter(_df_ind: DataFrame, type_col_ind, column: str, value, col_operator: str = '='):
-        type_col = type_col_ind.categories.dtype if (type_col_name := type_col_ind.name) == 'category' else type_col_ind
+        type_column = type_col_ind.categories.dtype if (type_col_name := type_col_ind.name) == 'category' else type_col_ind
 
         if type_col_name == 'object':
             if col_operator == '=':
@@ -91,7 +93,7 @@ def df_filtered_by_prop(df: DataFrame | GeoDataFrame, filter_prop: dict[str, obj
             elif col_operator == '-' or col_operator == '!':
                 _df_ind = _df_ind[~_df_ind[column].str.contains(str(value), case=False, na=False)]
         else:
-            value = type_col.type(value)
+            value = type_column.type(value)
             if col_operator == '=':
                 _df_ind = _df_ind.loc[_df_ind[column] == value]
             elif col_operator == '-' or col_operator == '!':
