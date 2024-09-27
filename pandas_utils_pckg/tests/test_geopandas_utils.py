@@ -41,6 +41,12 @@ class GeopandasUtilsTestCase(unittest.TestCase):
         gdf_epsg25831 = df_to_crs(gdf, 'EPSG:25831')
         self.logger.info(f'GeoDataFrame: {gdf_epsg25831.shape} | Memory: {df_memory_usage(gdf_epsg25831):.2f} MB')
 
+        self.logger.info('Converting DataFrame with Index to GeoDataFrame')
+        df_csv_idx = self.df_csv.copy().set_index('APB_ID')
+        gdf = gdf_from_df(df_csv_idx, geom_col='PERIMETRE_BASE', crs='EPSG:4326',
+                          cols_geom=['PERIMETRE_SUPERIOR', 'PUNT_BASE', 'DENOMINACIO'])
+        self.logger.info(f'GeoDataFrame: {gdf.shape} with index {gdf.index.name} | Memory: {df_memory_usage(gdf_epsg25831):.2f} MB')
+
     def test_gdf_to_dataframe(self):
         self.logger.info('Converting GeoDataFrame to DataFrame as WKT')
         gdf_csv = gdf_from_df(self.df_csv, geom_col='PUNT_BASE', crs='EPSG:4326',
