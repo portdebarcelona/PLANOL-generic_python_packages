@@ -91,9 +91,9 @@ pipeline {
           cd cx_oracle_spatial_pckg
           python setup.py bdist_wheel
           devpi use http://gisplanoldev.port.apb.es:3141
-          devpi login root --password $DEVPI_PASSWORD
+          devpi login root --password ${env.DEVPI_PASSWORD}
           devpi use http://gisplanoldev.port.apb.es:3141/root/web2py
-          devpi upload $(find . -name '*.whl')
+          devpi upload \$(find . -name '*.whl')
           """
         }
       }
