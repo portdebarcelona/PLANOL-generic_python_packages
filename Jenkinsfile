@@ -15,8 +15,8 @@ pipeline {
 
   environment {
     // GitLab
-    GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
-    BRANCH_NAME = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
+    //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
+    //BRANCH_NAME = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
 
     // Docker (build image & push)
     /*
@@ -31,9 +31,9 @@ pipeline {
     DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
 
     // Docker deploy server (dev)
-    DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
-    DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
-    DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
+    //DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
+    //DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
+    //DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
   }
 
   stages {
@@ -42,7 +42,7 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "${BRANCH_NAME}"]],
+          branches: [[name: repo.branch]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
