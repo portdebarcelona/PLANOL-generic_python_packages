@@ -17,7 +17,7 @@ pipeline {
     // GitLab
     //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
     //BRANCH = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
-
+    
     // Docker (build image & push)
     /*
     DOCKER_REGISTRY = 'planolport'
@@ -47,7 +47,7 @@ pipeline {
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: repo.url ]
+            [credentialsId: 'apb-admincicd-token', url: repository.html_url ]
           ],
           poll: false
         ])
