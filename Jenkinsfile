@@ -5,7 +5,7 @@ def dockerImage = 'visorwab'
 
 pipeline {
   agent {
-    label 'gisnordldwf1'
+    label 'principal'
   }
 
   options {
