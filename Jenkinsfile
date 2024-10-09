@@ -42,12 +42,12 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "${GIT_BRANCH}"]],
+          branches: [[name: "training"]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: repository.html_url ]
+            [credentialsId: 'apb-admincicd-token', url: 'https://github.com/portdebarcelona/PLANOL-generic_python_packages/' ]
           ],
           poll: false
         ])
