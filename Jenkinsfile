@@ -16,7 +16,7 @@ pipeline {
   environment {
     // GitLab
     //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
-    //BRANCH_NAME = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
+    //BRANCH = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
 
     // Docker (build image & push)
     /*
@@ -42,7 +42,7 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: repo.branch]],
+          branches: [[name: "${GIT_BRANCH}"]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
