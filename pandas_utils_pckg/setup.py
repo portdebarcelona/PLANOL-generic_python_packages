@@ -46,7 +46,7 @@ def readme():
 
 setup(
     name='pandas_utils',
-    version='1.2.5',
+    version='1.2.6',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
