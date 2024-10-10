@@ -5,7 +5,7 @@ def dockerImage = 'visorwab'
 
 pipeline {
   agent {
-    label 'principal'
+    label 'gisnordldwf1'
   }
 
   options {
@@ -43,6 +43,7 @@ pipeline {
         checkout([
           $class: 'GitSCM',
           branches: [[name: "training"]],
+          extensions: [[$class: 'CloneOption', timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
