@@ -9,6 +9,7 @@ from typing import Optional
 
 from geopandas import GeoDataFrame, GeoSeries
 from pandas import DataFrame
+from shapely import wkt
 
 
 def gdf_to_geojson(gdf: GeoDataFrame, name: Optional[str] = None, with_crs: bool = True, show_bbox: bool = True,
@@ -123,15 +124,23 @@ def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = N
     if set_idx:
         df_aux.reset_index(inplace=True)
 
-    for col in (col for col in df_aux.columns if col in cols_geom):
-        if (dtype := df_aux[col].dtype.name) == 'object':
-            df_aux[col] = GeoSeries.from_wkt(df_aux[col].tolist(), crs=crs, on_invalid='warn')
-        elif dtype == 'geometry':
-            df_aux[col] = GeoSeries(df_aux[col].tolist(), crs=crs)
+    def convert_to_wkt(val_col):
+        return wkt.loads(val_col) if isinstance(val_col, str) else None
+
+    gdf = GeoDataFrame(df_aux)
+    for col in (col for col in gdf.columns if col in cols_geom):
+        ds_col = gdf[col]
+        if isinstance(ds_col, GeoSeries):
+            continue
+
+        if (dtype := ds_col.dtype.name) == 'object':
+            gdf[col] = gdf[col].apply(convert_to_wkt)
+
+        gdf.set_geometry(col, inplace=True, crs=crs)
 
     if set_idx:
-        df_aux = df_aux.set_index(idx_prev.names, drop=True)
+        gdf = gdf.set_index(idx_prev.names, drop=True)
 
-    gdf = GeoDataFrame(df_aux, geometry=geom_col, crs=crs)
+    gdf.set_geometry(geom_col, crs=crs, inplace=True)
 
     return gdf
