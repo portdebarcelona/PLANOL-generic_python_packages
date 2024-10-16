@@ -15,9 +15,9 @@ pipeline {
 
   environment {
     // GitLab
-    GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
-    BRANCH_NAME = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
-
+    //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
+    //BRANCH = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
+    
     // Docker (build image & push)
     /*
     DOCKER_REGISTRY = 'planolport'
@@ -31,9 +31,9 @@ pipeline {
     DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
 
     // Docker deploy server (dev)
-    DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
-    DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
-    DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
+    //DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
+    //DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
+    //DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
   }
 
   stages {
@@ -42,12 +42,13 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "${BRANCH_NAME}"]],
+          branches: [[name: "training"]],
+          extensions: [[$class: 'CloneOption', timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: repo.url ]
+            [credentialsId: 'apb-admincicd-token', url: 'https://github.com/portdebarcelona/PLANOL-generic_python_packages/' ]
           ],
           poll: false
         ])
@@ -91,9 +92,9 @@ pipeline {
           cd cx_oracle_spatial_pckg
           python setup.py bdist_wheel
           devpi use http://gisplanoldev.port.apb.es:3141
-          devpi login root --password $DEVPI_PASSWORD
+          devpi login root --password ${env.DEVPI_ROOT_PASSWORD}
           devpi use http://gisplanoldev.port.apb.es:3141/root/web2py
-          devpi upload $(find . -name '*.whl')
+          devpi upload \$(find . -name '*.whl')
           """
         }
       }
