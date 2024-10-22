@@ -131,8 +131,7 @@ anaconda-project-local.yml
 
 !/resources/data/edificacio.zip
 
-/docs/html
-!/docs/html/logo.png
+/docs/html/
 
 resources/data/edificacio_25831.csv
 resources/data/edificacio_25831.csvt

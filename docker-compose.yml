@@ -67,7 +67,7 @@ services:
       app_net:
     environment:
       - PORT_SERVER_DOC=8095
-      - PACKAGES_DOC=cx_oracle_spatial extra_osgeo_utils extra_utils pandas_utils spatial_utils
+      - PACKAGES_DOC=cx_oracle_spatial duckdb_utils extra_osgeo_utils extra_utils pandas_utils spatial_utils
     ports:
       - 8095:8095
     command: /bin/bash -c "/project/docs/build_doc_and_serve.sh"
