@@ -23,7 +23,7 @@ RUN mkdir --parents $ORACLE_HOME && \
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends pip alien libaio1 locales locales-all tzdata \
+    && apt-get install -yq --no-install-recommends pip alien libaio1 locales locales-all tzdata nodejs npm \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
     && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \

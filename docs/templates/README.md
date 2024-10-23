@@ -16,3 +16,6 @@ Python packages developed for GIS projects related with QGIS, ESRI, Oracle, Post
 
 - [*spatial_utils*](./spatial_utils.html)
   Python modules to do different stuff with spatial data
+
+- [*duckdb_utils*](./duckdb_utils.html)
+  Python modules to add functionality over `duckdb`
