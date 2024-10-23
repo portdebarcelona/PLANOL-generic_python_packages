@@ -10,7 +10,7 @@ PREFIX_DOCS=${PREFIX_DOCS:-generic_python_packages}
 
 pdoc $PACKAGES_DOC -t "${JINJA_TEMPLATES}" -d google --logo ${URL_LOGO_APB} -o "./html/${PREFIX_DOCS}"
 
-cp "${JINJA_TEMPLATES}/favicon.ico" ./html/
+cp "${JINJA_TEMPLATES}/favicon.ico" "./html/${PREFIX_DOCS}/"
 
 cd ./html || exit
 
