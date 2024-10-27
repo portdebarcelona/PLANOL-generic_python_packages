@@ -9,9 +9,13 @@
 from __future__ import annotations
 
 import os
-from typing import Iterator
+from typing import Iterable
 
 import duckdb
+from geopandas import GeoDataFrame
+from pandas import DataFrame
+
+from pandas_utils.geopandas_utils import df_geometry_columns
 
 MEMORY_DDBB = ':memory:'
 CACHE_DUCK_DDBBS = {}
@@ -186,21 +190,21 @@ def escape_name_table_view(name: str):
         ')', '').lower()
 
 
-def check_columns_in_sql(cols_to_check: Iterator[str], sql: duckdb.DuckDBPyRelation):
+def check_columns_in_sql(cols_to_check: Iterable[str], sql: duckdb.DuckDBPyRelation):
     """
     Check columns in sql relation
 
     Args:
-        cols_to_check (Iterator[str]): list of columns to check
+        cols_to_check (Iterable[str]): list of columns to check
         sql (duckdb.DuckDBPyRelation): sql relation
 
     Returns:
         list[str]: list of columns to check
     """
-    cols_to_check = [cols_geom.lower() for cols_geom in cols_to_check]
+    cols_to_check_lower = [cols_geom.lower() for cols_geom in cols_to_check]
     cols_sql = [col.lower() for col in sql.columns]
 
-    if not all(col in cols_sql for col in cols_to_check):
+    if not all(col in cols_sql for col in cols_to_check_lower):
         raise ValueError(f"There are columns {cols_to_check} not found on sql columns {cols_sql}")
 
     return cols_to_check
@@ -217,11 +221,12 @@ def set_types_geom_to_cols_wkt_on_sql(cols_wkt: list[str], sql: duckdb.DuckDBPyR
     Returns:
         duckdb.DuckDBPyRelation: Duckdb database relation
     """
-    cols_wkt = check_columns_in_sql(iter(cols_wkt), sql)
+    check_columns_in_sql(cols_wkt, sql)
 
+    cols_wkt_lower = [col.lower() for col in cols_wkt]
     sql_wkt_cols = {
         col: f'ST_GeomFromText("{col}")'
-        for col in sql.columns if col.lower() in cols_wkt for col in cols_wkt
+        for col in sql.columns if col.lower() in cols_wkt_lower
     }
     return replace_cols_on_sql(sql_wkt_cols, sql)
 
@@ -237,7 +242,7 @@ def replace_cols_on_sql(replace_cols: dict[str, str], sql: duckdb.DuckDBPyRelati
     Returns:
         duckdb.DuckDBPyRelation: Duckdb database relation
     """
-    check_columns_in_sql(iter(replace_cols.keys()), sql)
+    check_columns_in_sql(replace_cols.keys(), sql)
 
     sql_replace = ", ".join(
         f'{sql_func} AS "{col}"'
@@ -257,8 +262,8 @@ def rename_cols_on_sql(alias_cols: dict[str, str], sql: duckdb.DuckDBPyRelation)
     Returns:
         duckdb.DuckDBPyRelation: Duckdb database relation
     """
-    check_columns_in_sql(iter(alias_cols.keys()), sql)
-    alias_cols = {col.lower(): alias.lower() for col, alias in alias_cols.items()}
+    check_columns_in_sql(alias_cols.keys(), sql)
+    alias_cols = {col.lower(): alias for col, alias in alias_cols.items()}
 
     sql_cols = ", ".join(
         f'"{col}" AS "{alias_col}"' if (alias_col := alias_cols.get(col.lower())) else f'"{col}"'
@@ -279,7 +284,7 @@ def exclude_cols_on_sql(excluded_cols: list[str], sql: duckdb.DuckDBPyRelation):
     Returns:
         duckdb.DuckDBPyRelation: Duckdb database relation
     """
-    check_columns_in_sql(iter(excluded_cols), sql)
+    check_columns_in_sql(excluded_cols, sql)
 
     str_cols = ", ".join(f'"{col}"' for col in excluded_cols)
     sql_cols = f'* EXCLUDE ({str_cols})'
@@ -446,5 +451,105 @@ def import_gdal_file_to_duckdb(
     a_sql = config_sql_duckdb(a_sql, cols_exclude=cols_exclude, cols_alias=cols_alias, cols_replace=cols_replace,
                               table_or_view_name=table_or_view_name, col_id=col_id, as_view=as_view,
                               overwrite=overwrite, conn_db=conn_db)
+
+    return a_sql
+
+
+def import_dataframe_to_duckdb(df: DataFrame | GeoDataFrame, table_or_view_name: str = None, col_id: str = None,
+                               cols_wkt: list[str] | dict = None, cols_exclude: list[str] = None,
+                               cols_alias: dict[str, str] = None, cols_replace: dict[str, str] = None,
+                               as_view: bool = False, conn_db: duckdb.DuckDBPyConnection = None,
+                               overwrite=False) -> duckdb.DuckDBPyRelation:
+    """
+    Import DataFrame/GeoDataframe as table on duckdb
+
+    Args:
+        df (DataFrame | GeoDataFrame): A DataFrame/GeoDataFrame
+        table_or_view_name (str=None): table or view name. If informed, create table or view
+        col_id (str=None): column primary key and index unique if create table
+        cols_wkt (list[str] = None): list of columns WKT to use as geometry
+        cols_exclude (list[str]=None): list of columns to exclude
+        cols_alias (dict[str, str]=None): dictionary of columns aliases
+        cols_replace (dict[str, str]=None): dictionary of columns to replace
+        conn_db (duckdb.DuckDBPyConnection = None): connection to duckdb
+        as_view (bool=False): create table as view instead of table
+        overwrite (bool=False): overwrite table_name if exists
+
+    Returns:
+         a_sql (duckdb.DuckDBPyRelation): Duckdb database relation
+    """
+    if not conn_db:
+        conn_db = get_duckdb_connection(extensions=['spatial'], no_cached=True)
+
+    for col in (cols_geom := df_geometry_columns(df)):
+        df[col] = df[col].to_wkb()
+
+    cols_as_wkb = [f'ST_GeomFromWKB({col}) AS {col}' for col in cols_geom]
+    alias_cols_geom = ', '.join(cols_as_wkb)
+    exclude_geom_cols = ', '.join(cols_geom)
+
+    select_expr = f"SELECT * EXCLUDE({exclude_geom_cols}), {alias_cols_geom}" if cols_geom else "SELECT *"
+    a_sql = conn_db.sql(f"""
+        {select_expr} FROM df
+        """)
+
+    a_sql = config_sql_duckdb(a_sql, cols_wkt=cols_wkt, cols_exclude=cols_exclude, cols_alias=cols_alias,
+                              cols_replace=cols_replace, table_or_view_name=table_or_view_name, col_id=col_id,
+                              as_view=as_view, overwrite=overwrite, conn_db=conn_db)
+
+    return a_sql
+
+
+def import_parquet_to_duckdb(parquet_path: str, table_or_view_name: str = None, col_id: str = None,
+                             cols_geom: list[str] = None,
+                             cols_wkt: list[str] | dict = None, cols_exclude: list[str] = None,
+                             cols_alias: dict[str, str] = None, cols_replace: dict[str, str] = None,
+                             as_view: bool = False, conn_db: duckdb.DuckDBPyConnection = None, overwrite=False,
+                             **read_parquet_params) -> duckdb.DuckDBPyRelation:
+    """
+    Import Parquet/Geoparquet file as table on duckdb
+
+    Args:
+        parquet_path (str): path to parquet/geoparquet file
+        table_or_view_name (str=None): table or view name. If informed, create table or view
+        col_id (str=None): column primary key and index unique if create table
+        cols_geom (list[str]=None): list of columns type geometry
+        cols_wkt (list[str] = None): list of columns WKT to use as geometry
+        cols_exclude (list[str]=None): list of columns to exclude
+        cols_alias (dict[str, str]=None): dictionary of columns aliases
+        cols_replace (dict[str, str]=None): dictionary of columns to replace
+        conn_db (duckdb.DuckDBPyConnection = None): connection to duckdb
+        as_view (bool=False): create table as view instead of table
+        overwrite (bool=False): overwrite table_name if exists
+        **read_parquet_params (Any): read_parquet function kwargs.
+                See duckdb read_parquet documentation on https://duckdb.org/docs/data/parquet/overview.html#parameters
+
+    Returns:
+         a_sql (duckdb.DuckDBPyRelation): Duckdb database relation
+    """
+    if not conn_db:
+        conn_db = get_duckdb_connection(extensions=['spatial'], no_cached=True)
+
+    select_expr = 'SELECT *'
+    if cols_geom:
+        alias_cols_geom = ', '.join(f'{col}::GEOMETRY AS {col}' for col in cols_geom)
+        exclude_geom_cols = ', '.join(cols_geom)
+        select_expr = f"SELECT * EXCLUDE({exclude_geom_cols}), {alias_cols_geom}"
+
+    sql_read_parquet_params = ''
+    if read_parquet_params:
+        sql_read_parquet_params += ', '
+        sql_read_parquet_params += ', '.join([f'{k}={v}' for k, v in read_parquet_params.items()])
+
+    a_sql = conn_db.sql(
+        f"""
+        {select_expr}
+        FROM read_parquet('{parse_path(parquet_path)}'{sql_read_parquet_params})
+        """
+    )
+
+    a_sql = config_sql_duckdb(a_sql, cols_wkt=cols_wkt, cols_exclude=cols_exclude, cols_alias=cols_alias,
+                              cols_replace=cols_replace, table_or_view_name=table_or_view_name, col_id=col_id,
+                              as_view=as_view, overwrite=overwrite, conn_db=conn_db)
 
     return a_sql
