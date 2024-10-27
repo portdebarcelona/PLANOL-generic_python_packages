@@ -46,7 +46,7 @@ def readme():
 
 setup(
     name='duckdb_utils',
-    version='0.1.5',
+    version='0.2.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/duckdb_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -60,11 +60,11 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'duckdb',
+        'duckdb>=1.1.1',
+        'ibis-framework[duckdb,geospatial]',
         'duckdb-engine',
         'polars[pyarrow]',
-        format_requirement('pandas_utils'),
-        format_requirement('cx_oracle_spatial')
+        format_requirement('pandas_utils')
     ],
     python_requires='>=3.6',
     package_data={

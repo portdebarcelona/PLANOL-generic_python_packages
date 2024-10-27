@@ -1,12 +1,14 @@
-import unittest
 import os
+import unittest
 
 import duckdb
+import pandas as pd
 
 from duckdb_utils import get_duckdb_connection, import_csv_to_duckdb, list_tables_duckdb, import_gdal_file_to_duckdb, \
     rename_cols_on_sql, set_types_geom_to_cols_wkt_on_sql, exclude_cols_on_sql, exists_table_duckdb, \
-    escape_name_table_view, quote_name_duckdb
+    quote_name_duckdb, import_dataframe_to_duckdb, import_parquet_to_duckdb
 from extra_utils.misc import unzip
+from pandas_utils.geopandas_utils import gdf_from_df, df_geometry_columns
 
 RESOURCES_DATA_DIR = os.path.join(
     os.path.dirname(
@@ -19,6 +21,7 @@ class UtilsDuckDBTestCase(unittest.TestCase):
     unzip(os.path.join(RESOURCES_DATA_DIR, 'edificacio.zip'))
     csv_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio', 'edificacio.csv')
     geojson_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio-perimetre_base.geo.json')
+    geoparquet_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio.geoparquet')
 
     def setUp(self):
         pass
@@ -116,6 +119,37 @@ class UtilsDuckDBTestCase(unittest.TestCase):
         )
         geom_type = sql.select('ST_GeometryType(centroid)').fetchone()[0]
         self.assertTrue(geom_type == 'POINT')
+
+    def test_import_dataframes(self):
+        df = pd.read_csv(self.csv_path)
+        sql = import_dataframe_to_duckdb(df, 'df',
+                                         cols_wkt=['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'])
+        row = sql.select('ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid').fetchone()
+        print(sql.columns)
+        self.assertTrue(str(row[0]).startswith('POINT'))
+
+        gdf = gdf_from_df(df, 'PERIMETRE_BASE', 'EPSG:4326',
+                          ['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'])
+        sql = import_dataframe_to_duckdb(gdf, 'gdf')
+        row = sql.select('ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid').fetchone()
+        print(sql.columns)
+        self.assertTrue(str(row[0]).startswith('POINT'))
+
+    def test_import_geoparquet(self):
+        df = pd.read_csv(self.csv_path)
+        gdf = gdf_from_df(df, 'PERIMETRE_BASE', 'EPSG:4326',
+                          ['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'])
+        gdf.to_parquet(self.geoparquet_path)
+        sql = import_parquet_to_duckdb(self.geoparquet_path, 'v_geoparquet',
+                                       cols_geom=df_geometry_columns(gdf), as_view=True)
+        row = sql.select('ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid').fetchone()
+        self.assertTrue(str(row[0]).startswith('POINT'))
+
+        duckdb_parquet_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio_duckdb.geoparquet')
+        sql.write_parquet(duckdb_parquet_path)
+        sql = import_parquet_to_duckdb(duckdb_parquet_path, 'v_geoparquet_duckdb', as_view=True)
+        row = sql.select('ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid').fetchone()
+        self.assertTrue(str(row[0]).startswith('POINT'))
 
 
 if __name__ == '__main__':
