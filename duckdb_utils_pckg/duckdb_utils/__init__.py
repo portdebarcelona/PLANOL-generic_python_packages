@@ -15,6 +15,7 @@ import duckdb
 from geopandas import GeoDataFrame
 from pandas import DataFrame
 
+from extra_utils.misc import create_dir
 from pandas_utils.geopandas_utils import df_geometry_columns
 
 MEMORY_DDBB = ':memory:'
@@ -69,6 +70,29 @@ def get_duckdb_connection(db_path: str = None, as_current: bool = False, no_cach
         set_current_db_path(parsed_path)
 
     return conn_db
+
+
+def export_database(dir_db: str, duck_db_conn: duckdb.DuckDBPyConnection = None, parquet: bool = True):
+    """
+    Save duckdb database to dir path as parquets or csvs files
+
+    Args:
+        dir_db (str=None): Path to save database
+        duck_db_conn (duckdb.DuckDBPyConnection=None): Duckdb database connection.
+            If None, get connection default with get_duckdb_connection
+        parquet (bool=True): Save as parquet file
+    """
+    create_dir(dir_db)
+
+    if not duck_db_conn:
+        duck_db_conn = get_duckdb_connection()
+
+    if parquet:
+        format_db = "(FORMAT PARQUET)"
+    else:
+        format_db = "(FORMAT CSV, COMPRESSION 'GZIP')"
+
+    duck_db_conn.sql(f"EXPORT DATABASE '{parse_path(dir_db)}' {format_db}")
 
 
 def current_schema_duckdb(conn_db: duckdb.DuckDBPyConnection = None) -> str:

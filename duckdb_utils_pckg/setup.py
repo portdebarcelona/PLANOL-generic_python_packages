@@ -46,7 +46,7 @@ def readme():
 
 setup(
     name='duckdb_utils',
-    version='0.2.0',
+    version='0.2.1',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/duckdb_utils_pckg',
     author='Ernesto Arredondo Martínez',
