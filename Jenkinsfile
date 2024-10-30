@@ -1,7 +1,7 @@
 // Variables a modificar segons projecte
-def jenkinsToken = 'lalaguna-visorwab'
-def dockerProject = 'lalaguna'
-def dockerImage = 'visorwab'
+// def jenkinsToken = 'lalaguna-visorwab'
+// def dockerProject = 'lalaguna'
+// def dockerImage = 'visorwab'
 
 pipeline {
   agent {
@@ -79,7 +79,7 @@ pipeline {
         }
       }
       agent {
-        docker {
+        dockerContainer {
           reuseNode true
           image 'python:alpine3.19'
           args '-u root'
