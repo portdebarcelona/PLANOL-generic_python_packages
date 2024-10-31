@@ -21,6 +21,7 @@ from pandas_utils.geopandas_utils import df_geometry_columns
 MEMORY_DDBB = ':memory:'
 CACHE_DUCK_DDBBS = {}
 CURRENT_DB_PATH = None
+GZIP = 'gzip'
 
 
 def set_current_db_path(db_path: str):
@@ -377,17 +378,10 @@ def config_sql_duckdb(a_sql: duckdb.DuckDBPyRelation, cols_wkt: list[str] = None
     return a_sql
 
 
-def import_csv_to_duckdb(
-        csv_path: str,
-        table_or_view_name: str = None,
-        header: bool = True,
-        col_id: str = None,
-        cols_wkt: list[str] | dict = None,
-        cols_exclude: list[str] = None,
-        cols_alias: dict[str, str] = None,
-        cols_replace: dict[str, str] = None,
-        as_view: bool = False, conn_db: duckdb.DuckDBPyConnection = None,
-        overwrite=False) -> duckdb.DuckDBPyRelation:
+def import_csv_to_duckdb(csv_path: str, table_or_view_name: str = None, header: bool = True, col_id: str = None,
+                         cols_wkt: list[str] | dict = None, cols_exclude: list[str] = None,
+                         cols_alias: dict[str, str] = None, cols_replace: dict[str, str] = None, as_view: bool = False,
+                         conn_db: duckdb.DuckDBPyConnection = None, overwrite=False, zipped: bool = False) -> duckdb.DuckDBPyRelation:
     """
     Import csv file as table on duckdb
 
@@ -403,6 +397,7 @@ def import_csv_to_duckdb(
         conn_db (duckdb.DuckDBPyConnection = None): connection to duckdb
         as_view (bool=False): create table as view instead of table
         overwrite (bool=False): overwrite table_name if exists
+        zipped (bool=False): compression type. If informed, use it
 
     Returns:
          a_sql (duckdb.DuckDBPyRelation): Duckdb database relation
@@ -410,9 +405,11 @@ def import_csv_to_duckdb(
     if not conn_db:
         conn_db = get_duckdb_connection(extensions=['spatial'], no_cached=True)
 
+    compression = f', compression={GZIP}' if zipped else ''
+
     a_sql = conn_db.sql(
         f"""
-        FROM read_csv('{parse_path(csv_path)}', header={header}, auto_detect=True)
+        FROM read_csv('{parse_path(csv_path)}', header={header}, auto_detect=True{compression})
         """
     )
 
