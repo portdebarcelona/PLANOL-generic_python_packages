@@ -5,7 +5,7 @@
 
 pipeline {
   agent {
-    label 'gisnordldwf1'
+    label 'NodoJenkins'
   }
 
   options {
@@ -43,12 +43,12 @@ pipeline {
         checkout([
           $class: 'GitSCM',
           branches: [[name: "training"]],
-          extensions: [[$class: 'CloneOption', timeout: 360]],
+          extensions: [[$class: 'CloneOption', shallow: true, timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: 'https://github.com/portdebarcelona/PLANOL-generic_python_packages/' ]
+            [credentialsId: 'apb-admincicd-token', url: 'git@github.com:portdebarcelona/PLANOL-apb-python-packages.git' ]
           ],
           poll: false
         ])
@@ -79,7 +79,7 @@ pipeline {
         }
       }
       agent {
-        dockerContainer {
+        docker {
           reuseNode true
           image 'python:alpine3.19'
           args '-u root'
