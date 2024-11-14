@@ -26,4 +26,3 @@ You must configure this environment variables to be able to run this project
 
 - #### [_pandas_utils_](./pandas_utils_pckg/README.md)
   Python modules to add functionality over pandas and geopandas
-
