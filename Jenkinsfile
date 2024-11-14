@@ -73,11 +73,13 @@ pipeline {
     }
 
     stage('Build & Upload Oracle Spatial Package') {
+      /*
       when {
         anyOf {
           changeset "cx_oracle_spatial_pckg/setup.py"
         }
       }
+      */
       agent {
         docker {
           reuseNode true
