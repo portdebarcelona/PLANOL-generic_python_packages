@@ -90,6 +90,7 @@ pipeline {
       steps {
         script {
           sh """
+          ls -la
           pip install -r requirements.txt
           cd cx_oracle_spatial_pckg
           python setup.py bdist_wheel
