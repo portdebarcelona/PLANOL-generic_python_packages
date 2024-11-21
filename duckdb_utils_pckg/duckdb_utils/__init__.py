@@ -17,6 +17,10 @@ from pandas import DataFrame
 
 from extra_utils.misc import create_dir
 from pandas_utils.geopandas_utils import df_geometry_columns
+import warnings
+
+# Suppress specific warning
+warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
 
 MEMORY_DDBB = ':memory:'
 CACHE_DUCK_DDBBS = {}
@@ -503,7 +507,7 @@ def import_dataframe_to_duckdb(df: DataFrame | GeoDataFrame, table_or_view_name:
         conn_db = get_duckdb_connection(extensions=['spatial'], no_cached=True)
 
     for col in (cols_geom := df_geometry_columns(df)):
-        df[col] = df[col].to_wkb()
+        df[col] = df[col].to_wkb(include_srid=True)
 
     cols_as_wkb = [f'ST_GeomFromWKB({col}) AS {col}' for col in cols_geom]
     alias_cols_geom = ', '.join(cols_as_wkb)
