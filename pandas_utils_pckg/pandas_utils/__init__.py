@@ -8,6 +8,8 @@
 """
 from __future__ import annotations
 
+import re
+from collections.abc import Iterable
 from datetime import datetime, time, date
 from typing import Union
 
@@ -259,3 +261,63 @@ def df_memory_usage(df: DataFrame | GeoDataFrame) -> float:
         float: Memory usage in MB
     """
     return df.memory_usage(deep=True).sum() / 1024 ** 2
+
+
+def extract_operator(input_string):
+    """
+    Extract sql operator from input string
+
+    Args:
+        input_string:
+
+    Returns:
+
+    """
+    special_opers = ('-', '!') # Special operators for negation
+    sql_opers = ('=', '!=', '<>', '>', '<', '>=', '<=') # SQL operators
+
+    match = re.match(r'^(\W+)', input_string)
+    if match:
+        symbols = match.group(1)
+
+        if symbols not in special_opers and symbols not in sql_opers:
+            raise ValueError(f"Operator '{symbols}' not supported")
+
+        return symbols
+
+    return None
+
+
+def sql_from_filter_by_props(**filter_by_props: dict) -> str:
+    """
+    Get SQL from filter by properties
+
+    Args:
+        **filter_by_props: The filter by properties
+
+    Returns:
+        sql (str): The SQL from filter by properties
+    """
+    sql_parts = []
+    for k_fld_oper, value in filter_by_props.items():
+        if k_operator := extract_operator(k_fld_oper):
+            k_fld = k_fld_oper.replace(k_operator, '')
+        else:
+            k_operator = "="
+            k_fld = k_fld_oper
+
+        if isinstance(value, str):
+            value = f"'{value}'"
+        elif isinstance(value, Iterable):
+            value = ', '.join([f"'{v}'" if isinstance(v, str) else str(v) for v in value])
+            value = f"({value})"
+            if k_operator in ('=', '!=', '-'):
+                k_operator = "IN" if k_operator == "=" else "NOT IN"
+            else:
+                raise ValueError(f"Operator '{k_operator}' not supported for iterable values")
+
+        sql_parts.append(f"{k_fld} {k_operator} {value}")
+
+    sql_filter = ' AND '.join(sql_parts)
+
+    return sql_filter
