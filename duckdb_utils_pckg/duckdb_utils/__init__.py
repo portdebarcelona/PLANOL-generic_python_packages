@@ -9,15 +9,18 @@
 from __future__ import annotations
 
 import os
+import warnings
 from typing import Iterable
 
 import duckdb
+import ibis
 from geopandas import GeoDataFrame
+from ibis.expr.datatypes import GeoSpatial
 from pandas import DataFrame
 
 from extra_utils.misc import create_dir
+from extra_utils.utils_logging import get_base_logger
 from pandas_utils.geopandas_utils import df_geometry_columns
-import warnings
 
 # Suppress specific warning
 warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
@@ -578,3 +581,34 @@ def import_parquet_to_duckdb(parquet_path: str, table_or_view_name: str = None, 
                               as_view=as_view, overwrite=overwrite, conn_db=conn_db)
 
     return a_sql
+
+
+def filter_ibis_table(table: ibis.Table, sql_or_ibis_filter: str | ibis.expr) -> ibis.Table:
+    """
+    Filter ibis table
+
+    Args:
+        table (ibis.Table): The table to filter
+        sql_or_ibis_filter (str | ibis.expr): The filter to apply to the table
+
+    Returns:
+        table (ibis.Table): The table filtered
+    """
+    if isinstance(sql_or_ibis_filter, str): # Filter by SQL on duckdb backend
+        # Check if geospatial fields to cast as geometry
+        cols_geom = [col for col, fld in table.schema().fields.items()
+                     if isinstance(fld, GeoSpatial)]
+        if cols_geom:
+            cast_geom_cols = ', '.join([f"CAST({col} AS geometry) AS {col}" for col in cols_geom])
+            sql_select_cols = f"* EXCLUDE({', '.join(cols_geom)}), {cast_geom_cols}"
+        else:
+            sql_select_cols = "*"
+
+        n_tab = table.get_name()
+        sql_str = f"SELECT {sql_select_cols} FROM {n_tab} WHERE {sql_or_ibis_filter}"
+        get_base_logger().debug(f"filter_ibis_table {n_tab}: {sql_str}")
+        res = table.sql(sql_str)
+    else:
+        res = table.filter(sql_or_ibis_filter)
+
+    return res
