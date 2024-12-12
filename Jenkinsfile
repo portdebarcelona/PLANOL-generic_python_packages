@@ -5,7 +5,7 @@
 
 pipeline {
   agent {
-    label 'NodoJenkins'
+    label 'dockerproapb'
   }
 
   options {
