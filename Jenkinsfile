@@ -11,6 +11,8 @@ pipeline {
   environment {
     // DEVPI
     DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
+    // GITLAB
+    BRANCH = "${GIT_BRANCH.split('/')[GIT_BRANCH.split('/').length - 1]}"
   }
 
   stages {
@@ -19,7 +21,7 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "${GIT_BRANCH}"]],
+          branches: [[name: "${BRANCH}"]],
           extensions: [[$class: 'CloneOption', shallow: true, timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
