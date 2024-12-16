@@ -1,8 +1,3 @@
-// Variables a modificar segons projecte
-// def jenkinsToken = 'lalaguna-visorwab'
-// def dockerProject = 'lalaguna'
-// def dockerImage = 'visorwab'
-
 pipeline {
   agent {
     label 'dockerproapb'
@@ -14,26 +9,8 @@ pipeline {
   }
 
   environment {
-    // GitLab
-    //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
-    //BRANCH = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
-    
-    // Docker (build image & push)
-    /*
-    DOCKER_REGISTRY = 'planolport'
-    DOCKER_PROJECT = 'moute'
-    DOCKER_IMAGE = 'web'
-    DOCKER_IMAGE_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_IMAGE}"
-    DOCKER_REGISTRY_CREDENTIALS = credentials('registry-pwd')
-    DOCKER_DEV_TAG = 'dev'
-    */
     // DEVPI
     DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
-
-    // Docker deploy server (dev)
-    //DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
-    //DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
-    //DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
   }
 
   stages {
@@ -48,7 +25,7 @@ pipeline {
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: 'git@github.com:portdebarcelona/PLANOL-generic_python_packages.git' ]
+            [credentialsId: 'apb-admincicd-token', url: "${GIT_URL}" ]
           ],
           poll: false
         ])
