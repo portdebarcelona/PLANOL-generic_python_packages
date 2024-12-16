@@ -1,6 +1,6 @@
 pipeline {
   agent {
-    label 'NodoJenkins'
+    label 'dockerproapb'
   }
 
   options {
@@ -19,7 +19,7 @@ pipeline {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "*/training"]],
+          branches: [[name: "${GIT_BRANCH}"]],
           extensions: [[$class: 'CloneOption', shallow: true, timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
