@@ -25,7 +25,7 @@ pipeline {
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: "${env.GIT_URL}" ]
+            [credentialsId: 'apb-admincicd-token', url: 'git@github.com:portdebarcelona/PLANOL-generic_python_packages.git' ]
           ],
           poll: false
         ])
