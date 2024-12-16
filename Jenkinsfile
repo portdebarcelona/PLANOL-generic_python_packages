@@ -25,7 +25,7 @@ pipeline {
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: "${GIT_URL}" ]
+            [credentialsId: 'apb-admincicd-token', url: "${env.GIT_URL}" ]
           ],
           poll: false
         ])
