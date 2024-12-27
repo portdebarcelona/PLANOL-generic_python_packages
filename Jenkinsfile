@@ -10,7 +10,9 @@ pipeline {
 
   environment {
     // DEVPI
-    DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
+    //DEVPI_ROOT_PASSWORD = credentials('testpypi_api_token')
+    // TESTPYPI
+    TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
   }
 
   stages {
@@ -50,13 +52,11 @@ pipeline {
     }
 
     stage('Build & Upload Oracle Spatial Package') {
-      /*
       when {
         anyOf {
-          changeset "cx_oracle_spatial_pckg/setup.py"
+          changeset "cx_oracle_spatial_pckg/**"
         }
       }
-      */
       agent {
         docker {
           reuseNode true
@@ -67,14 +67,12 @@ pipeline {
       steps {
         script {
           sh """
-          ls -la
           pip install -r requirements.txt
           cd cx_oracle_spatial_pckg
-          python setup.py bdist_wheel
-          devpi use http://gisplanoldev.port.apb.es:3141
-          devpi login root --password ${env.DEVPI_ROOT_PASSWORD}
-          devpi use http://gisplanoldev.port.apb.es:3141/root/web2py
-          devpi upload \$(find . -name '*.whl')
+          TWINE_USERNAME=__token__
+          TWINE_PASSWORD=${env.TESTPYPI_API_TOKEN}
+          python -m build
+          twine upload --non-interactive -r testpypi dist/*
           """
         }
       }
