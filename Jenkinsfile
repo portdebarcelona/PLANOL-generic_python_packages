@@ -72,7 +72,7 @@ pipeline {
           TWINE_USERNAME=__token__
           TWINE_PASSWORD=${env.TESTPYPI_API_TOKEN}
           python -m build
-          twine upload --non-interactive -r testpypi dist/*
+          twine upload --username __token__ --password ${env.TESTPYPI_API_TOKEN} --non-interactive -r testpypi dist/*
           """
         }
       }
