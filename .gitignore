@@ -20,7 +20,6 @@
 /sqlnet.log
 /.project
 /.pydevproject
-.settings/
 .spyderworkspace
 .spyderproject
 *.vscode*
@@ -62,7 +61,7 @@
 # sphinx build directory
 /_build
 # setup.py dist directory
-/dist
+**/dist
 /doc/build
 /doc/cdoc/build
 /MANIFEST
@@ -85,7 +84,6 @@ __pycache__
 # Patches #
 ###########
 *.patch
-*.diff
 
 # OS generated files #
 ######################

@@ -9,14 +9,11 @@ pipeline {
   }
 
   environment {
-    // DEVPI
-    //DEVPI_ROOT_PASSWORD = credentials('testpypi_api_token')
-    // TESTPYPI
     TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
+    PYPI_API_TOKEN = credentials('pypi-api-token')
   }
 
   stages {
-    // Stage A.
     stage('Checkout code') {
       steps {
         checkout([
@@ -38,7 +35,6 @@ pipeline {
       }
     }
 
-    // Stage B.
     stage('Initialize environment') {
       steps {
         script {
@@ -51,29 +47,33 @@ pipeline {
       }
     }
 
-    stage('Build & Upload Oracle Spatial Package') {
+    stage('Build & Upload Package apb_extra_utils') {
       when {
-        anyOf {
-          changeset "cx_oracle_spatial_pckg/**"
+        allOf {
+          anyOf {
+            changeset "apb_extra_utils_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
         }
       }
       agent {
         docker {
           reuseNode true
-          image 'python:alpine3.19'
+          image 'python:3.10-alpine'
           args '-u root'
         }
       }
       steps {
         script {
-          sh """
-          pip install -r requirements.txt
-          cd cx_oracle_spatial_pckg
-          TWINE_USERNAME=__token__
-          TWINE_PASSWORD=${env.TESTPYPI_API_TOKEN}
-          python -m build
-          twine upload --username __token__ --password ${env.TESTPYPI_API_TOKEN} --verbose --non-interactive -r testpypi dist/*
-          """
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_extra_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_extra_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
         }
       }
       post {
@@ -81,5 +81,181 @@ pipeline {
         failure { echo 'failed' }
       }
     }
+
+    stage('Build & Upload Package apb_spatial_utils') {
+      when {
+        allOf {
+          anyOf {
+            changeset "apb_spatial_utils_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_spatial_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_spatial_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_extra_osgeo_utils') {
+      when {
+        allOf {
+          anyOf {
+            changeset "apb_extra_osgeo_utils_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_cx_oracle_spatial') {
+      when {
+        allOf {
+          anyOf {
+            changeset "apb_cx_oracle_spatial_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_pandas_utils') {
+      when {
+        allOf {
+          anyOf {
+            changeset "apb_pandas_utils_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_pandas_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_pandas_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_duckdb_utils') {
+      when {
+        allOf {
+          anyOf {
+            changeset "apb_duckdb_utils_pckg/**"
+          }
+          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.GIT_BRANCH == 'training') {
+            sh """
+              ./build_pckg.sh apb_duckdb_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.GIT_BRANCH == 'preprod') {
+            sh """
+              ./build_pckg.sh apb_duckdb_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
   }
 }

@@ -1,5 +1,5 @@
 ipython
 cython
-setuptools>=65.5.1
+setuptools>=70
 devpi-client>=7.1.0
 twine
