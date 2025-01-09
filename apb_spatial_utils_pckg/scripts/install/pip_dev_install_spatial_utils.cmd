@@ -1,0 +1,1 @@
+pip install -e "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=apb_spatial_utils&subdirectory=apb_spatial_utils_pckg"

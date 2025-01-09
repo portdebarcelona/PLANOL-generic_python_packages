@@ -20,7 +20,6 @@
 /sqlnet.log
 /.project
 /.pydevproject
-.settings/
 .spyderworkspace
 .spyderproject
 *.vscode*
@@ -62,7 +61,7 @@
 # sphinx build directory
 /_build
 # setup.py dist directory
-/dist
+**/dist
 /doc/build
 /doc/cdoc/build
 /MANIFEST
@@ -85,7 +84,6 @@ __pycache__
 # Patches #
 ###########
 *.patch
-*.diff
 
 # OS generated files #
 ######################
@@ -139,3 +137,56 @@ resources/data/edificacio_25831.prj
 resources/data/test.db
 resources/data/edificacio/edificacio.csv
 resources/data/edificacio/edificacio.csvt
+/config/windows/info/licenses/mamba/LICENSE
+/config/windows/info/licenses/C_ARES_LICENSE.txt
+/config/windows/info/licenses/CLI11_LICENSE.txt
+/config/windows/info/licenses/CURL_LICENSE.txt
+/config/windows/info/licenses/FMT_LICENSE.txt
+/config/windows/info/licenses/KRB5_LICENSE.txt
+/config/windows/info/licenses/LIBARCHIVE_LICENSE.txt
+/config/windows/info/licenses/LIBEV_LICENSE.txt
+/config/windows/info/licenses/LIBLZ4_LICENSE.txt
+/config/windows/info/licenses/LIBNGHTTP2_LICENSE.txt
+/config/windows/info/licenses/LIBOPENSSL_3_LICENSE.txt
+/config/windows/info/licenses/LIBOPENSSL_LICENSE.txt
+/config/windows/info/licenses/LIBSOLV_LICENSE.txt
+/config/windows/info/licenses/NLOHMANN_JSON_LICENSE.txt
+/config/windows/info/licenses/REPROC_LICENSE.txt
+/config/windows/info/licenses/SPDLOG_LICENSE.txt
+/config/windows/info/licenses/TL_EXPECTED_LICENSE.txt
+/config/windows/info/licenses/ZLIB_LICENSE.txt
+/config/windows/info/licenses/ZSTD_LICENSE.txt
+/config/windows/info/recipe/bld.bat
+/config/windows/info/recipe/build.sh
+/config/windows/info/recipe/C_ARES_LICENSE.txt
+/config/windows/info/recipe/CLI11_LICENSE.txt
+/config/windows/info/recipe/conda_build_config.yaml
+/config/windows/info/recipe/CPP_FILESYSTEM_LICENSE.txt
+/config/windows/info/recipe/CURL_LICENSE.txt
+/config/windows/info/recipe/FMT_LICENSE.txt
+/config/windows/info/recipe/KRB5_LICENSE.txt
+/config/windows/info/recipe/LIBARCHIVE_LICENSE.txt
+/config/windows/info/recipe/LIBEV_LICENSE.txt
+/config/windows/info/recipe/LIBLZ4_LICENSE.txt
+/config/windows/info/recipe/LIBNGHTTP2_LICENSE.txt
+/config/windows/info/recipe/LIBOPENSSL_3_LICENSE.txt
+/config/windows/info/recipe/LIBOPENSSL_LICENSE.txt
+/config/windows/info/recipe/LIBSOLV_LICENSE.txt
+/config/windows/info/recipe/meta.yaml
+/config/windows/info/recipe/meta.yaml.template
+/config/windows/info/recipe/NLOHMANN_JSON_LICENSE.txt
+/config/windows/info/recipe/recipe-scripts-license.txt
+/config/windows/info/recipe/REPROC_LICENSE.txt
+/config/windows/info/recipe/SIMDJSON_LICENSE.txt
+/config/windows/info/recipe/SPDLOG_LICENSE.txt
+/config/windows/info/recipe/TERMCOLOR_CPP_LICENSE.txt
+/config/windows/info/recipe/TL_EXPECTED_LICENSE.txt
+/config/windows/info/recipe/ZLIB_LICENSE.txt
+/config/windows/info/recipe/ZSTD_LICENSE.txt
+/config/windows/info/test/run_test.bat
+/config/windows/info/about.json
+/config/windows/info/files
+/config/windows/info/git
+/config/windows/info/hash_input.json
+/config/windows/info/index.json
+/config/windows/info/paths.json
