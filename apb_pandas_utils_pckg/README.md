@@ -2,7 +2,11 @@
 
 Modules to add functionality over `pandas` and `geopandas` 
 
+Requires `GDAL` library version 3.6<=3.9 and instant client Oracle installed.
+
 To install:
 ```shell
-pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=apb_pandas_utils&subdirectory=apb_pandas_utils_pckg"
+pip install apb_pandas_utils
 ```
+
+Documentation here [apb_pandas_utils](https://serveis.portdebarcelona.cat/generic_python_packages/apb_pandas_utils.html)
