@@ -82,7 +82,7 @@ services:
       - .:/project
     networks:
       app_net:
-    command: /project/build_pckg.sh ${PACKAGE_FOLDER} ${PYPI_API_TOKEN} testpypi
+    command: /project/build_pckg.sh ${PACKAGE_FOLDER} ${PYPI_API_TOKEN} ${SERVER_PYPI:-testpypi}
 
 networks:
   app_net:

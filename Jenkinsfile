@@ -11,6 +11,7 @@ pipeline {
   environment {
     TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
     PYPI_API_TOKEN = credentials('pypi-api-token')
+    GIT_BRANCH = "${GIT_BRANCH}"
   }
 
   stages {
