@@ -5,5 +5,7 @@ Modules to deal with spatial data using common used spatial libraries as `Shapel
 
 To install:
 ```shell
-pip install "git+https://github.com/portdebarcelona/PLANOL-generic_python_packages#egg=apb_spatial_utils&subdirectory=apb_spatial_utils_pckg"
+pip install apb_spatial_utils
 ```
+
+Documentation here [apb_spatial_utils](https://serveis.portdebarcelona.cat/generic_python_packages/apb_spatial_utils.html)

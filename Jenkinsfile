@@ -11,6 +11,7 @@ pipeline {
   environment {
     TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
     PYPI_API_TOKEN = credentials('pypi-api-token')
+    REPO_BRANCH = "${GIT_BRANCH.split('/')[GIT_BRANCH.split('/').length - 1]}"
   }
 
   stages {
@@ -50,10 +51,8 @@ pipeline {
     stage('Build & Upload Package apb_extra_utils') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_extra_utils_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_extra_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -65,12 +64,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -85,10 +86,8 @@ pipeline {
     stage('Build & Upload Package apb_spatial_utils') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_spatial_utils_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_spatial_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -100,12 +99,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_spatial_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_spatial_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -120,10 +121,8 @@ pipeline {
     stage('Build & Upload Package apb_extra_osgeo_utils') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_extra_osgeo_utils_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_extra_osgeo_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -135,12 +134,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -155,10 +156,8 @@ pipeline {
     stage('Build & Upload Package apb_cx_oracle_spatial') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_cx_oracle_spatial_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_cx_oracle_spatial_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -170,12 +169,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -190,10 +191,8 @@ pipeline {
     stage('Build & Upload Package apb_pandas_utils') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_pandas_utils_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_pandas_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -205,12 +204,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_pandas_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_pandas_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -225,10 +226,8 @@ pipeline {
     stage('Build & Upload Package apb_duckdb_utils') {
       when {
         allOf {
-          anyOf {
-            changeset "apb_duckdb_utils_pckg/**"
-          }
-          expression { env.GIT_BRANCH == 'training' || env.GIT_BRANCH == 'preprod' }
+          changeset "apb_duckdb_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
@@ -240,12 +239,14 @@ pipeline {
       }
       steps {
         script {
-          if (env.GIT_BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_duckdb_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
-          } else if (env.GIT_BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_duckdb_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -256,6 +257,5 @@ pipeline {
         failure { echo 'failed' }
       }
     }
-
   }
 }
