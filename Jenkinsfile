@@ -66,10 +66,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -99,10 +101,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_spatial_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_spatial_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -132,10 +136,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -165,10 +171,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -198,10 +206,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_pandas_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_pandas_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
@@ -231,10 +241,12 @@ pipeline {
         script {
           if (env.REPO_BRANCH == 'training') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_duckdb_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
             """
           } else if (env.REPO_BRANCH == 'preprod') {
             sh """
+              chmod +x build_pckg.sh
               ./build_pckg.sh apb_duckdb_utils_pckg ${env.PYPI_API_TOKEN} pypi
             """
           }
