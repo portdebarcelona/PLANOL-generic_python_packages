@@ -12,3 +12,4 @@ pip install apb_cx_oracle_spatial
 ```
 
 Documentation here [apb_cx_oracle_spatial](https://serveis.portdebarcelona.cat/generic_python_packages/apb_cx_oracle_spatial.html)
+
