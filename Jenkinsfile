@@ -365,7 +365,7 @@ pipeline {
       }
     }
 
-    stage('Docker build & push Dockerfile Base') {
+    stage('Docker build & push Dockerfile with all packages') {
       steps {
         script {
           def tag = ''
