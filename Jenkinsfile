@@ -354,7 +354,7 @@ pipeline {
             error "Branch not recognized for Docker build."
           }
             docker.withRegistry("https://${DOCKER_REGISTRY}") {
-            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache -f Dockerfile.base .")
             image.push(tag)
           }
         }
@@ -377,7 +377,7 @@ pipeline {
             error "Branch not recognized for Docker build."
           }
             docker.withRegistry("https://${DOCKER_REGISTRY}") {
-            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache -f Dockerfile .")
             image.push(tag)
           }
         }
