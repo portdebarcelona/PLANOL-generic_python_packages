@@ -49,12 +49,12 @@ pipeline {
     GITHUB_EVENT = "${env.X_GitHub_Event}"
 
     // Docker (build image & push)
-    DOCKER_REGISTRY = 'registry.hub.docker.com'
+    DOCKER_REGISTRY = ''
     DOCKER_PROJECT = "${dockerProject}"
     DOCKER_BASE_IMAGE = "${dockerBaseImage}"
     DOCKER_ALL_PACKAGES_IMAGE = "${dockerAllPackagesImage}"
-    DOCKER_BASE_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_BASE_IMAGE}"
-    DOCKER_ALL_PACKAGES_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_ALL_PACKAGES_IMAGE}"
+    DOCKER_BASE_URL = "${DOCKER_PROJECT}/${DOCKER_BASE_IMAGE}"
+    DOCKER_ALL_PACKAGES_URL = "${DOCKER_PROJECT}/${DOCKER_ALL_PACKAGES_IMAGE}"
     DOCKER_REGISTRY_CREDENTIALS = credentials('dockerhub-registry-credentials')
     DOCKER_DEV_TAG = 'training'
     DOCKER_PRE_TAG = 'preprod'
