@@ -369,9 +369,9 @@ pipeline {
       steps {
         script {
           def tag = ''
-          if (env.BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             tag = DOCKER_DEV_TAG
-          } else if (env.BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             tag = DOCKER_PRE_TAG
           } else {
             error "Branch not recognized for Docker build."
@@ -391,7 +391,7 @@ pipeline {
     stage('Kubernetes restart python packages doc pod DEV') {
       when {
         anyOf {
-            expression { env.BRANCH == 'training' }
+            expression { env.REPO_BRANCH == 'training' }
         }
       }
       steps {
@@ -413,7 +413,7 @@ pipeline {
     stage('Kubernetes restart python packages doc pod PRE') {
       when {
         anyOf {
-            expression { env.BRANCH == 'preprod' }
+            expression { env.REPO_BRANCH == 'preprod' }
         }
       }
       steps {
@@ -435,7 +435,7 @@ pipeline {
     stage('Docker build & push (TAG RELEASE)') {
       when {
         expression { env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*") }
-        expression { env.BRANCH == 'main' }
+        expression { env.REPO_BRANCH == 'main' }
       }
       steps {
         script {
