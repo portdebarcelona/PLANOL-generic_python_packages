@@ -346,9 +346,9 @@ pipeline {
       steps {
         script {
           def tag = ''
-          if (env.BRANCH == 'training') {
+          if (env.REPO_BRANCH == 'training') {
             tag = DOCKER_DEV_TAG
-          } else if (env.BRANCH == 'preprod') {
+          } else if (env.REPO_BRANCH == 'preprod') {
             tag = DOCKER_PRE_TAG
           } else {
             error "Branch not recognized for Docker build."
