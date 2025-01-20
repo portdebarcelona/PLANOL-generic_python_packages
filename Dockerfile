@@ -94,3 +94,4 @@ RUN python -c  \
     duckdb.install_extension('httpfs')"
 
 CMD ["python"]
+
