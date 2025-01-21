@@ -53,8 +53,8 @@ pipeline {
     DOCKER_PROJECT = "${dockerProject}"
     DOCKER_BASE_IMAGE = "${dockerBaseImage}"
     DOCKER_ALL_PACKAGES_IMAGE = "${dockerAllPackagesImage}"
-    DOCKER_BASE_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_BASE_IMAGE}"
-    DOCKER_ALL_PACKAGES_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_ALL_PACKAGES_IMAGE}"
+    DOCKER_BASE_URL = "${DOCKER_PROJECT}/${DOCKER_BASE_IMAGE}"
+    DOCKER_ALL_PACKAGES_URL = "${DOCKER_PROJECT}/${DOCKER_ALL_PACKAGES_IMAGE}"
     DOCKER_REGISTRY_CREDENTIALS = 'dockerhub-registry-credentials'
     DOCKER_DEV_TAG = 'training'
     DOCKER_PRE_TAG = 'preprod'
@@ -353,7 +353,7 @@ pipeline {
           } else {
             error "Branch not recognized for Docker build."
           }
-            docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
             image = docker.build("${DOCKER_BASE_URL}", "--no-cache -f Dockerfile.base .")
             image.push(tag)
           }
@@ -376,7 +376,7 @@ pipeline {
           } else {
             error "Branch not recognized for Docker build."
           }
-            docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
             image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache -f Dockerfile .")
             image.push(tag)
           }
@@ -442,7 +442,7 @@ pipeline {
             TAG_RELEASE = env.ref.replaceFirst("refs/tags/", "")
             echo "Tag detected: ${TAG_RELEASE}"
 
-            docker.withRegistry("https://${DOCKER_REGISTRY}", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
             image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
             image.push("${TAG_RELEASE}")
             image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
