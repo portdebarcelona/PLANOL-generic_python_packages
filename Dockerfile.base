@@ -60,3 +60,4 @@ RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
 
 CMD ["python"]
+
