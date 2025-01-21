@@ -49,7 +49,7 @@ pipeline {
     GITHUB_EVENT = "${env.X_GitHub_Event}"
 
     // Docker (build image & push)
-    DOCKER_REGISTRY = 'registry-1.docker.io/v2/'
+    DOCKER_REGISTRY = 'registry-1.docker.io/v2'
     DOCKER_PROJECT = "${dockerProject}"
     DOCKER_BASE_IMAGE = "${dockerBaseImage}"
     DOCKER_ALL_PACKAGES_IMAGE = "${dockerAllPackagesImage}"
