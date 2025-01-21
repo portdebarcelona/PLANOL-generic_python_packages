@@ -29,4 +29,5 @@ You must configure this environment variables to be able to run this project
 
 - #### [_apb_duckdb_utils_](apb_duckdb_utils_pckg/README.md)
   Python modules to add functionality over duckdb
+
   
