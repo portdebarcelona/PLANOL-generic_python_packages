@@ -1,11 +1,40 @@
-// Variables a modificar segons projecte
-def jenkinsToken = 'lalaguna-visorwab'
-def dockerProject = 'lalaguna'
-def dockerImage = 'visorwab'
+def jenkinsToken = 'planol-generic-python-packages'
+def dockerProject = 'planolport'
+def dockerBaseImage = 'gdal_oracle'
+def dockerAllPackagesImage = 'python_gdal_oracle_geopandas'
+def k8sDevCredentials = 'jenkins-gisplanoldev'
+def k8sPreCredentials = 'jenkins-gisplanolpre'
+def k8sNamespace = 'portbcn'
+def k8sPodLabelApp = 'app=python-planol-python-packages-doc'
+def ref = "${env.ref}"
+def tagRelease = "${env.ref}"
+
+echo "Checking if event is tag deleted..."
+try {
+  if (env.deleted == 'true') {
+    echo "Tag deleted, aborting pipeline"
+    currentBuild.result = 'ABORTED'
+    error('Tag deleted, aborting pipeline')
+    return
+  }
+} catch (Exception e) {
+  currentBuild.result = 'ABORTED'
+  error('Delete tag event detected, ABORTING!')
+}
+
+if (ref.contains("refs/tags")) {
+    tagRelease = ref.replaceAll("refs/tags/", "")
+    ref = "refs/tags/\\d+\\.\\d+\\.\\d+\$"
+    if (env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*")) {
+        echo "Tag release detected: ${tagRelease}"
+    } else {
+        echo "Invalid tag format"
+    }
+}
 
 pipeline {
   agent {
-    label 'gisnordldwf1'
+    label 'dockerproapb'
   }
 
   options {
@@ -14,41 +43,68 @@ pipeline {
   }
 
   environment {
-    // GitLab
-    //GITHUB_LAST_TAG = "${env.GITHUB_REF.split('/')[2]}"
-    //BRANCH = "${env.GITHUB_EVENT == 'push' ? env.BRANCH_NAME : sh(script: "git rev-list -n 1 ${GITHUB_LAST_TAG}", returnStdout: true).trim()}"
-    
-    // Docker (build image & push)
-    /*
-    DOCKER_REGISTRY = 'planolport'
-    DOCKER_PROJECT = 'moute'
-    DOCKER_IMAGE = 'web'
-    DOCKER_IMAGE_URL = "${DOCKER_REGISTRY}/${DOCKER_PROJECT}/${DOCKER_IMAGE}"
-    DOCKER_REGISTRY_CREDENTIALS = credentials('registry-pwd')
-    DOCKER_DEV_TAG = 'dev'
-    */
-    // DEVPI
-    DEVPI_ROOT_PASSWORD = credentials('devpi-root-password')
+    TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
+    PYPI_API_TOKEN = credentials('pypi-api-token')
+    REPO_BRANCH = "${GIT_BRANCH.split('/')[GIT_BRANCH.split('/').length - 1]}"
+    GITHUB_EVENT = "${env.X_GitHub_Event}"
 
-    // Docker deploy server (dev)
-    //DOCKER_DEPLOY_HOST_IP = '192.168.0.216'
-    //DOCKER_DEPLOY_CERTIFICATE = 'docker-srvdocker1-ssl'
-    //DOCKER_DEPLOY_SERVICE_NAME = 'moute-web_moute-web'
+    // Docker (build image & push)
+    DOCKER_REGISTRY = 'registry-1.docker.io/v2'
+    DOCKER_PROJECT = "${dockerProject}"
+    DOCKER_BASE_IMAGE = "${dockerBaseImage}"
+    DOCKER_ALL_PACKAGES_IMAGE = "${dockerAllPackagesImage}"
+    DOCKER_BASE_URL = "${DOCKER_PROJECT}/${DOCKER_BASE_IMAGE}"
+    DOCKER_ALL_PACKAGES_URL = "${DOCKER_PROJECT}/${DOCKER_ALL_PACKAGES_IMAGE}"
+    DOCKER_REGISTRY_CREDENTIALS = 'dockerhub-registry-credentials'
+    DOCKER_DEV_TAG = 'training'
+    DOCKER_PRE_TAG = 'preprod'
+    
+    // Kubernetes deployment
+    K8S_NAMESPACE = "${k8sNamespace}"
+    K8S_DEV_CREDENTIALS = "${k8sDevCredentials}"
+    K8S_PRE_CREDENTIALS = "${k8sPreCredentials}"
+    K8S_POD_LABEL_APP = "${k8sPodLabelApp}"
+    K8S_DEV_HOST = "${env.K8S_DEV}"
+    K8S_PRE_HOST = "${env.K8S_PRE}"
+  }
+
+  triggers {
+    GenericTrigger(
+      token: "${jenkinsToken}",
+      genericHeaderVariables: [
+          [key: 'X-GitHub-Event', regexpFilter: '']
+        ],
+      genericVariables: [
+          [expressionType: 'JSONPath', key: 'event_name', value: '$.event_name'],
+          [expressionType: 'JSONPath', key: 'git_repo_url', value: '$.project.git_http_url'],
+          [expressionType: 'JSONPath', key: 'project_id', value: '$.project.id'],
+          [expressionType: 'JSONPath', key: 'project_name', value: '$.project.name'],
+          [expressionType: 'JSONPath', key: 'project_namespace', value: '$.project.path_with_namespace'],
+          [expressionType: 'JSONPath', key: 'user_name', value: '$.pusher.name'],
+          [expressionType: 'JSONPath', key: 'checkout_sha', value: '$.checkout_sha'],
+          [expressionType: 'JSONPath', key: 'message', value: '$.message', value: 'UNDEFINED'],
+          [expressionType: 'JSONPath', key: 'total_commits_count', value: '$.total_commits_count'],
+          [expressionType: 'JSONPath', key: 'ref', value: '$.ref', defaultValue: ''],
+          [expressionType: 'JSONPath', key: 'deleted', value: '$.deleted']
+        ],
+      causeString: 'Triggered on "$ref" by "$user_name"',
+      regexpFilterText: '$ref',
+      regexpFilterExpression: "${ref}"
+    )
   }
 
   stages {
-    // Stage A.
     stage('Checkout code') {
       steps {
         checkout([
           $class: 'GitSCM',
-          branches: [[name: "training"]],
-          extensions: [[$class: 'CloneOption', timeout: 360]],
+          branches: [[name: "${GIT_BRANCH}"]],
+          extensions: [[$class: 'CloneOption', shallow: true, timeout: 360]],
           changelog: false,
           doGenerateSubmoduleConfigurations: false,
           submoduleCfg: [],
           userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: 'https://github.com/portdebarcelona/PLANOL-generic_python_packages/' ]
+            [credentialsId: 'apb-admincicd-token', url: "${GIT_URL}" ]
           ],
           poll: false
         ])
@@ -59,7 +115,6 @@ pipeline {
       }
     }
 
-    // Stage B.
     stage('Initialize environment') {
       steps {
         script {
@@ -72,30 +127,327 @@ pipeline {
       }
     }
 
-    stage('Build & Upload Oracle Spatial Package') {
+    stage('Build & Upload Package apb_extra_utils') {
       when {
-        anyOf {
-          changeset "cx_oracle_spatial_pckg/setup.py"
+        allOf {
+          changeset "apb_extra_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
         }
       }
       agent {
         docker {
           reuseNode true
-          image 'python:alpine3.19'
+          image 'python:3.10-alpine'
           args '-u root'
         }
       }
       steps {
         script {
-          sh """
-          pip install -r requirements.txt
-          cd cx_oracle_spatial_pckg
-          python setup.py bdist_wheel
-          devpi use http://gisplanoldev.port.apb.es:3141
-          devpi login root --password ${env.DEVPI_ROOT_PASSWORD}
-          devpi use http://gisplanoldev.port.apb.es:3141/root/web2py
-          devpi upload \$(find . -name '*.whl')
-          """
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_extra_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_extra_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_spatial_utils') {
+      when {
+        allOf {
+          changeset "apb_spatial_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_spatial_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_spatial_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_extra_osgeo_utils') {
+      when {
+        allOf {
+          changeset "apb_extra_osgeo_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_extra_osgeo_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_cx_oracle_spatial') {
+      when {
+        allOf {
+          changeset "apb_cx_oracle_spatial_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_cx_oracle_spatial_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_pandas_utils') {
+      when {
+        allOf {
+          changeset "apb_pandas_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_pandas_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_pandas_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Build & Upload Package apb_duckdb_utils') {
+      when {
+        allOf {
+          changeset "apb_duckdb_utils_pckg/**"
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      agent {
+        docker {
+          reuseNode true
+          image 'python:3.10-alpine'
+          args '-u root'
+        }
+      }
+      steps {
+        script {
+          if (env.REPO_BRANCH == 'training') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_duckdb_utils_pckg ${env.TESTPYPI_API_TOKEN} testpypi
+            """
+          } else if (env.REPO_BRANCH == 'preprod') {
+            sh """
+              chmod +x build_pckg.sh
+              ./build_pckg.sh apb_duckdb_utils_pckg ${env.PYPI_API_TOKEN} pypi
+            """
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Docker build & push Dockerfile Base') {
+      when {
+        anyOf {
+          changeset "Dockerfile.base"
+        }
+      }
+      steps {
+        script {
+          def tag = ''
+          if (env.REPO_BRANCH == 'training') {
+            tag = DOCKER_DEV_TAG
+          } else if (env.REPO_BRANCH == 'preprod') {
+            tag = DOCKER_PRE_TAG
+          } else {
+            error "Branch not recognized for Docker build."
+          }
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache -f Dockerfile.base .")
+            image.push(tag)
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Docker build & push Dockerfile with all packages') {
+      steps {
+        script {
+          def tag = ''
+          if (env.REPO_BRANCH == 'training') {
+            tag = DOCKER_DEV_TAG
+          } else if (env.REPO_BRANCH == 'preprod') {
+            tag = DOCKER_PRE_TAG
+          } else {
+            error "Branch not recognized for Docker build."
+          }
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache -f Dockerfile .")
+            image.push(tag)
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Kubernetes restart python packages doc pod DEV') {
+      when {
+        anyOf {
+            expression { env.REPO_BRANCH == 'training' }
+        }
+      }
+      steps {
+        script {
+          withKubeConfig([credentialsId: "${K8S_DEV_CREDENTIALS}", serverUrl: "${K8S_DEV_HOST}"]) {
+            sh '''
+              kubectl delete po -l ${K8S_POD_LABEL_APP} --force --grace-period=0 -A
+              kubectl get po -l ${K8S_POD_LABEL_APP} -A
+            '''
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Kubernetes restart python packages doc pod PRE') {
+      when {
+        anyOf {
+            expression { env.REPO_BRANCH == 'preprod' }
+        }
+      }
+      steps {
+        script {
+          withKubeConfig([credentialsId: "${K8S_PRE_CREDENTIALS}", serverUrl: "${K8S_PRE_HOST}"]) {
+            sh '''
+              kubectl delete po -l ${K8S_POD_LABEL_APP} --force --grace-period=0 -A
+              kubectl get po -l ${K8S_POD_LABEL_APP} -A
+            '''
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+
+    stage('Docker build & push (TAG RELEASE)') {
+      when {
+        expression { env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*") }
+        expression { env.REPO_BRANCH == 'main' }
+      }
+      steps {
+        script {
+            TAG_RELEASE = env.ref.replaceFirst("refs/tags/", "")
+            echo "Tag detected: ${TAG_RELEASE}"
+
+            docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
+            image.push("${TAG_RELEASE}")
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
+            image.push("${TAG_RELEASE}")
+          }
         }
       }
       post {

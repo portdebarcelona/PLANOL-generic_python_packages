@@ -44,17 +44,7 @@ ENV LANGUAGE=$ARG_LANG
 ENV LC_ALL=$ARG_LANG
 ENV PYTHONUNBUFFERED 1
 
-ENV PATH_DEVELOPER_MODE=/project
-ENV PATH_BASE_PACKAGES=${PATH_DEVELOPER_MODE}
-
-RUN mkdir ${PATH_DEVELOPER_MODE} && \
-    chown -R $USER_NAME:root ${PATH_DEVELOPER_MODE} && \
-    chmod -R u=rwx,g=rwx,o=rx ${PATH_DEVELOPER_MODE}
-
-WORKDIR ${PATH_DEVELOPER_MODE}
-
 ENV USER_NAME=${USER_NAME}
-
 USER $USER_NAME
 
 # Add local bin for $USER_NAME to PATH (for future pip installed scripts)
@@ -66,31 +56,8 @@ RUN chmod -R u=rwx,g=rwx,o=rx ./docs
 COPY --chown=$USER_NAME:root ./requirements.txt ./requirements.txt
 RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 
-COPY --chown=$USER_NAME:root apb_extra_utils_pckg/ ./apb_extra_utils_pckg/
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_extra_utils_pckg --no-cache-dir
-
-COPY --chown=$USER_NAME:root ./apb_extra_osgeo_utils_pckg/ ./apb_extra_osgeo_utils_pckg/
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_extra_osgeo_utils_pckg --no-cache-dir
-
-COPY --chown=$USER_NAME:root ./apb_spatial_utils_pckg/ ./apb_spatial_utils_pckg/
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_spatial_utils_pckg --no-cache-dir
-
-COPY --chown=$USER_NAME:root ./apb_cx_oracle_spatial_pckg/ ./apb_cx_oracle_spatial_pckg/
 # Set env var for package python apb_cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_cx_oracle_spatial_pckg --no-cache-dir
-
-COPY --chown=$USER_NAME:root apb_pandas_utils_pckg/ ./apb_pandas_utils_pckg/
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_pandas_utils_pckg --no-cache-dir
-
-COPY --chown=$USER_NAME:root ./apb_duckdb_utils_pckg/ ./apb_duckdb_utils_pckg/
-RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_duckdb_utils_pckg --no-cache-dir
-# Set extra extensions perinstalled on duckdb
-RUN python -c  \
-    "import duckdb; \
-    duckdb.install_extension('sqlite'); \
-    duckdb.install_extension('spatial'); \
-    duckdb.install_extension('json'); \
-    duckdb.install_extension('httpfs')"
 
 CMD ["python"]
+

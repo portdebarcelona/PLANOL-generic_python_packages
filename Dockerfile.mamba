@@ -87,25 +87,25 @@ ENV PYTHONUNBUFFERED=1
 
 USER $MAMBA_USER
 
-COPY --chown=$MAMBA_USER:root ./extra_utils_pckg/ ./extra_utils_pckg/
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable extra_utils_pckg --no-cache-dir
+COPY --chown=$MAMBA_USER:root apb_extra_utils_pckg/ ./apb_extra_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_extra_utils_pckg --no-cache-dir
 
-COPY --chown=$MAMBA_USER:root ./extra_osgeo_utils_pckg/ ./extra_osgeo_utils_pckg/
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable extra_osgeo_utils_pckg --no-cache-dir
+COPY --chown=$MAMBA_USER:root ./apb_extra_osgeo_utils_pckg/ ./apb_extra_osgeo_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_extra_osgeo_utils_pckg --no-cache-dir
 
-COPY --chown=$MAMBA_USER:root ./spatial_utils_pckg/ ./spatial_utils_pckg/
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable spatial_utils_pckg --no-cache-dir
+COPY --chown=$MAMBA_USER:root ./apb_spatial_utils_pckg/ ./apb_spatial_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_spatial_utils_pckg --no-cache-dir
 
-COPY --chown=$MAMBA_USER:root ./cx_oracle_spatial_pckg/ ./cx_oracle_spatial_pckg/
-# Set env var for package python cx_oracle_spatial
+COPY --chown=$MAMBA_USER:root ./apb_cx_oracle_spatial_pckg/ ./apb_cx_oracle_spatial_pckg/
+# Set env var for package python apb_cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable cx_oracle_spatial_pckg --no-cache-dir
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_cx_oracle_spatial_pckg --no-cache-dir
 
-COPY --chown=$MAMBA_USER:root ./pandas_utils_pckg/ ./pandas_utils_pckg/
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable pandas_utils_pckg --no-cache-dir
+COPY --chown=$MAMBA_USER:root apb_pandas_utils_pckg/ ./apb_pandas_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_pandas_utils_pckg --no-cache-dir
 
-COPY --chown=$MAMBA_USER:root ./duckdb_utils_pckg/ ./duckdb_utils_pckg/
-RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable duckdb_utils_pckg --no-cache-dir
+COPY --chown=$MAMBA_USER:root ./apb_duckdb_utils_pckg/ ./apb_duckdb_utils_pckg/
+RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_duckdb_utils_pckg --no-cache-dir
 # Set extra extensions perinstalled on duckdb
 RUN micromamba run -n ${ENV_NAME} python -c  \
     "import duckdb; \

@@ -22,6 +22,18 @@ call conda env create --file="../../environment.yml"
 
 call start_conda_env.cmd
 
+rem Set for the environment test.pypi as main repo and the pypi repo as secondary
+pip config --site set global.index-url https://test.pypi.org/simple
+pip config --site set global.extra-index-url https://pypi.org/simple
+
+rem Install packages from the generic repository
+pip install apb_extra_utils
+pip install apb_extra_osgeo_utils
+pip install apb_spatial_utils
+pip install apb_cx_oracle_spatial
+pip install apb_pandas_utils
+pip install apb_duckdb_utils
+
 rem call post_install_python.cmd
 
 popd
