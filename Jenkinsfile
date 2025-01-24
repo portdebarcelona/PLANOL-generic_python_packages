@@ -435,7 +435,7 @@ pipeline {
     stage('Docker build & push (TAG RELEASE)') {
       when {
         expression { env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*") }
-        expression { env.REPO_BRANCH == 'main' }
+        expression { env.REPO_BRANCH == 'master' }
       }
       steps {
         script {
@@ -445,8 +445,12 @@ pipeline {
             docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
             image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
             image.push("${TAG_RELEASE}")
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
+            image.push("latest")
             image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
             image.push("${TAG_RELEASE}")
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
+            image.push("latest")
           }
         }
       }
