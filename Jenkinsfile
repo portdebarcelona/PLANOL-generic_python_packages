@@ -445,11 +445,9 @@ pipeline {
             docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
             image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
             image.push("${TAG_RELEASE}")
-            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
             image.push("latest")
             image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
             image.push("${TAG_RELEASE}")
-            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
             image.push("latest")
           }
         }
