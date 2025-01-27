@@ -449,10 +449,10 @@ pipeline {
             echo "Tag detected: ${TAG_RELEASE}"
 
             docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
-            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache -f Dockerfile.base .")
             image.push("${TAG_RELEASE}")
             image.push("latest")
-            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache -f Dockerfile .")
             image.push("${TAG_RELEASE}")
             image.push("latest")
           }
