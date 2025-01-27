@@ -339,7 +339,8 @@ pipeline {
 
     stage('Docker build & push Dockerfile Base') {
       when {
-        anyOf {
+        allOf {
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
           changeset "Dockerfile.base"
         }
       }
@@ -366,6 +367,11 @@ pipeline {
     }
 
     stage('Docker build & push Dockerfile with all packages') {
+      when {
+        anyOf {
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
       steps {
         script {
           def tag = ''
