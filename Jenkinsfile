@@ -339,7 +339,8 @@ pipeline {
 
     stage('Docker build & push Dockerfile Base') {
       when {
-        anyOf {
+        allOf {
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
           changeset "Dockerfile.base"
         }
       }
@@ -366,6 +367,11 @@ pipeline {
     }
 
     stage('Docker build & push Dockerfile with all packages') {
+      when {
+        anyOf {
+          expression { env.REPO_BRANCH == 'training' || env.REPO_BRANCH == 'preprod' }
+        }
+      }
       steps {
         script {
           def tag = ''
@@ -435,7 +441,7 @@ pipeline {
     stage('Docker build & push (TAG RELEASE)') {
       when {
         expression { env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*") }
-        expression { env.REPO_BRANCH == 'main' }
+        expression { env.REPO_BRANCH == 'master' }
       }
       steps {
         script {
@@ -443,13 +449,11 @@ pipeline {
             echo "Tag detected: ${TAG_RELEASE}"
 
             docker.withRegistry("", "${DOCKER_REGISTRY_CREDENTIALS}") {
-            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
+            image = docker.build("${DOCKER_BASE_URL}", "--no-cache -f Dockerfile.base .")
             image.push("${TAG_RELEASE}")
-            image = docker.build("${DOCKER_BASE_URL}", "--no-cache ./Dockerfile.base .")
             image.push("latest")
-            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
+            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache -f Dockerfile .")
             image.push("${TAG_RELEASE}")
-            image = docker.build("${DOCKER_ALL_PACKAGES_URL}", "--no-cache ./Dockerfile .")
             image.push("latest")
           }
         }
