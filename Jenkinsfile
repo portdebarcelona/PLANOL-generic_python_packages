@@ -4,6 +4,7 @@ def dockerBaseImage = 'gdal_oracle'
 def dockerAllPackagesImage = 'python_gdal_oracle_geopandas'
 def k8sDevCredentials = 'jenkins-gisplanoldev'
 def k8sPreCredentials = 'jenkins-gisplanolpre'
+def k8sProCredentials = 'jenkins-gisplanolpro'
 def k8sNamespace = 'portbcn'
 def k8sPodLabelApp = 'app=python-planol-python-packages-doc'
 def ref = "${env.ref}"
@@ -63,9 +64,11 @@ pipeline {
     K8S_NAMESPACE = "${k8sNamespace}"
     K8S_DEV_CREDENTIALS = "${k8sDevCredentials}"
     K8S_PRE_CREDENTIALS = "${k8sPreCredentials}"
+    K8S_PRO_CREDENTIALS = "${k8sProCredentials}"
     K8S_POD_LABEL_APP = "${k8sPodLabelApp}"
     K8S_DEV_HOST = "${env.K8S_DEV}"
     K8S_PRE_HOST = "${env.K8S_PRE}"
+    K8S_PRO_HOST = "${env.K8S_PRO}"
   }
 
   triggers {
@@ -112,6 +115,37 @@ pipeline {
       post {
         success { echo 'success' }
         failure { echo 'failed' }
+      }
+    }
+
+    stage('Notify Pipeline Start') {
+      steps {
+        script {
+          withCredentials([
+            string(credentialsId: 'teams-webhook-dev', variable: 'TEAMS_WEBHOOK_DEV'),
+            string(credentialsId: 'teams-webhook-pre', variable: 'TEAMS_WEBHOOK_PRE'),
+            string(credentialsId: 'teams-webhook-pro', variable: 'TEAMS_WEBHOOK_PRO')
+          ]) {
+            def teamsWebhook = ''
+            if (ref.contains("training")) {
+              teamsWebhook = TEAMS_WEBHOOK_DEV
+            } else if (ref.contains("preprod")) {
+              teamsWebhook = TEAMS_WEBHOOK_PRE
+            } else if (ref.contains("master")) {
+              teamsWebhook = TEAMS_WEBHOOK_PRO
+            }
+
+            if (teamsWebhook) {
+              office365ConnectorSend(
+                webhookUrl: teamsWebhook,
+                message: "Iniciando Pipeline para ref: ${ref}",
+                status: 'STARTED'
+              )
+            } else {
+              echo "No se definió Webhook para la rama/ref: ${ref}"
+            }
+          }
+        }
       }
     }
 
@@ -461,6 +495,60 @@ pipeline {
       post {
         success { echo 'success' }
         failure { echo 'failed' }
+      }
+    }
+
+    stage('Kubernetes restart python packages doc pod PRO') {
+      when {
+        expression { env.ref.matches("refs/tags/\\d+\\.\\d+\\.\\d+.*") }
+        expression { env.REPO_BRANCH == 'master' }
+      }
+      steps {
+        script {
+          withKubeConfig([credentialsId: "${K8S_PRO_CREDENTIALS}", serverUrl: "${K8S_PRO_HOST}"]) {
+            sh '''
+              kubectl delete po -l ${K8S_POD_LABEL_APP} --force --grace-period=0 -A
+              kubectl get po -l ${K8S_POD_LABEL_APP} -A
+            '''
+          }
+        }
+      }
+      post {
+        success { echo 'success' }
+        failure { echo 'failed' }
+      }
+    }
+  }
+  post {
+    always {
+      script {
+        withCredentials([
+          string(credentialsId: 'teams-webhook-dev', variable: 'TEAMS_WEBHOOK_DEV'),
+          string(credentialsId: 'teams-webhook-pre', variable: 'TEAMS_WEBHOOK_PRE'),
+          string(credentialsId: 'teams-webhook-pro', variable: 'TEAMS_WEBHOOK_PRO')
+        ]) {
+          def teamsWebhook = ''
+          if (ref.contains("training")) {
+            teamsWebhook = TEAMS_WEBHOOK_DEV
+          } else if (ref.contains("preprod")) {
+            teamsWebhook = TEAMS_WEBHOOK_PRE
+          } else if (ref.contains("master")) {
+            teamsWebhook = TEAMS_WEBHOOK_PRO
+          }
+
+          def buildStatus = currentBuild.result ?: 'SUCCESS'
+
+          if (teamsWebhook) {
+            office365ConnectorSend(
+              webhookUrl: teamsWebhook,
+              message: "Pipeline finalizado con estado: ${buildStatus} en ref: ${ref}",
+              status: buildStatus
+            )
+          } else {
+            echo "No se definió Webhook para la rama/ref: ${ref}"
+          }
+        }
+        cleanWs()
       }
     }
   }
