@@ -23,7 +23,8 @@ RUN mkdir --parents $ORACLE_HOME && \
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends pip alien libaio1 locales locales-all tzdata nodejs npm \
+    && apt-get install -yq --no-install-recommends pip alien libaio1  \
+    locales locales-all tzdata nodejs npm libpq-dev libssl-dev python3-venv \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
     && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
@@ -47,14 +48,30 @@ ENV PYTHONUNBUFFERED 1
 ENV USER_NAME=${USER_NAME}
 USER $USER_NAME
 
+#ADD --chown=$USER_NAME:root https://astral.sh/uv/install.sh /tmp/uv_install.sh
+
+#RUN chmod +x /tmp/uv_install.sh && \
+#    /tmp/uv_install.sh && \
+#    rm -rf /tmp/uv_install.sh
+
+# Set up the UV environment path correctly
+#ENV PATH="/home/$USER_NAME/.local/bin:${PATH}"
+
+WORKDIR /home/$USER_NAME
+
+COPY --chown=$USER_NAME:root ./requirements.txt ./requirements.txt
+
+# RUN uv venv && uv pip install --upgrade pip -r requirements.txt --no-cache-dir
+RUN python -m venv --system-site-packages /home/$USER_NAME/venv \
+    && . /home/$USER_NAME/venv/bin/activate
+
 # Add local bin for $USER_NAME to PATH (for future pip installed scripts)
-ENV PATH=/home/$USER_NAME/.local/bin:$PATH
+ENV PATH=/home/$USER_NAME/venv/bin:$PATH
+
+RUN  pip install --upgrade pip -r requirements.txt --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./docs/ ./docs/
 RUN chmod -R u=rwx,g=rwx,o=rx ./docs
-
-COPY --chown=$USER_NAME:root ./requirements.txt ./requirements.txt
-RUN pip install --upgrade pip -r requirements.txt --no-cache-dir
 
 # Set env var for package python apb_cx_oracle_spatial
 ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
