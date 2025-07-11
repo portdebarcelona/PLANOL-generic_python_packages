@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_pandas_utils',
-    version='1.0.1',
+    version='1.1.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -38,9 +38,10 @@ setup(
     ],
     install_requires=[
         'geopandas>=1.0',
-        'apb_cx_oracle_spatial<1.1',
-        'pandera[mypy, geopandas]'
     ],
+    extras_require={
+        'oracle': ['apb_cx_oracle_spatial<1.1']
+    },
     python_requires='>=3.6',
     package_data={
         # If any package contains *.txt, *.md or *.yml files, include them:
