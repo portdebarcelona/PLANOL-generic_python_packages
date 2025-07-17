@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: Dockerfile.base
       args:
-        - CUSTOM_UID=1000
+        - CUSTOM_UID=65535
     image: planolport/gdal_oracle:training
     container_name: gdal_oracle
     volumes:
@@ -46,7 +46,7 @@ services:
       dockerfile: Dockerfile
       args:
         - ARG_DOCKER_TAG=training
-        - CUSTOM_UID=1000
+        - CUSTOM_UID=65535
         - TEST_PYPI=${TEST_PYPI:-0}
     image: planolport/python_gdal_oracle_geopandas:training
     container_name: python_packages_deploy_oracle
@@ -67,7 +67,7 @@ services:
       dockerfile: Dockerfile
       args:
         - ARG_DOCKER_TAG=training
-        - CUSTOM_UID=1000
+        - CUSTOM_UID=65535
         - TEST_PYPI=${TEST_PYPI:-0}
         - ORACLE_AVAILABLE=0
     image: planolport/python_gdal_geopandas:training
@@ -80,7 +80,7 @@ services:
       dockerfile: Dockerfile.dev
       args:
         - ARG_DOCKER_TAG=training
-        - CUSTOM_UID=1000
+        - CUSTOM_UID=65535
     image: planolport/python_gdal_oracle_geopandas:dev
 
   python_packages_mamba:
