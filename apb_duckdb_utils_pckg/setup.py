@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_duckdb_utils',
-    version='1.0.1',
+    version='1.0.2',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_duckdb_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -37,11 +37,11 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'duckdb>=1.1.1',
+        'duckdb<1.4',
         'ibis-framework[duckdb,geospatial]',
         'duckdb-engine',
         'polars[pyarrow]',
-        'apb_pandas_utils<1.1'
+        'apb_pandas_utils<1.2'
     ],
     python_requires='>=3.6',
     package_data={

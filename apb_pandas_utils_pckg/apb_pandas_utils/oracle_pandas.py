@@ -9,11 +9,31 @@
 import geopandas as gpd
 import pandas as pd
 from pandas.api.types import CategoricalDtype
+from functools import wraps
 
-from apb_cx_oracle_spatial.gestor_oracle import sql_tab
+try:
+    from apb_cx_oracle_spatial.gestor_oracle import sql_tab
+    _HAS_ORACLE_DEPS = True
+except ImportError:
+    _HAS_ORACLE_DEPS = False
+
 from . import optimize_df
 
 
+def requires_oracle_deps(func):
+    """Decorator to check if Oracle dependencies are installed"""
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        if not _HAS_ORACLE_DEPS:
+            raise ImportError(
+                "Oracle functionality requires additional dependencies. "
+                "Install with 'pip install apb_pandas_utils[oracle]'"
+            )
+        return func(*args, **kwargs)
+    return wrapper
+
+
+@requires_oracle_deps
 def df_for_sqlgen(a_ora_generator, columns_index=None, columns=None,
                   optimize=False,
                   **params_df):
@@ -43,6 +63,7 @@ def df_for_sqlgen(a_ora_generator, columns_index=None, columns=None,
     return df
 
 
+@requires_oracle_deps
 def gdf_for_sqlgen(a_ora_generator, column_geom, crs=None, **params_df_for_sqlgen):
     """
     A partir de generator de gestor_oracle devuelve geopandas.Dataframe
@@ -69,6 +90,7 @@ def gdf_for_sqlgen(a_ora_generator, column_geom, crs=None, **params_df_for_sqlge
     return gdf
 
 
+@requires_oracle_deps
 def cols_sql(cols, *l_cols_add):
     """
     Retorna lista de columnas
@@ -88,6 +110,7 @@ def cols_sql(cols, *l_cols_add):
         return list(set(cols))
 
 
+@requires_oracle_deps
 def df_table(gest_ora, nom_tab, filter_sql=None, *args_filter_sql, **params_df_for_sqlgen):
     """
     Devuelve pandas.DataFrame para una tablas de oracle
@@ -122,6 +145,7 @@ def df_table(gest_ora, nom_tab, filter_sql=None, *args_filter_sql, **params_df_f
     return df_tab
 
 
+@requires_oracle_deps
 def gdf_table(gest_ora, nom_tab, column_geom, other_cols_geom=False, null_geoms=False,
               filter_sql=None, *args_filter_sql, **params_gdf_for_sqlgen):
     """
@@ -183,6 +207,7 @@ def gdf_table(gest_ora, nom_tab, column_geom, other_cols_geom=False, null_geoms=
     return gdf_tab
 
 
+@requires_oracle_deps
 def dtype_categorical_from_tab_column(gest_ora, nom_tab, nom_col):
     """
     Retorna pandas.dtype de tipo categorico para la columna de una tabla

@@ -1,6 +1,6 @@
 cd "$(dirname "${0}")" || exit
 
-pip install pdoc
+pip install pdoc==15.0.3
 
 PACKAGES_DOC=${PACKAGES_DOC:-apb_cx_oracle_spatial apb_extra_osgeo_utils apb_extra_utils apb_duckdb_utils  apb_pandas_utils apb_spatial_utils}
 URL_LOGO_APB=${URL_LOGO_APB:-https://www.portdebarcelona.cat/themes/custom/portbcn/logo.svg}
