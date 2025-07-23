@@ -34,6 +34,9 @@ ENV PATH=/home/$USER_NAME/venv/bin:$PATH
 
 RUN  pip install --upgrade pip -r requirements.txt --no-cache-dir
 
+COPY --chown=$USER_NAME:root ./docs/ ./docs/
+RUN chmod -R u=rwx,g=rwx,o=rx ./docs
+
 COPY --chown=$USER_NAME:root apb_extra_utils_pckg/ ./apb_extra_utils_pckg/
 RUN pip install  --config-setting editable_mode=compat --no-build-isolation --editable apb_extra_utils_pckg --no-cache-dir
 
