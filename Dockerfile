@@ -42,9 +42,6 @@ RUN if [ $TEST_PYPI = "1" ]; then \
             pip config --site set global.extra-index-url https://test.pypi.org/simple; \
         fi
 
-COPY --chown=$USER_NAME:root ./docs/ ./docs/
-RUN chmod -R u=rwx,g=rwx,o=rx ./docs
-
 RUN  pip install apb_extra_utils --no-cache-dir & \
           pip install apb_extra_osgeo_utils --no-cache-dir & \
           pip install apb_spatial_utils --no-cache-dir & \
