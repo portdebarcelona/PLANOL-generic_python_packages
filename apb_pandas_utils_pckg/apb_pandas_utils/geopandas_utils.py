@@ -7,8 +7,9 @@
 import json
 from typing import Optional
 
+import requests
 from geopandas import GeoDataFrame, GeoSeries
-from pandas import DataFrame
+from pandas import DataFrame, Series
 from shapely import wkt
 
 
@@ -142,5 +143,69 @@ def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = N
         gdf = gdf.set_index(idx_prev.names, drop=True)
 
     gdf.set_geometry(geom_col, crs=crs, inplace=True)
+
+    return gdf
+
+
+def gdf_from_url(url_rest_api, api_params=None, crs_api=None, headers=None, crs_gdf=None, add_goto_url=False):
+    """
+    Fetch paginated GeoJSON from a REST API and return a GeoPandas GeoDataFrame.
+
+    Assumes the API returns a GeoJSON FeatureCollection with 'features' and optionally 'next' for pagination.
+    If 'next' is present, it should be the full URL for the next page.
+
+    Args:
+        url_rest_api (str): The base URL of the API endpoint.
+        api_params (dict, optional): Query parameters for the initial request.
+        crs_api (str, optional): CRS (EPSG) coord .sys. origen de las geometrías (e.g. 'EPSG:25831')
+                    [Can be anything accepted by pyproj.CRS.from_user_input()]
+        headers (dict, optional): HTTP headers for the request.
+        crs_gdf (str, optional): CRS (EPSG) coord .sys. destino de las geometrías (e.g. 'EPSG:25831')
+                    [Can be anything accepted by pyproj.CRS.from_user_input()]
+        add_goto_url (bool, optional): If True, adds a 'goto_url' to the GeoDataFrame as new column.
+
+    Returns:
+        gpd.GeoDataFrame | None: A GeoDataFrame containing all features from all pages.
+
+    Raises:
+        requests.HTTPError: If any request fails.
+    """
+    gdf = None
+    all_features = []
+    url = url_rest_api
+    params = api_params or {}
+    first_request = True
+
+    while url:
+        if first_request:
+            response = requests.get(url, params=params, headers=headers)
+            first_request = False
+        else:
+            response = requests.get(url, headers=headers)
+
+        response.raise_for_status()
+        data = response.json()
+
+        # Assuming GeoJSON FeatureCollection. Test results or data directly
+        all_features.extend(data.get('results', data).get('features', []))
+
+        # Check for next page
+        url = data.get('next')
+
+    # Create GeoDataFrame from all features
+    if all_features:
+        gdf = GeoDataFrame.from_features(all_features, crs=crs_api)
+
+    if add_goto_url:
+        centroids = gdf.geometry.centroid.to_crs('EPSG:4326')
+        mask = centroids.notna()
+        gdf['goto_url'] = Series([None] * len(gdf), index=gdf.index)
+        gdf.loc[mask, 'goto_url'] = \
+            ("https://www.google.com/maps?q=" +
+             centroids.loc[mask].y.astype(str) + "," +
+             centroids.loc[mask].x.astype(str))
+
+    if crs_gdf:
+        gdf = gdf.to_crs(crs_gdf)
 
     return gdf
