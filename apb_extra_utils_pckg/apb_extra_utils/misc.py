@@ -4,6 +4,7 @@
 #  Created: 7/6/19 18:23
 #  Last modified: 7/6/19 18:21
 #  Copyright (c) 2019
+from __future__ import annotations
 
 import calendar
 import csv
@@ -13,14 +14,15 @@ import inspect
 import locale
 import os
 import re
+import socket
 import subprocess
 import sys
 from calendar import different_locale
 from collections import OrderedDict
 from math import isnan
 from pathlib import Path
-import socket
 from tempfile import gettempdir
+from typing import Any, Generator, Tuple
 from urllib.request import build_opener
 from zipfile import ZipFile, ZIP_DEFLATED
 
@@ -955,6 +957,31 @@ def machine_apb():
         bool
     """
     return socket.getfqdn().lower().endswith('.apb.es')
+
+
+def find_key_values(obj: Any, target_key: str) -> Generator[Tuple[Any, int], None, None]:
+    """
+    Generator that recursively walks `obj` (dicts, lists, tuples, sets)
+    and yields tuples (value, level) for every occurrence of `target_key`.
+
+    Args:
+        obj (Any): The object to search through.
+        target_key (str): The key to search for.
+
+    Yields:
+        Tuple[Any, int]: A tuple containing the value associated with `target_key` and its depth level.
+    """
+    def _recurse(current_obj: Any, current_level: int = 0) -> Generator[Tuple[Any, int], None, None]:
+        if isinstance(current_obj, dict):
+            for k, v in current_obj.items():
+                if k == target_key:
+                    yield v, current_level
+                yield from _recurse(v, current_level + 1)
+        elif isinstance(current_obj, (list, tuple, set)):
+            for item in current_obj:
+                yield from _recurse(item, current_level + 1)
+
+    yield from _recurse(obj)
 
 
 if __name__ == '__main__':
