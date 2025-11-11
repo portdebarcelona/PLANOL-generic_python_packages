@@ -19,7 +19,7 @@ def readme():
 
 setup(
     name='apb_extra_utils',
-    version='1.0.1',
+    version='1.0.2',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
