@@ -1,9 +1,12 @@
-FROM ghcr.io/osgeo/gdal:ubuntu-small-3.8.5 AS runtime
+ARG GDAL_VERSION=3.8.5
+ARG GDAL_BASE_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-${GDAL_VERSION}
+
+FROM $GDAL_BASE_IMAGE AS runtime
 
 LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
 ARG oracle_client_version=19.18
-ARG path_oracle_client=./config/oracle/
+ARG path_oracle_client=./config/oracle/$oracle_client_version
 ARG CUSTOM_UID=65535
 ARG USER_NAME=appuser
 ARG base_path=/home/${USER_NAME}
@@ -12,22 +15,26 @@ RUN getent passwd ${USER_NAME} || useradd --create-home -u ${CUSTOM_UID} ${USER_
 
 # Instant client
 COPY $path_oracle_client /tmp/oracle
-ENV ORACLE_HOME=/usr/lib/oracle/${oracle_client_version}/client64
-ENV LD_LIBRARY_PATH=$ORACLE_HOME/lib
+ENV ORACLE_CLIENT_PATH=/usr/lib/oracle/${oracle_client_version}/client64
+# Set env var for package python apb_cx_oracle_spatial
+ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_CLIENT_PATH
+RUN echo "PATH_INSTANT_CLIENT_ORACLE=$PATH_INSTANT_CLIENT_ORACLE"
+ENV LD_LIBRARY_PATH=$ORACLE_CLIENT_PATH/lib
 ENV TNS_ADMIN=/usr/lib/oracle/${oracle_client_version}/client64/tns
 ENV TZ=Europe/Madrid
 
-RUN mkdir --parents $ORACLE_HOME && \
-    chmod -R o=rx ${ORACLE_HOME} && \
+RUN mkdir --parents $ORACLE_CLIENT_PATH && \
+    chmod -R o=rx ${ORACLE_CLIENT_PATH} && \
     mkdir ${TNS_ADMIN}
 
 RUN export DEBIAN_FRONTEND=noninteractive \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends pip alien libaio1  \
+    # EAM - libaio1 is required by Oracle Instant Client and alien to install rpm packages
+    && apt-get install -yq --no-install-recommends pip alien libaio1t64 \
     locales locales-all tzdata nodejs npm libpq-dev libssl-dev python3-venv \
     && cd /tmp/oracle \
     && for rpm in ./*.rpm; do alien -i --scripts $rpm; done \
-    && ln -s ${ORACLE_HOME} ${ORACLE_HOME}/include \
+    && ln -s ${ORACLE_CLIENT_PATH} ${ORACLE_CLIENT_PATH}/include \
     # Set timezone \
     && ln -fs /usr/share/zoneinfo/$TZ /etc/localtime \
     && dpkg-reconfigure --frontend noninteractive tzdata \
@@ -38,6 +45,9 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /app \
     && apt-get clean
+
+# Crear alias para libreria de oracle libaio.so.1t64 como libaio.so.1
+RUN ln -sf /usr/lib/x86_64-linux-gnu/libaio.so.1t64 /usr/lib/x86_64-linux-gnu/libaio.so.1
 
 ARG ARG_LANG=es_ES.UTF-8
 ENV LANG=$ARG_LANG
@@ -72,8 +82,5 @@ RUN  pip install --upgrade pip -r requirements.txt --no-cache-dir
 
 COPY --chown=$USER_NAME:root ./docs/ ./docs/
 RUN chmod -R u=rwx,g=rwx,o=rx ./docs
-
-# Set env var for package python apb_cx_oracle_spatial
-ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
 
 CMD ["python"]
