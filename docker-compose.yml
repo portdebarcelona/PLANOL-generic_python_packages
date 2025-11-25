@@ -53,6 +53,8 @@ services:
     volumes:
       - .:/project
       - ${DATA_DIR_DEV:-C:/data}:/project/data
+    env_file:
+      - ./docker_settings/.env.local
     networks:
       app_net:
     depends_on:
@@ -116,10 +118,7 @@ services:
 
 networks:
   app_net:
-    ipam:
-      driver: default
-      config:
-        - subnet: "10.92.2.0/24"
+    driver: bridge
 
 volumes: 
   oracle_xe_vol-generic_python:
