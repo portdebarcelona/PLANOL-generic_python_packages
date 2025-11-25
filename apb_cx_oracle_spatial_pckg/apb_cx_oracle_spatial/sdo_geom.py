@@ -9,7 +9,7 @@ import json
 import re
 import sys
 
-import cx_Oracle
+import oracledb as cx_Oracle
 from math import atan2, degrees
 from osgeo import ogr
 from shapely.geometry import shape

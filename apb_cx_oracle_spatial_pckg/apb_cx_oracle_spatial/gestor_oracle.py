@@ -16,11 +16,12 @@ import os
 import shutil
 import sys
 from collections import namedtuple, OrderedDict
+from logging import Logger
 from subprocess import Popen, PIPE
 from tempfile import SpooledTemporaryFile
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import cx_Oracle
+import oracledb as cx_Oracle
 import lxml.etree as etree
 
 from apb_extra_utils import utils_logging
@@ -106,7 +107,7 @@ def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None, sc
     Returns:
         cx_Oracle.Connection
     """
-    connection = cx_Oracle.Connection(user_ora, psw_ora, dsn_ora, encoding="UTF-8", nencoding="UTF-8")
+    connection = cx_Oracle.connect(dsn=dsn_ora, user=user_ora, password=psw_ora)
     if call_timeout:
         connection.call_timeout = call_timeout
 
@@ -742,7 +743,7 @@ def get_row_cursor(curs, rowfactory=None):
     return row
 
 
-def iter_execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
+def iter_execute_fetch_sql(con_db, sql_str, *args_sql, logger: Logger = None, **extra_params):
     """
     Itera y devuelve cada fila devuelta para la consulta sql_str
 
@@ -750,6 +751,7 @@ def iter_execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
         con_db:
         sql_str:
         *args_sql:
+        logger (Logger=None): Logger para registrar errores
         **extra_params: { "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
                           "as_format": formato en el que se devuelve cada fila. Las clases base row_cursor y row_table
                                     (vease get_row_class_cursor() y get_row_class_tab()) responden por defecto a
@@ -779,6 +781,8 @@ def iter_execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
 
         reg = get_row_cursor(curs, rowfactory=row_factory)
         while reg is not None:
+            if logger:
+                logger.debug(reg)
             if "as_format" in extra_params:
                 f_format = extra_params["as_format"]
                 if f_format:
@@ -814,13 +818,9 @@ def execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
         row_class o string en formato especificado en **extra_params["as_format"]
     """
     reg = None
-    for row in iter_execute_fetch_sql(con_db,
-                                      sql_str,
-                                      *args_sql,
-                                      input_handler=extra_params.pop("input_handler", None),
+    for row in iter_execute_fetch_sql(con_db, sql_str, *args_sql, input_handler=extra_params.pop("input_handler", None),
                                       output_handler=extra_params.pop("output_handler", None),
-                                      row_class=extra_params.pop("row_class", None),
-                                      **extra_params):
+                                      row_class=extra_params.pop("row_class", None), **extra_params):
         reg = row
         break
 
@@ -1187,7 +1187,8 @@ class gestor_oracle(object):
         self.__psw_con_db__ = psw_ora
         self.__schema_con_db__ = schema_ora
         self.__dsn_ora__ = dsn_ora
-        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora, self.__call_timeout__, schema_ora=schema_ora)
+        self.__con_db__ = get_oracle_connection(user_ora, psw_ora, dsn_ora, self.__call_timeout__,
+                                                schema_ora=schema_ora)
 
     @property
     @print_to_log_exception(cx_Oracle.Error, lanzar_exc=True)
@@ -1371,16 +1372,14 @@ class gestor_oracle(object):
         Returns:
             object (instancia que debería ser o heredar de las clases row_cursor o row_table)
         """
-        for reg in iter_execute_fetch_sql(self.con_db,
-                                          sql_str,
-                                          *args_sql,
+        for reg in iter_execute_fetch_sql(self.con_db, sql_str, *args_sql,
+                                          logger=self.logger,
                                           input_handler=extra_params.pop("input_handler", None),
                                           output_handler=extra_params.pop(
                                               "output_handler",
                                               m_sdo_geom.get_output_handler(self.con_db,
                                                                             extra_params.pop("geom_format", None))),
-                                          row_class=extra_params.pop("row_class", None),
-                                          **extra_params):
+                                          row_class=extra_params.pop("row_class", None), **extra_params):
             yield reg
 
     def rows_sql(self, sql_str, *args_sql):

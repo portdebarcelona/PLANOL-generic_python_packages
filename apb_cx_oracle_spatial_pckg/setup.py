@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_cx_oracle_spatial',
-    version='1.0.1',
+    version='1.1.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_cx_oracle_spatial_pckg',
     author='Ernesto Arredondo Martínez',
@@ -37,7 +37,7 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'cx_oracle <9',
+        'oracledb',
         'lxml',
         'apb_extra_osgeo_utils<1.1',
         'apb_spatial_utils<1.1'

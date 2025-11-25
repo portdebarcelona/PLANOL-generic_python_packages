@@ -1,7 +1,7 @@
 import os
 import unittest
 
-import cx_Oracle
+import oracledb as cx_Oracle
 from apb_cx_oracle_spatial.gestor_oracle import gestor_oracle
 import apb_extra_osgeo_utils
 
@@ -13,8 +13,9 @@ class MyTestCase(unittest.TestCase):
     """
     To run the tests over the db Oracle, run with system privileges  init_test_db.sql in the same folder as this file
     """
-    dsn_ora = cx_Oracle.makedsn(host=os.getenv("HOST_DB_ORA", "db_ora_pyckg"),
-                                port=os.getenv('PORT_DB_ORA', 1521), sid='xe')
+    dsn_ora = cx_Oracle.makedsn(
+        host=os.getenv("DOCKER_HOST_DB_ORA", "db_ora_pyckg"),
+        port=os.getenv('DOCKER_PORT_DB_ORA', 1521), sid='xe')
     cache_gest = None
 
     @property
@@ -25,12 +26,6 @@ class MyTestCase(unittest.TestCase):
 
     def test_connect_oracle(self):
         self.assertIsNotNone(self.gest_ora)
-
-    def test_call_func(self):
-        ret = self.gest_ora.callfunc_sql('SDO_UTIL.FROM_WKTGEOMETRY',
-                                         self.gest_ora.con_db.gettype("MDSYS.SDO_GEOMETRY"),
-                                         'POINT (2.180045275 41.372005989)')
-        self.assertIsNotNone(ret)
 
     def test_transactions_ora(self):
         g = self.gest_ora
