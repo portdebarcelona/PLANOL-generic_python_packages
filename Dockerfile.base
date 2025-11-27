@@ -1,11 +1,11 @@
-ARG GDAL_VERSION=3.8.5
+ARG GDAL_VERSION=3.10.3
 ARG GDAL_BASE_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-${GDAL_VERSION}
 
 FROM $GDAL_BASE_IMAGE AS runtime
 
 LABEL maintainer="PlanolPort<planolport@portdebarcelona.cat>"
 
-ARG oracle_client_version=19.18
+ARG oracle_client_version=23
 ARG path_oracle_client=./config/oracle/$oracle_client_version
 ARG CUSTOM_UID=65535
 ARG USER_NAME=appuser
