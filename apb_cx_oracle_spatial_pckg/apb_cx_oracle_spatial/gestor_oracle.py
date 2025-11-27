@@ -8,7 +8,6 @@
 
 import csv
 import datetime
-from functools import wraps
 import inspect
 import itertools
 import json
@@ -16,19 +15,20 @@ import os
 import shutil
 import sys
 from collections import namedtuple, OrderedDict
+from functools import wraps
 from logging import Logger
 from subprocess import Popen, PIPE
 from tempfile import SpooledTemporaryFile
 from zipfile import ZipFile, ZIP_DEFLATED
 
-import oracledb as cx_Oracle
 import lxml.etree as etree
+import oracledb as cx_Oracle
 
 from apb_extra_utils import utils_logging
+from apb_extra_utils.sql_parser import x_sql_parser
 from apb_extra_utils.utils_logging import logger_path_logs
 from apb_spatial_utils import topojson_utils
 from . import sdo_geom as m_sdo_geom
-from apb_extra_utils.sql_parser import x_sql_parser
 
 # Nombres tipo geometria GTYPE oracle por orden valor GTYPE
 GTYPES_ORA = ["DEFAULT",
@@ -697,23 +697,38 @@ def get_row_class_tab(con_db, nom_tab_or_view):
     return row_class_tab
 
 
-def get_row_factory(curs, a_row_class=None):
+def get_row_factory(curs, a_row_class=None, func_format_geom: str = None):
     """
     Retorna funcion para crear instancia clase a partir de los valores de una fila
 
     Args:
-        curs:
-        a_row_class:
+        curs (cx_Oracle.Cursor): cursor de la consulta
+        a_row_class (object=None): clase que se utilizará para crear la fila. Si no se informa se crea una clase
+        func_format_geom (str=None): nombre función para formatear las geometrías SDO_GEOMETRY.
+                (veanse las funciones sdo_geom as_[format])
 
     Returns:
-        function
+        function row_factory_func
     """
+    con_db = curs.connection
     if not a_row_class:
         cursor_desc = get_row_descriptor(curs)
-        con_db = curs.connection
         a_row_class = get_row_class_cursor(cursor_desc, con_db)
 
+    f_sd_geom = m_sdo_geom.get_build_sdo_geom(con_db, func_format_geom=func_format_geom)
+
     def row_factory_func(*vals_camps):
+        has_sdo_geom = any(
+            isinstance(val, cx_Oracle.DbObject) and val.type.name == "SDO_GEOMETRY"
+            for val in vals_camps
+        )
+        if has_sdo_geom:
+            vals_camps = [
+                f_sd_geom(val) if isinstance(val, cx_Oracle.DbObject) and
+                                  val.type.name == "SDO_GEOMETRY" else val
+                for val in vals_camps
+            ]
+
         return a_row_class(*vals_camps)
 
     return row_factory_func
@@ -732,15 +747,29 @@ def get_row_cursor(curs, rowfactory=None):
     Returns:
 
     """
+    set_cursor_row_factory(curs, rowfactory)
+
+    row = curs.fetchone()
+
+    return row
+
+
+def set_cursor_row_factory(curs, rowfactory=None):
+    """
+    Asigna al cursor la funcion rowfactory para crear las filas devueltas por el cursor
+
+    Args:
+        curs (cx_Oracle.Cursor):
+        rowfactory (function=None):
+
+    Returns:
+        None
+    """
     if not rowfactory and not curs.rowfactory:
         rowfactory = get_row_factory(curs)
 
     if rowfactory:
         curs.rowfactory = rowfactory
-
-    row = curs.fetchone()
-
-    return row
 
 
 def iter_execute_fetch_sql(con_db, sql_str, *args_sql, logger: Logger = None, **extra_params):
@@ -748,14 +777,20 @@ def iter_execute_fetch_sql(con_db, sql_str, *args_sql, logger: Logger = None, **
     Itera y devuelve cada fila devuelta para la consulta sql_str
 
     Args:
-        con_db:
-        sql_str:
-        *args_sql:
+        con_db (cx_Oracle.Connection): conexión a Oracle
+        sql_str (str): consulta SQL
+        *args_sql: argumentos para la consulta SQL
         logger (Logger=None): Logger para registrar errores
-        **extra_params: { "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
-                          "as_format": formato en el que se devuelve cada fila. Las clases base row_cursor y row_table
-                                    (vease get_row_class_cursor() y get_row_class_tab()) responden por defecto a
-                                    "as_xml()" y "as_json()" }
+        **extra_params: {
+            "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
+            "as_format": formato en el que se devuelve cada fila.
+                Las clases base row_cursor y row_table.
+                (vease get_row_class_cursor() y get_row_class_tab()) responden
+                por defecto a"as_xml()" y "as_json()"
+            "geom_format": nombre función para formatear las geometrías SDO_GEOMETRY. (vease sdo_geom as_[format])
+            "rowfactory": función rowfactory para crear las filas devueltas por el cursor
+            "input_handler": función input_handler para el cursor (vease sdo_geom.get_sdo_input_handler())
+        }
 
     Returns:
         row_class o string en formato especificado en **extra_params["as_format"]
@@ -766,31 +801,34 @@ def iter_execute_fetch_sql(con_db, sql_str, *args_sql, logger: Logger = None, **
         curs = new_cursor(con_db,
                           input_handler=extra_params.pop("input_handler",
                                                          m_sdo_geom.get_sdo_input_handler()),
-                          output_handler=extra_params.pop("output_handler",
-                                                          m_sdo_geom.get_output_handler(
-                                                              con_db,
-                                                              extra_params.pop("geom_format", None))))
+                          )
 
-        curs.execute(sql_str,
-                     args_sql)
+        if (rowfactory := extra_params.pop("rowfactory", None)) is None:
+            row_class = extra_params.pop("row_class", None)
+            curs_aux = new_cursor(con_db)
+            curs_aux.execute(sql_str, args_sql)
+            rowfactory = get_row_factory(
+                curs_aux, row_class,
+                func_format_geom=extra_params.pop("geom_format", None)
+            )
 
-        row_class = extra_params.pop("row_class", None)
-        row_factory = None
-        if row_class:
-            row_factory = get_row_factory(curs, row_class)
+        curs.prefetchrows = extra_params.pop("prefetchrows", 0)
+        curs.arraysize = extra_params.pop("arraysize", 5_000)
+        curs.execute(sql_str, args_sql)
+        curs.rowfactory = rowfactory
 
-        reg = get_row_cursor(curs, rowfactory=row_factory)
-        while reg is not None:
+        num_rows = 0
+        for reg in curs:
             if logger:
-                logger.debug(reg)
+                num_rows += 1
+                logger.debug(f"Num row {num_rows}: {reg}")
+
             if "as_format" in extra_params:
                 f_format = extra_params["as_format"]
                 if f_format:
                     reg = getattr(reg, f_format)()
 
             yield reg
-
-            reg = get_row_cursor(curs)
 
     except:
         if curs is not None:
@@ -806,21 +844,25 @@ def execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
     Devuelve la primera iteración sobre la consulta sql_str
 
     Args:
-        con_db:
-        sql_str:
-        *args_sql:
-        **extra_params: { "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
-                          "as_format": formato en el que se devuelve cada fila. Las clases base row_cursor y row_table
-                                    (vease get_row_class_cursor() y get_row_class_tab()) responden por defecto a
-                                    "as_xml()" y "as_json()" }
+        con_db (cx_Oracle.Connection): conexión a Oracle
+        sql_str (str): consulta SQL
+        *args_sql: argumentos para la consulta SQL
+        **extra_params: {
+            "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
+            "as_format": formato en el que se devuelve cada fila.
+                Las clases base row_cursor y row_table.
+                (vease get_row_class_cursor() y get_row_class_tab()) responden
+                por defecto a"as_xml()" y "as_json()"
+            "geom_format": nombre función para formatear las geometrías SDO_GEOMETRY. (vease sdo_geom as_[format])
+            "rowfactory": función rowfactory para crear las filas devueltas por el cursor
+            "input_handler": función input_handler para el cursor (vease sdo_geom.get_sdo_input_handler())
+        }
 
     Returns:
         row_class o string en formato especificado en **extra_params["as_format"]
     """
     reg = None
-    for row in iter_execute_fetch_sql(con_db, sql_str, *args_sql, input_handler=extra_params.pop("input_handler", None),
-                                      output_handler=extra_params.pop("output_handler", None),
-                                      row_class=extra_params.pop("row_class", None), **extra_params):
+    for row in iter_execute_fetch_sql(con_db, sql_str, *args_sql, **extra_params):
         reg = row
         break
 
@@ -1335,7 +1377,16 @@ class gestor_oracle(object):
         Args:
             sql_str:
             *args_sql:
-            **extra_params:
+            **extra_params: {
+                "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
+                "as_format": formato en el que se devuelve cada fila.
+                    Las clases base row_cursor y row_table.
+                    (vease get_row_class_cursor() y get_row_class_tab()) responden
+                    por defecto a"as_xml()" y "as_json()"
+                "geom_format": nombre función para formatear las geometrías SDO_GEOMETRY. (vease sdo_geom as_[format])
+                "rowfactory": función rowfactory para crear las filas devueltas por el cursor
+                "input_handler": función input_handler para el cursor (vease sdo_geom.get_sdo_input_handler())
+            }
 
         Returns:
             object (instancia que debería ser o heredar de las clases row_cursor o row_table)
@@ -1343,12 +1394,6 @@ class gestor_oracle(object):
         return execute_fetch_sql(self.con_db,
                                  sql_str,
                                  *args_sql,
-                                 input_handler=extra_params.pop("input_handler", None),
-                                 output_handler=extra_params.pop(
-                                     "output_handler",
-                                     m_sdo_geom.get_output_handler(self.con_db,
-                                                                   extra_params.pop("geom_format", None))),
-                                 row_class=extra_params.pop("row_class", None),
                                  **extra_params)
 
     @print_to_log_exception(cx_Oracle.DatabaseError)
@@ -1358,28 +1403,31 @@ class gestor_oracle(object):
 
         Se puede informar **EXTRA_PARAMS con algunos de los siguientes parámetros:
             INPUT_HANDLER funcion que tratará los bindings de manera específica
-            OUTPUT_HANLER funcion que tratará los valores de las columnas de modo específico
             ROW_CLASS define que con que clase se devolverá cada fila. Por defecto la que devuleve la funcion
                       'apb_cx_oracle_spatial.get_row_class_cursor()'
-            AS_FORMAT (as_xml, as_json, as_geojson) devuelve fila en el formato especificado. La row_class deberá
+            AS_FORMAT (as_xml, as_json, as_geojson, ...) devuelve fila en el formato especificado. La row_class deberá
                         responder a esas funciones
 
         Args:
             sql_str:
             *args_sql:
-            **extra_params:
+            **extra_params: {
+                "row_class": clase que se utilizará para cada fila. Vease get_row_factory()
+                "as_format": formato en el que se devuelve cada fila.
+                    Las clases base row_cursor y row_table.
+                    (vease get_row_class_cursor() y get_row_class_tab()) responden
+                    por defecto a"as_xml()" y "as_json()"
+                "geom_format": nombre función para formatear las geometrías SDO_GEOMETRY. (vease sdo_geom as_[format])
+                "rowfactory": función rowfactory para crear las filas devueltas por el cursor
+                "input_handler": función input_handler para el cursor (vease sdo_geom.get_sdo_input_handler())
+            }
 
         Returns:
             object (instancia que debería ser o heredar de las clases row_cursor o row_table)
         """
         for reg in iter_execute_fetch_sql(self.con_db, sql_str, *args_sql,
                                           logger=self.logger,
-                                          input_handler=extra_params.pop("input_handler", None),
-                                          output_handler=extra_params.pop(
-                                              "output_handler",
-                                              m_sdo_geom.get_output_handler(self.con_db,
-                                                                            extra_params.pop("geom_format", None))),
-                                          row_class=extra_params.pop("row_class", None), **extra_params):
+                                          **extra_params):
             yield reg
 
     def rows_sql(self, sql_str, *args_sql):

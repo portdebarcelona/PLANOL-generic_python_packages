@@ -14,14 +14,17 @@ class MyTestCase(unittest.TestCase):
     To run the tests over the db Oracle, run with system privileges  init_test_db.sql in the same folder as this file
     """
     dsn_ora = cx_Oracle.makedsn(
-        host=os.getenv("DOCKER_HOST_DB_ORA", "db_ora_pyckg"),
-        port=os.getenv('DOCKER_PORT_DB_ORA', 1521), sid='xe')
+        host=os.getenv("HOST_DB_ORA", "db_ora_pyckg"),
+        port=os.getenv('PORT_DB_ORA', 1521), sid='xe')
     cache_gest = None
 
     @property
     def gest_ora(self):
         if not self.cache_gest:
-            self.cache_gest = gestor_oracle("GIS", "GIS123", self.dsn_ora)
+            self.cache_gest = gestor_oracle(
+                os.getenv('USER_DB_ORA', "GIS"),
+                os.getenv('PASSWORD_DB_ORA', "GIS123"),
+                self.dsn_ora)
         return self.cache_gest
 
     def test_connect_oracle(self):
