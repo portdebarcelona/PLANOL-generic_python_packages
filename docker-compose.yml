@@ -54,7 +54,8 @@ services:
       - .:/project
       - ${DATA_DIR_DEV:-C:/data}:/project/data
     env_file:
-      - ./docker_settings/.env.local
+      - docker_settings/.env.private/.env.minio
+      - docker_settings/.env.private/.env.GISHISREP
     networks:
       app_net:
     depends_on:
