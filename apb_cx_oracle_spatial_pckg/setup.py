@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'oracledb',
         'lxml',
-        'apb_extra_osgeo_utils<1.1',
+        'apb_extra_osgeo_utils<1.2',
         'apb_spatial_utils<1.1'
     ],
     python_requires='>=3.6',

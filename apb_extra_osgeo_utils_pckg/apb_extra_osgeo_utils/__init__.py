@@ -187,7 +187,11 @@ def driver_gdal(nom_driver):
         driver_gdal (osgeo.ogr.Driver), exts_driver (list)
     """
     driver_gdal = ogr.GetDriverByName(nom_driver)
-    exts_drvr = driver_gdal.GetMetadata().get('DMD_EXTENSIONS', "").split(" ")
+    if driver_gdal is None:
+        raise ValueError(f"Driver '{nom_driver}' is not available")
+
+    metadata = driver_gdal.GetMetadata()
+    exts_drvr = metadata.get('DMD_EXTENSIONS', "").split(" ") if metadata else []
 
     return driver_gdal, exts_drvr
 
@@ -245,14 +249,14 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
 
     opt_list = {k.upper(): v.upper() for k, v in extra_opt_list.items()}
 
-    if not "FID" in opt_list and drvr.name == 'GPKG':
+    if not "FID" in opt_list and drvr.GetName() == 'GPKG':
         opt_list["FID"] = 'FID=FID_GPKG'
 
-    if drvr.name == "GeoJSON":
+    if drvr.GetName() == "GeoJSON":
         if "WRITE_BBOX" not in opt_list:
             opt_list["WRITE_BBOX"] = 'WRITE_BBOX=YES'
 
-    if drvr.name == "CSV":
+    if drvr.GetName() == "CSV":
         if "CREATE_CSVT" not in opt_list:
             opt_list["CREATE_CSVT"] = 'CREATE_CSVT=YES'
         if "GEOMETRY" not in opt_list:
@@ -266,7 +270,7 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
                 opt_list.pop(n_opt)
 
         if "SPATIAL_INDEX" not in opt_list and \
-                list_opts_drvr.find("SPATIAL_INDEX") >= 0 and drvr.name != 'PostgreSQL':
+                list_opts_drvr.find("SPATIAL_INDEX") >= 0 and drvr.GetName() != 'PostgreSQL':
             opt_list["SPATIAL_INDEX"] = 'SPATIAL_INDEX=YES'
 
     return opt_list
@@ -793,8 +797,23 @@ def drivers_ogr_gdal_vector_file():
     Returns:
         dict
     """
-    return {nd: d for nd, d in drivers_ogr_gdal_disponibles().items()
-            if hasattr(d, "GetMetadata_Dict") and d.GetMetadata_Dict().get('DMD_EXTENSIONS')}
+    result = {}
+    for nd, d in drivers_ogr_gdal_disponibles().items():
+        try:
+            # Try GetMetadata_Dict first (older GDAL versions)
+            if hasattr(d, "GetMetadata_Dict"):
+                metadata = d.GetMetadata_Dict()
+            else:
+                # Fall back to GetMetadata for GDAL 3.10+
+                metadata = d.GetMetadata()
+
+            if metadata and metadata.get('DMD_EXTENSIONS'):
+                result[nd] = d
+        except Exception:
+            # Skip drivers that have issues
+            continue
+
+    return result
 
 
 def format_nom_column(nom_col):
@@ -878,8 +897,15 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_g
 
     def vals_feature_gdal(feat_gdal):
         vals = {}
-        for camp, val in feat_gdal.items().items():
-            vals[format_nom_column(camp)] = val
+        feat_items = feat_gdal.items()
+        # In GDAL 3.x, items() returns a dict
+        if isinstance(feat_items, dict):
+            for camp, val in feat_items.items():
+                vals[format_nom_column(camp)] = val
+        else:
+            # Older GDAL versions may return different structure
+            for camp, val in feat_items:
+                vals[format_nom_column(camp)] = val
 
         for camp_geom, camp_geom_val in n_geoms_layer.items():
             idx_geom = feat_gdal.GetGeomFieldIndex(camp_geom)
@@ -1114,7 +1140,7 @@ def copy_layers_gpkg(ds_gpkg, driver, dir_base, lite=False, srs_epsg_code=None, 
 
     for layer_gpkg in (ds_gpkg.GetLayer(id_lyr) for id_lyr in range(ds_gpkg.GetLayerCount() - 1)):
         if driver == "GPKG":
-            nom_ds, ext = utils.split_ext_file(os.path.basename(ds_gpkg.name))
+            nom_ds, ext = utils.split_ext_file(os.path.basename(ds_gpkg.GetName()))
         else:
             nom_ds = f"{layer_gpkg.GetName()}".lower()
 
