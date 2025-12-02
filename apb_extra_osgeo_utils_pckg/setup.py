@@ -21,14 +21,14 @@ def readme():
 
 setup(
     name='apb_extra_osgeo_utils',
-    version='1.0.1',
+    version='1.1.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_extra_osgeo_utils_pckg',
     author='Ernesto Arredondo Martinez',
     author_email='ernestone@gmail.com',
     maintainer='Port de Barcelona',
     maintainer_email='planolport@portdebarcelona.cat',
-    description='Osgeo GDAL utils for python',
+    description='Osgeo GDAL (version >=3.10) utils for python',
     long_description=readme(),
     # Ver posibles clasifiers aqui [https://pypi.org/classifiers/]
     classifiers=[

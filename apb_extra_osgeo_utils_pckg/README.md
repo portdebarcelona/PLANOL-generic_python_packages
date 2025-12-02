@@ -3,7 +3,7 @@
 Modules to add common functionality to `OSGEO GDAL`. Requires `GDAL` library C previously installed 
 (see how here https://gdal.org/download.html#binaries).
 
-Requires `GDAL` library version 3.6<=3.9 installed.
+Requires `GDAL` library version 3.6<=3.10 installed.
 
 To install:
 ```shell

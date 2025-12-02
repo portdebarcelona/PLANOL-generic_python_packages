@@ -24,6 +24,7 @@ def set_instantclient_oracle():
     Returns:
         setted (bool)
     """
+    sys_name = system().lower()
     instant_client = os.getenv('INSTANT_CLIENT_NAME', 'instantclient_oracle')
     local_path_instant_client = os.getenv('PATH_INSTANT_CLIENT_ORACLE', os.path.join(Path.home(), instant_client))
     if not os.path.exists(local_path_instant_client):
@@ -41,7 +42,6 @@ def set_instantclient_oracle():
             zipfile.extractall(path=path_extract)
         else:
             # Decide wich system
-            sys_name = system().lower()
             url_instant_client = None
             if sys_name == 'windows':
                 url_instant_client = os.getenv(
@@ -65,6 +65,14 @@ def set_instantclient_oracle():
         prev_path = os.getenv('PATH')
         os.environ['PATH'] = f'{local_path_instant_client};{prev_path}'
         print(f'Set PATH with instant_client "{local_path_instant_client}"')
+
+        # Set the client for oracledb
+        import oracledb
+
+        if sys_name == 'linux':
+            oracledb.init_oracle_client(lib_dir=os.path.join(local_path_instant_client, 'lib'))
+        else:
+            oracledb.init_oracle_client()
 
 
 set_instantclient_oracle()

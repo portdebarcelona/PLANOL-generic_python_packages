@@ -98,7 +98,7 @@ RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=com
 
 COPY --chown=$MAMBA_USER:root ./apb_cx_oracle_spatial_pckg/ ./apb_cx_oracle_spatial_pckg/
 # Set env var for package python apb_cx_oracle_spatial
-ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_HOME
+ENV PATH_INSTANT_CLIENT_ORACLE=$ORACLE_CLIENT_PATH
 RUN micromamba run -n ${ENV_NAME} pip install --config-setting editable_mode=compat --no-build-isolation  --editable apb_cx_oracle_spatial_pckg --no-cache-dir
 
 COPY --chown=$MAMBA_USER:root apb_pandas_utils_pckg/ ./apb_pandas_utils_pckg/
