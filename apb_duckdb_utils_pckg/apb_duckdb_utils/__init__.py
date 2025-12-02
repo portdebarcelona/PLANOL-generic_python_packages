@@ -22,7 +22,6 @@ from apb_extra_utils.misc import create_dir
 from apb_extra_utils.utils_logging import get_base_logger
 from apb_pandas_utils.geopandas_utils import df_geometry_columns
 
-
 # Suppress specific warning
 warnings.filterwarnings("ignore", message="Geometry column does not contain geometry")
 
@@ -609,7 +608,7 @@ def filter_ibis_table(table: ibis.Table, sql_or_ibis_filter: str | ibis.expr) ->
     Returns:
         table (ibis.Table): The table filtered
     """
-    if isinstance(sql_or_ibis_filter, str): # Filter by SQL on duckdb backend
+    if isinstance(sql_or_ibis_filter, str):  # Filter by SQL on duckdb backend
         # Check if geospatial fields to cast as geometry
         cols_geom = [col for col, fld in table.schema().fields.items()
                      if isinstance(fld, GeoSpatial)]
@@ -681,7 +680,8 @@ def exists_secret(duckdb_conn: duckdb.DuckDBPyConnection, secret_name: str = SEC
     """
     exists = False
     try:
-        exists = duckdb_conn.execute(f"SELECT COUNT(*) > 0 AS existe FROM duckdb_secrets() WHERE name = '{secret_name}'").fetchone()[0]
+        exists = duckdb_conn.execute(
+            f"SELECT COUNT(*) > 0 AS existe FROM duckdb_secrets() WHERE name = '{secret_name}'").fetchone()[0]
     except Exception as e:
         get_base_logger().error(f"Error checking secret existence: {e}")
 

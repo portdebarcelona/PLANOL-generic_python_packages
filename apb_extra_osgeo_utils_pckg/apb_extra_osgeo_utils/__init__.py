@@ -189,7 +189,7 @@ def driver_gdal(nom_driver):
     driver_gdal = ogr.GetDriverByName(nom_driver)
     if driver_gdal is None:
         raise ValueError(f"Driver '{nom_driver}' is not available")
-
+    
     metadata = driver_gdal.GetMetadata()
     exts_drvr = metadata.get('DMD_EXTENSIONS', "").split(" ") if metadata else []
 
@@ -806,13 +806,13 @@ def drivers_ogr_gdal_vector_file():
             else:
                 # Fall back to GetMetadata for GDAL 3.10+
                 metadata = d.GetMetadata()
-
+            
             if metadata and metadata.get('DMD_EXTENSIONS'):
                 result[nd] = d
         except Exception:
             # Skip drivers that have issues
             continue
-
+    
     return result
 
 

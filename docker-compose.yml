@@ -110,7 +110,7 @@ services:
 
   build_python_packages:
     container_name: build_python_packages
-    image: python:3.10-alpine
+    image: python:3.12-alpine
     volumes:
       - .:/project
     networks:
