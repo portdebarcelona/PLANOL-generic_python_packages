@@ -1,3 +1,4 @@
+# Base image with GDAL and Oracle Instant Client installed
 ARG GDAL_VERSION=3.10.3
 ARG GDAL_BASE_IMAGE=ghcr.io/osgeo/gdal:ubuntu-small-${GDAL_VERSION}
 
