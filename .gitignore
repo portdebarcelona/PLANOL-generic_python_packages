@@ -190,3 +190,5 @@ resources/data/edificacio/edificacio.csvt
 /config/windows/info/hash_input.json
 /config/windows/info/index.json
 /config/windows/info/paths.json
+/docker_settings/.env.private/*
+/**/tests/data/results/

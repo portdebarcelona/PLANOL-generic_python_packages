@@ -2,6 +2,10 @@
 Python packages developed for GIS projects related with `QGIS`, `ESRI`, 
 `Oracle`, `Postgis`, and other technologies used with spatial data.
 
+> **⚠️ GDAL 3.10 Migration:** This project has been updated to support GDAL 3.10. 
+> See [MIGRATION_QUICKSTART.md](gdal_310_migration/MIGRATION_QUICKSTART.md) for upgrade instructions and 
+> [GDAL_3.10_MIGRATION_NOTES.md](gdal_310_migration/GDAL_3.10_MIGRATION_NOTES.md) for detailed changes.
+
 ### Configuration:
 You must configure this environment variables to be able to run this project
 

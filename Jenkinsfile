@@ -171,7 +171,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }
@@ -208,7 +208,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }
@@ -245,7 +245,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }
@@ -282,7 +282,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }
@@ -319,7 +319,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }
@@ -356,7 +356,7 @@ pipeline {
       agent {
         docker {
           reuseNode true
-          image 'python:3.10-alpine'
+          image 'python:3.12-alpine'
           args '-u root'
         }
       }

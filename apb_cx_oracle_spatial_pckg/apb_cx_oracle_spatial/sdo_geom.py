@@ -7,15 +7,15 @@
 #   Copyright (c) 2020
 import json
 import re
-import sys
-
-import cx_Oracle
 from math import atan2, degrees
+from typing import Callable
+
+import oracledb as cx_Oracle
 from osgeo import ogr
 from shapely.geometry import shape
 
-from apb_extra_utils.misc import rounded_float
 import apb_extra_osgeo_utils
+from apb_extra_utils.misc import rounded_float
 from apb_spatial_utils import shapely_utils
 
 
@@ -556,8 +556,7 @@ class sdo_geom(object):
                     self.__con_db,
                     sql,
                     self.as_ora_sdo_geometry(),
-                    srid,
-                    output_handler=get_output_handler(self.__con_db))
+                    srid)
 
                 geom_trans = getattr(row_ret, nom_col)
                 self._set_transformed_geom(srid, geom_trans)
@@ -621,61 +620,34 @@ class sdo_geom(object):
         return geom_formatted
 
 
-# Handler de Input y Output para los cursores de cx_Oracle para devolver las geometrías como instancias de la SDO_GEOM
-def get_build_sdo_geom(con_db=None, func_format_geom=None):
+def get_build_sdo_geom(con_db=None, func_format_geom=None) -> Callable:
     """
-    Retorna la funcion decorada que devolverá el objeto SDO_GEOM y si viene
+    Retorna la funcion que devolverá el objeto SDO_GEOM y si viene
     la llamada a partir de una ROW de una tabla o vista entonces también
     llegará informada la conexión cx_oracle (CON_DB) y el tipo de class_tip_geom que
     que está asociado a la columna de la geometría (TIP_GEOM)
 
     Args:
-        con_db:
-        func_format_geom:
+        con_db (cx_Oracle.Connection): conexion a la base de datos Oracle
+        func_format_geom (str=None): nombre de la funcion de la clase sdo_geom para formatear la geometria
 
     Returns:
         sdo_geom ó formato retorno de la funcion func_format_geom
     """
-
-    def build_sdo_geom(cx_oracle_obj):
-        if cx_oracle_obj:
+    def build_sdo_geom(oracle_sdo_geometry):
+        if oracle_sdo_geometry:
             try:
-                a_geom = sdo_geom(cx_oracle_obj, con_db)
+                a_geom = sdo_geom(oracle_sdo_geometry, con_db)
                 if func_format_geom:
                     a_geom = getattr(a_geom, func_format_geom)()
 
                 return a_geom
             except Exception:
-                return cx_oracle_obj
+                pass
+
+        return oracle_sdo_geometry
 
     return build_sdo_geom
-
-
-def get_output_handler(con_db, func_format_geom=None):
-    """
-    Retorna el handler para tratar geometrías oracle Sdo_geometry y convertirlas a SDO_GEOM.
-    Se podrá indicar como dicccionario de nombres columna: class_tip_geom el tipo en concreto que tendrá asociado
-    cada nueva SDO_GEOM creada
-
-    Args:
-        con_db:
-        func_format_geom: nombre funcion conversion sobre SDO_GEOM a otro formato de geometria
-
-    Returns:
-        output_type_handler configurado dependiendo de valor
-    """
-
-    def output_type_handler(cursor, name_field, defaultType, length, precision, scale):
-        if defaultType in [cx_Oracle.Object, cx_Oracle.OBJECT]:
-            return cursor.var(defaultType, arraysize=cursor.arraysize,
-                              outconverter=get_build_sdo_geom(con_db, func_format_geom),
-                              typename="MDSYS.SDO_GEOMETRY")
-
-        elif defaultType in [cx_Oracle.STRING, cx_Oracle.FIXED_CHAR] and sys.version_info[0] < 3:
-            return cursor.var(defaultType, arraysize=cursor.arraysize,
-                              outconverter=lambda val_campo: val_campo.decode(con_db.encoding).encode('UTF-8'))
-
-    return output_type_handler
 
 
 def sdo_geom_in_converter(a_sdo_geom):
@@ -703,7 +675,6 @@ def get_sdo_input_handler():
     Returns:
         input_type_handler configurado para convertir las sdo_geom a MDSYS.SDO_GEOMETRY
     """
-
     def sdo_input_handler(cursor, value, num_elems):
         if isinstance(value, sdo_geom):
             return cursor.var(cx_Oracle.OBJECT, arraysize=num_elems,

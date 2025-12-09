@@ -29,6 +29,7 @@ MEMORY_DDBB = ':memory:'
 CACHE_DUCK_DDBBS = {}
 CURRENT_DB_PATH = None
 GZIP = 'gzip'
+SECRET_S3 = 'secret_s3'
 
 
 def set_current_db_path(db_path: str):
@@ -136,6 +137,15 @@ def list_tables_duckdb(conn_db: duckdb.DuckDBPyConnection = None, schemas: tuple
     current_schema = current_schema_duckdb(conn_db)
 
     def get_table_name(row):
+        """
+        Get table name with schema if not current schema
+
+        Args:
+            row:
+
+        Returns:
+            str
+        """
         schema = quote_name_duckdb(row['schema'])
         table = quote_name_duckdb(row['name'])
         return f"{schema}.{table}" if schema != current_schema else table
@@ -203,7 +213,11 @@ def parse_path(path):
     Returns:
         normalized path (str)
     """
-    normalize_path = os.path.normpath(path).replace('\\', '/')
+    if path.startswith('s3://'):
+        normalize_path = path
+    else:
+        normalize_path = os.path.normpath(path).replace('\\', '/')
+
     return normalize_path
 
 
@@ -594,7 +608,7 @@ def filter_ibis_table(table: ibis.Table, sql_or_ibis_filter: str | ibis.expr) ->
     Returns:
         table (ibis.Table): The table filtered
     """
-    if isinstance(sql_or_ibis_filter, str): # Filter by SQL on duckdb backend
+    if isinstance(sql_or_ibis_filter, str):  # Filter by SQL on duckdb backend
         # Check if geospatial fields to cast as geometry
         cols_geom = [col for col, fld in table.schema().fields.items()
                      if isinstance(fld, GeoSpatial)]
@@ -612,3 +626,63 @@ def filter_ibis_table(table: ibis.Table, sql_or_ibis_filter: str | ibis.expr) ->
         res = table.filter(sql_or_ibis_filter)
 
     return res
+
+
+def set_secret_s3_storage(duckdb_conn: duckdb.DuckDBPyConnection, endpoint: str, access_key_id: str,
+                          secret_access_key: str, url_style: str = 'path', use_ssl: bool = False, region: str = None,
+                          secret_name: str = SECRET_S3) -> bool:
+    """
+    Set secret S3 storage on duckdb connection
+
+    Args:
+        duckdb_conn (duckdb.DuckDBPyConnection): duckdb connection
+        endpoint (str): endpoint url. (e.g. 's3.amazonaws.com')
+        access_key_id (str): access key id
+        secret_access_key (str): secret access key
+        url_style (str='path'): url style. 'path' or 'virtual_hosted'
+        use_ssl (bool=False): use ssl
+        region (str=None): region name
+        secret_name (str=SECRET_S3): secret name
+
+    Returns:
+        ok
+    """
+    ok = False
+    try:
+        duckdb_conn.execute(f"""
+        CREATE OR REPLACE SECRET {secret_name} (
+            TYPE S3,
+            KEY_ID '{access_key_id}',
+            SECRET '{secret_access_key}',
+            ENDPOINT '{endpoint}',
+            URL_STYLE '{url_style}',
+            USE_SSL {use_ssl},
+            REGION '{region}'
+        );
+        """)
+        ok = True
+    except Exception as e:
+        get_base_logger().error(f"Error setting S3 access keys: {e}")
+
+    return ok
+
+
+def exists_secret(duckdb_conn: duckdb.DuckDBPyConnection, secret_name: str = SECRET_S3) -> bool:
+    """
+    Check if secret exists on duckdb connection
+
+    Args:
+        duckdb_conn (duckdb.DuckDBPyConnection): duckdb connection
+        secret_name (str=SECRET_S3): secret name
+
+    Returns:
+        bool: True if secret exists
+    """
+    exists = False
+    try:
+        exists = duckdb_conn.execute(
+            f"SELECT COUNT(*) > 0 AS existe FROM duckdb_secrets() WHERE name = '{secret_name}'").fetchone()[0]
+    except Exception as e:
+        get_base_logger().error(f"Error checking secret existence: {e}")
+
+    return exists

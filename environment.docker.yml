@@ -3,8 +3,8 @@ channels:
 - defaults
 - anaconda
 dependencies:
-- python=3.10
-- conda-forge::gdal=3.8.5
+- python=3.12
+- conda-forge::gdal=3.10
 - pip
 - pip:
     - -r requirements.txt
