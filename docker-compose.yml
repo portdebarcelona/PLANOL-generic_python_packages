@@ -53,6 +53,9 @@ services:
     volumes:
       - .:/project
       - ${DATA_DIR_DEV:-C:/data}:/project/data
+    env_file:
+      - docker_settings/.env.private/.env.minio
+      - docker_settings/.env.private/.env.GISHISREP
     networks:
       app_net:
     depends_on:
@@ -107,7 +110,7 @@ services:
 
   build_python_packages:
     container_name: build_python_packages
-    image: python:3.10-alpine
+    image: python:3.12-alpine
     volumes:
       - .:/project
     networks:
@@ -116,10 +119,7 @@ services:
 
 networks:
   app_net:
-    ipam:
-      driver: default
-      config:
-        - subnet: "10.92.2.0/24"
+    driver: bridge
 
 volumes: 
   oracle_xe_vol-generic_python:

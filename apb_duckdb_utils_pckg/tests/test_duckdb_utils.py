@@ -4,9 +4,10 @@ import unittest
 import duckdb
 import pandas as pd
 
-from apb_duckdb_utils import get_duckdb_connection, import_csv_to_duckdb, list_tables_duckdb, import_gdal_file_to_duckdb, \
+from apb_duckdb_utils import get_duckdb_connection, import_csv_to_duckdb, list_tables_duckdb, \
+    import_gdal_file_to_duckdb, \
     rename_cols_on_sql, set_types_geom_to_cols_wkt_on_sql, exclude_cols_on_sql, exists_table_duckdb, \
-    quote_name_duckdb, import_dataframe_to_duckdb, import_parquet_to_duckdb
+    quote_name_duckdb, import_dataframe_to_duckdb, import_parquet_to_duckdb, set_secret_s3_storage, exists_secret
 from apb_extra_utils.misc import unzip
 from apb_pandas_utils.geopandas_utils import gdf_from_df, df_geometry_columns
 
@@ -150,6 +151,34 @@ class UtilsDuckDBTestCase(unittest.TestCase):
         sql = import_parquet_to_duckdb(duckdb_parquet_path, 'v_geoparquet_duckdb', as_view=True)
         row = sql.select('ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid').fetchone()
         self.assertTrue(str(row[0]).startswith('POINT'))
+
+    def test_connect_to_s3(self):
+        conn = get_duckdb_connection(as_current=True, extensions=['spatial', 'httpfs'], )
+        ok = set_secret_s3_storage(conn, endpoint=os.getenv('S3_ENDPOINT'), access_key_id=os.getenv('S3_ACCESS_KEY'),
+                                   secret_access_key=os.getenv('S3_SECRET_KEY'), url_style=os.getenv('S3_URL_STYLE'),
+                                   use_ssl=eval(os.getenv('S3_USE_SSL')), region=os.getenv('S3_REGION'),
+                                   secret_name=(secret_name := os.getenv('S3_SECRET_NAME')))
+        self.assertTrue(ok)
+
+        exists = exists_secret(conn, secret_name)
+        self.assertTrue(exists)
+
+        df = pd.read_csv(self.csv_path)
+        sql = import_dataframe_to_duckdb(df, 'df',
+                                         cols_wkt=['PERIMETRE_SUPERIOR', 'PERIMETRE_BASE', 'PUNT_BASE', 'DENOMINACIO'], conn_db=conn)
+        path_s3_parquet = 's3://apb-duckdb-utils-test/edificacio_duckdb_utils_test.parquet'
+        sql.write_parquet(path_s3_parquet)
+        sql_s3 = import_parquet_to_duckdb(path_s3_parquet, 'v_geoparquet_duckdb', as_view=True, conn_db=conn)
+
+        sql_to_check_type_geom = 'ST_AsText(ST_Centroid(PERIMETRE_BASE)) as centroid'
+        row = sql_s3.select(sql_to_check_type_geom).fetchone()
+        print(row)
+        self.assertTrue(str(row[0]).startswith('POINT'))
+
+        sql_s3_via_api = conn.read_parquet(path_s3_parquet)
+        row_via_api = sql_s3_via_api.select(sql_to_check_type_geom).fetchone()
+        print(f"{row_via_api} == {row}")
+        self.assertEqual(row_via_api, row)
 
 
 if __name__ == '__main__':

@@ -2,7 +2,7 @@
 
 Modules to add functionality (spatial and generic) over `duckdb` 
 
-For all the functionality available requires `GDAL` library version 3.6<=3.9 and instant client Oracle installed.
+For all the functionality available requires `GDAL` library version 3.6<=3.10 and instant client Oracle installed.
 
 To install:
 ```shell

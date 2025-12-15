@@ -358,3 +358,4 @@ cython_debug/
 /resources
 /docs/html/
 !/docs/html/logo.png
+/**/tests/data/results/
