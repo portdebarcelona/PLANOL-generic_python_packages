@@ -1,14 +1,33 @@
-Invoke-Webrequest -URI https://micro.mamba.pm/api/micromamba/win-64/latest -OutFile micromamba.tar.bz2
-tar xf micromamba.tar.bz2
+# destino dentro del perfil de usuario
+$dest = Join-Path $Env:USERPROFILE 'micromamba'
+if (-not (Test-Path $dest)) {
+    New-Item -ItemType Directory -Path $dest -Force | Out-Null
+}
 
-MOVE -Force Library\bin\micromamba.exe micromamba.exe
-.\micromamba.exe --help
+$archive = Join-Path $dest 'micromamba.tar.bz2'
 
-# You can use e.g. $HOME\micromambaenv as your base prefix
-$Env:MAMBA_ROOT_PREFIX="$Env:USERPROFILE\micromamba"
+# descargar directamente en la carpeta de usuario
+Invoke-WebRequest -URI 'https://micro.mamba.pm/api/micromamba/win-64/latest' -OutFile $archive
 
-# Invoke the hook
-.\micromamba.exe shell hook -s powershell | Out-String | Invoke-Expression
+# extraer en la carpeta destino
+tar -xf $archive -C $dest
 
-# ... or initialize the shell
-.\micromamba.exe shell init -s powershell -p $Env:MAMBA_ROOT_PREFIX
+# mover el ejecutable al raíz de la carpeta destino
+$srcExe = Join-Path $dest 'Library\bin\micromamba.exe'
+$dstExe = Join-Path $dest 'micromamba.exe'
+Move-Item -Force $srcExe $dstExe
+
+# ejecutar el binario desde la ruta absoluta para comprobar
+& $dstExe --help
+
+# usar la carpeta de usuario como MAMBA_ROOT_PREFIX
+$Env:MAMBA_ROOT_PREFIX = $dest
+
+[Environment]::SetEnvironmentVariable("MAMBA_ROOT_PREFIX", $dest, "User")
+
+# Inicializar la shell
+& $dstExe shell init -s powershell -r $Env:MAMBA_ROOT_PREFIX
+& $dstExe shell init -s cmd.exe -r $Env:MAMBA_ROOT_PREFIX
+
+# limpiar archivo temporal
+Remove-Item -Force $archive
