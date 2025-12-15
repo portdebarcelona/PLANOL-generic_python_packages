@@ -18,7 +18,7 @@ RUN getent passwd ${USER_NAME} || useradd --create-home -u ${CUSTOM_UID} ${USER_
 RUN export DEBIAN_FRONTEND=noninteractive \
 #    && echo 'deb http://deb.debian.org/debian testing main' > /etc/apt/sources.list.d/testing.list \
     && apt-get update && apt-get upgrade -yq \
-    && apt-get install -yq --no-install-recommends wget
+    && apt-get install -yq --no-install-recommends wget curl
 
 # Instant client Oracle
 RUN mkdir -p /tmp/oracle
