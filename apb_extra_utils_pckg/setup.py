@@ -19,7 +19,7 @@ def readme():
 
 setup(
     name='apb_extra_utils',
-    version='1.0.2',
+    version='1.0.3',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_extra_utils_pckg',
     author='Ernesto Arredondo Martinez',
@@ -41,7 +41,7 @@ setup(
         'Pillow',
         'jellyfish',
         'pyyaml',
-        'sqlparse==0.2.4',
+        'sqlparse', #==0.2.4',
         'openpyxl',
         'psycopg2-binary',
         'sqlalchemy',
