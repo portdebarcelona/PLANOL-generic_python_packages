@@ -3,7 +3,7 @@
 #   Author: Ernesto Arredondo Martinez (ernestone@gmail.com)
 #   File: setup.py
 #   Created: 05/04/2020, 00:21
-#   Last modified: 05/04/2020, 00:21
+#   Last modified: 30/01/2026, 18:41
 #   Copyright (c) 2020
 import importlib
 import os
