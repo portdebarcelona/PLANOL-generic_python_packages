@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_duckdb_utils',
-    version='1.1.0',
+    version='1.1.1',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_duckdb_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -42,7 +42,9 @@ setup(
         'duckdb-engine',
         'polars[pyarrow]',
         'apb_extra_utils<1.1',
-        'apb_pandas_utils<1.2'
+        'apb_pandas_utils<1.2',
+        # TODO - revisar en versions futures si cal actualitzar aquesta dependència
+        "sqlglot<28.7",  # Per evitar problemes de compatibilitat ibis-framework
     ],
     python_requires='>=3.6',
     package_data={
