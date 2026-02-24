@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_pandas_utils',
-    version='1.1.1',
+    version='1.2.0',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -41,7 +41,7 @@ setup(
         'requests'
     ],
     extras_require={
-        'oracle': ['apb_cx_oracle_spatial<1.1']
+        'oracle': ['apb_cx_oracle_spatial<1.2']
     },
     python_requires='>=3.6',
     package_data={
