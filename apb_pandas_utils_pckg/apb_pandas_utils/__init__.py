@@ -11,12 +11,19 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 from datetime import datetime, time, date
-from typing import Union
+from typing import Union, Generator
 
 import numpy as np
 import pandas as pd
+import requests
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Timestamp, NaT, CategoricalDtype
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
+
+from apb_extra_utils.utils_logging import get_base_logger
+
+logger = get_base_logger(__name__)
 
 EXCLUDED_TYPES_TO_CATEGORIZE = ['datetime', 'category', 'geometry']
 DEFAULT_MAX_UNIQUE_VALS_COL_CATEGORY = 0.5
@@ -321,3 +328,158 @@ def sql_from_filter_by_props(**filter_by_props: dict) -> str:
     sql_filter = ' AND '.join(sql_parts)
 
     return sql_filter
+
+
+def _build_session(max_retries: int = 3) -> requests.Session:
+    """
+    Create a :class:`requests.Session` with a retry strategy and exponential backoff.
+
+    Args:
+        max_retries (int): Number of retries on transient HTTP errors
+            (429, 500, 502, 503, 504). Defaults to ``3``.
+
+    Returns:
+        requests.Session: Configured session with retry logic.
+    """
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=max_retries,
+        backoff_factor=1,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET"],
+        raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
+def _iter_fetch_pages(
+    url_rest_api: str,
+    api_params: dict | None = None,
+    headers: dict | None = None,
+    next_key: str = 'next',
+    timeout: int | tuple[int, int] = (10, 30),
+    max_retries: int = 3,
+    session: requests.Session | None = None,
+) -> Generator[dict | list]:
+    """
+    Internal helper: fetch all pages from a paginated REST API.
+
+    Handles session lifecycle, retry logic and pagination automatically.
+    Each element in the returned list is the raw JSON body of one page.
+
+    Args:
+        url_rest_api (str): The base URL of the API endpoint.
+        api_params (dict, optional): Query parameters for the first request only.
+        headers (dict, optional): HTTP headers added to the session.
+        next_key (str): Key in JSON dict responses that carries the next-page URL.
+            Defaults to ``'next'``.
+        timeout (int | tuple[int, int]): Request timeout ``(connect, read)`` in seconds.
+            Defaults to ``(10, 30)``.
+        max_retries (int): Retries on transient errors. Defaults to ``3``.
+        session (requests.Session, optional): Existing session to reuse.
+            If None, a new session is created and closed after all pages are fetched.
+
+    Yields:
+        dict | list: Raw JSON responses, one element per page.
+
+    Raises:
+        requests.HTTPError: If any HTTP request returns an error status.
+        requests.ConnectionError: If the connection fails after all retries.
+    """
+    own_session = session is None
+    if own_session:
+        session = _build_session(max_retries)
+
+    if headers:
+        session.headers.update(headers)
+
+    url: str | None = url_rest_api
+    params = api_params or {}
+    page = 0
+
+    try:
+        while url:
+            page += 1
+            logger.debug(f"Fetching page {page}: {url}")
+            response = session.get(
+                url,
+                params=params if page == 1 else None,
+                timeout=timeout,
+            )
+            response.raise_for_status()
+            data = response.json()
+            yield data
+
+            # Advance to next page only when response is a dict with a next link
+            url = data.get(next_key) if isinstance(data, dict) else None
+    finally:
+        if own_session:
+            session.close()
+
+
+def df_from_url(
+    url_rest_api: str,
+    api_params: dict | None = None,
+    headers: dict | None = None,
+    results_key: str | None = 'results',
+    next_key: str = 'next',
+    timeout: int | tuple[int, int] = (10, 30),
+    max_retries: int = 3,
+    session: requests.Session | None = None,
+) -> DataFrame | None:
+    """
+    Fetch paginated JSON from a REST API and return a Pandas DataFrame.
+
+    Delegates HTTP handling and pagination to :func:`_fetch_pages`.
+
+    Args:
+        url_rest_api (str): The base URL of the API endpoint.
+        api_params (dict, optional): Query parameters for the initial request.
+        headers (dict, optional): HTTP headers for the request.
+        results_key (str | None, optional): Key in the JSON response that contains
+            the data list. If ``None``, the entire response body is wrapped as a
+            single record. If the key is absent, the first list value found in the
+            dict is used as fallback. Defaults to ``'results'``.
+        next_key (str): Key in the JSON response containing the next-page URL.
+            Defaults to ``'next'``.
+        timeout (int | tuple[int, int]): Request timeout ``(connect, read)`` in seconds.
+            Defaults to ``(10, 30)``.
+        max_retries (int): Retries on transient HTTP errors. Defaults to ``3``.
+        session (requests.Session, optional): Existing session to reuse.
+            If None, a new session is created and closed after use.
+
+    Returns:
+        DataFrame | None: A DataFrame with all collected data, or ``None`` if empty.
+
+    Raises:
+        requests.HTTPError: If any HTTP request returns an error status.
+        requests.ConnectionError: If the connection fails after all retries.
+        ValueError: If the JSON response has an unexpected structure.
+    """
+    all_data: list = []
+
+    for data in _iter_fetch_pages(url_rest_api, api_params, headers, next_key, timeout, max_retries, session):
+        if isinstance(data, list):
+            page_data = data
+        elif isinstance(data, dict):
+            if results_key and results_key in data:
+                page_data = data[results_key]
+            elif results_key is None:
+                page_data = [data]
+            else:
+                # Fallback: primer valor de tipo lista encontrado en el dict
+                page_data = next(
+                    (v for v in data.values() if isinstance(v, list)), [data]
+                )
+        else:
+            raise ValueError(
+                f"Unexpected JSON structure: expected list or dict, got {type(data).__name__}"
+            )
+
+        all_data.extend(page_data)
+        logger.debug(f"Got {len(page_data)} records (total so far: {len(all_data)})")
+
+    return DataFrame(all_data) if all_data else None
