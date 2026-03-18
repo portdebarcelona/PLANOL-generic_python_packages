@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_pandas_utils',
-    version='1.2.0',
+    version='1.2.1',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
@@ -37,6 +37,7 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
+        'apb_extra_utils<1.1',
         'geopandas>=1.0',
         'requests'
     ],
