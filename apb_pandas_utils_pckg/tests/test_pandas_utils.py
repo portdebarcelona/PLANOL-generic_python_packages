@@ -5,7 +5,7 @@ import pandas as pd
 
 from apb_extra_utils.misc import unzip
 from apb_extra_utils.utils_logging import get_base_logger
-from apb_pandas_utils import df_memory_usage, optimize_df, df_filtered_by_prop
+from apb_pandas_utils import df_memory_usage, optimize_df, df_filtered_by_prop, df_from_url
 
 RESOURCES_DATA_DIR = os.path.join(
     os.path.dirname(
@@ -52,6 +52,13 @@ class PandasUtilsTestCase(unittest.TestCase):
         filter_props['<=NUMERO_PLANTES'] = 2
         df_filtered_cat = df_filtered_by_prop(df_cat, filter_props)
         self.assertEqual(df_filtered_cat.shape[0], 3)
+
+    def test_df_from_url(self):
+        self.logger.info('Get DataFrame from URL')
+        url = 'https://jsonplaceholder.typicode.com/posts'
+        df_url = df_from_url(url)
+        self.logger.info(f'DF from URL: {df_url.shape} | Memory: {df_memory_usage(df_url):.2f} MB')
+        self.assertEqual(df_url.shape[0], 100)
 
 
 if __name__ == '__main__':

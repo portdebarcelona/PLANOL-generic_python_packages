@@ -9,7 +9,7 @@ from geopandas import GeoDataFrame
 
 from apb_extra_utils.misc import unzip
 from apb_extra_utils.utils_logging import get_base_logger
-from apb_pandas_utils import df_memory_usage
+from apb_pandas_utils import df_memory_usage, df_from_url
 from apb_pandas_utils.geopandas_utils import gdf_to_geojson, gdf_from_df, gdf_to_df, df_to_crs, gdf_from_url
 
 RESOURCES_DATA_DIR = os.path.join(
@@ -22,6 +22,7 @@ class GeopandasUtilsTestCase(unittest.TestCase):
     unzip(os.path.join(RESOURCES_DATA_DIR, 'edificacio.zip'))
     csv_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio', 'edificacio.csv')
     geojson_path = os.path.join(RESOURCES_DATA_DIR, 'edificacio-perimetre_base.geo.json')
+    url_base = 'https://gisplanoldev.portdebarcelona.cat'
     logger = get_base_logger()
 
     def setUp(self):
@@ -65,29 +66,38 @@ class GeopandasUtilsTestCase(unittest.TestCase):
         self.logger.info(f'DF from GDF with WKB: {df_wkb.shape} | Memory: {df_memory_usage(df_wkb):.2f} MB')
 
     def test_gdf_from_url_repo_gis(self):
-        self.logger.info('Loading GeoDataFrame from URL Repo GIS')
-        url_geojson = 'https://gisplanoldev.portdebarcelona.cat/repo_gis_pg/api/current/edificacio-perimetre_base'
-        gdf_url = gdf_from_url(url_geojson, crs_api='EPSG:25831', add_goto_url=True)
-        self.logger.info(f'GeoDataFrame from URL: {gdf_url.shape} | Memory: {df_memory_usage(gdf_url):.2f} MB')
-
-    def test_gdf_from_url_escales(self):
-        self.logger.info('Loading GeoDataFrame from URL Escales')
+        self.logger.info('Loading GeoDataFrame & Dataframes from URL Repo GIS')
         resp_auth = requests.post(
-            'https://gisplanol.portdebarcelona.cat/adm_escales/auth/acces-token',
+            f'{self.url_base}/repo_gis_pg/auth/acces-token',
             json=dict(
                 username=os.getenv('DJANGO_API_USER'),
                 key=os.getenv('DJANGO_API_KEY')
             )
         )
-        url_geojson = 'https://gisplanol.portdebarcelona.cat/adm_escales/api/track-ship-position/'
-        api_params = dict(start=datetime.datetime.now().strftime('%Y-%m-%d'), limit=100)
         headers = {'Authorization': f'Bearer {resp_auth.json().get("access")}'}
-        gdf_url: GeoDataFrame = gdf_from_url(
-            url_geojson,
-            api_params=api_params,
-            crs_api='EPSG:4326',
-            headers=headers,
-            add_goto_url=True)
+        url_geojson = f'{self.url_base}/repo_gis_pg/api_models_dades/edificacio-perimetre_base/'
+        gdf_url = gdf_from_url(url_geojson, crs_api='EPSG:25831', headers=headers, add_goto_url=True)
+        self.logger.info(f'GeoDataFrame from URL: {gdf_url.shape} | Memory: {df_memory_usage(gdf_url):.2f} MB')
+
+        url_json = f'{self.url_base}/repo_gis_pg/api_administracio/origen_dades_gis/'
+        df_url = gdf_from_url(url_json, headers=headers)
+        self.logger.info(f'DataFrame from URL: {df_url.shape} | Memory: {df_memory_usage(df_url):.2f} MB')
+
+
+    def test_gdf_from_url_escales(self):
+        self.logger.info('Loading GeoDataFrame from URL Escales')
+        resp_auth = requests.post(
+            f'{self.url_base}/adm_escales/auth/acces-token',
+            json=dict(
+                username=os.getenv('DJANGO_API_USER'),
+                key=os.getenv('DJANGO_API_KEY')
+            )
+        )
+        headers = {'Authorization': f'Bearer {resp_auth.json().get("access")}'}
+        url_geojson = f'{self.url_base}/adm_escales/api/track-ship-position/'
+        api_params = dict(start=datetime.datetime.now().strftime('%Y-%m-%d'), limit=100)
+        gdf_url: GeoDataFrame = gdf_from_url(url_geojson, api_params=api_params, crs_api='EPSG:4326', headers=headers,
+                                             add_goto_url=True)
         self.logger.info(f'GeoDataFrame from URL: {gdf_url.shape} | Memory: {df_memory_usage(gdf_url):.2f} MB')
         gdf_url.to_file(filename=os.path.join(RESOURCES_DATA_DIR, 'track-ship-position.geojson'), driver='GeoJSON')
 

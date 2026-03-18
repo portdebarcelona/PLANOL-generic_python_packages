@@ -6,7 +6,7 @@
 from apb_extra_utils.utils_logging import get_file_logger
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.engine import create_engine
-from sqlalchemy import MetaData, Table, text
+from sqlalchemy import MetaData, Table, text, Engine, inspect
 from collections import namedtuple
 
 
@@ -59,7 +59,7 @@ class EngPsqlAlchemy(object):
             db (str):
         """
         str_conn = f'postgresql://{user}:{psw}@{srvr_db}:{port_db}/{db}'
-        eng_db = create_engine(str_conn)
+        eng_db:Engine = create_engine(str_conn)
 
         eng_db.connect()
 
@@ -135,7 +135,7 @@ class EngPsqlAlchemy(object):
         Returns:
 
         """
-        if not self.eng_db.has_table(nom_tab, schema):
+        if not inspect(self.eng_db).has_table(nom_tab, schema=schema):
             raise Warning(f"No existe la tabla '{nom_tab}' "
                           f"{'para el esquema {} '.format(schema) if schema else ''}"
                           f"sobre el user@database '{self.nom_con_db}'")
@@ -146,9 +146,7 @@ class EngPsqlAlchemy(object):
         if schema:
             extra_args['schema'] = schema
 
-        a_tab = Table(nom_tab, meta, autoload=True, autoload_with=self.eng_db, **extra_args)
-
-        self.session_db.bind_table(a_tab, self.eng_db)
+        a_tab = Table(nom_tab, meta, autoload_with=self.eng_db, **extra_args)
 
         return a_tab
 
@@ -166,7 +164,9 @@ class EngPsqlAlchemy(object):
         """
         tab = self.table(nom_tab, **table_args)
 
-        query = tab.select(text(sql_query) if sql_query else None)
+        query = tab.select()
+        if sql_query:
+            query = query.where(text(sql_query))
 
         res = self.session_db.execute(query)
 
@@ -186,7 +186,7 @@ class EngPsqlAlchemy(object):
             list: lista de los rows_inserted (namedtuple)
         """
         tab = self.table(nom_tab, **table_args)
-        query = tab.insert(values=row_values).returning(*tab.columns)
+        query = tab.insert(values=row_values).returning(*tab.columns())
 
         res = self.session_db.execute(query)
 
@@ -208,7 +208,10 @@ class EngPsqlAlchemy(object):
             generator: iterador con la lista de elementos a devolver
         """
         tab = self.table(tab, **table_args)
-        query = tab.update().where(text(sql_query)).values(values).returning(*tab.columns)
+        query = tab.update()
+        if sql_query:
+            query = query.where(text(sql_query))
+        query = query.values(values).returning(*tab.columns())
 
         res = self.session_db.execute(query)
 
