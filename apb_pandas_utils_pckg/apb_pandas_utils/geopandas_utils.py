@@ -141,7 +141,7 @@ def gdf_from_df(df: DataFrame, geom_col: str, crs: str, cols_geom: list[str] = N
         if isinstance(ds_col, GeoSeries):
             continue
 
-        if (dtype := ds_col.dtype.name) == 'object':
+        if (dtype := ds_col.dtype.name) in ('str', 'object'):
             gdf[col] = gdf[col].apply(convert_to_wkt)
 
         gdf.set_geometry(col, inplace=True, crs=crs)
