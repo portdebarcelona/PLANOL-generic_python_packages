@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_pandas_utils',
-    version='1.2.1',
+    version='1.2.2',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_pandas_utils_pckg',
     author='Ernesto Arredondo Martínez',
