@@ -21,6 +21,7 @@ from pandas import DataFrame, Timestamp, NaT, CategoricalDtype
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from apb_extra_utils.postgres_pckg.psql_alchemy import EngPsqlAlchemy
 from apb_extra_utils.utils_logging import get_base_logger
 
 logger = get_base_logger(__name__)
@@ -268,6 +269,95 @@ def df_memory_usage(df: DataFrame | GeoDataFrame) -> float:
         float: Memory usage in MB
     """
     return df.memory_usage(deep=True).sum() / 1024 ** 2
+
+
+def df_from_pg_sql(sql: str, user: str | None = None, psw: str | None = None, srvr_db: str = 'localhost',
+                   port_db: int = 5432, db: str = 'postgres', schemas: str | None = None,
+                   a_logger=None, conn_string: str | None = None) -> DataFrame:
+    """
+    Ejecuta un SQL sobre PostgreSQL y devuelve el resultado como DataFrame.
+
+    Acepta los mismos parametros de conexion que el constructor de ``EngPsqlAlchemy``.
+
+    Args:
+        sql (str): SQL a ejecutar.
+        user (str | None): Usuario PostgreSQL.
+        psw (str | None): Password PostgreSQL.
+        srvr_db (str): Host del servidor.
+        port_db (int): Puerto del servidor.
+        db (str): Nombre de la base de datos.
+        schemas (str | None): Schemas separados por coma para ``search_path``.
+        a_logger (logging.Logger | None): Logger opcional.
+        conn_string (str | None): Connection string completa.
+
+    Returns:
+        DataFrame: Resultado del SQL.
+    """
+    eng = EngPsqlAlchemy.get_cached(
+        user=user,
+        psw=psw,
+        srvr_db=srvr_db,
+        port_db=port_db,
+        db=db,
+        schemas=schemas,
+        a_logger=a_logger,
+        conn_string=conn_string,
+    )
+
+    return pd.read_sql_query(sql, eng.eng_db)
+
+
+def df_from_pg_table(table: str, filter_sql: str | None = None, user: str | None = None,
+                     psw: str | None = None, srvr_db: str = 'localhost',
+                     port_db: int = 5432, db: str = 'postgres', schemas: str | None = None, a_logger=None,
+                     conn_string: str | None = None) -> DataFrame:
+    """
+    Carga una tabla o vista de PostgreSQL en un DataFrame.
+
+    Args:
+        table (str): Nombre de tabla o vista.
+        filter_sql (str | None): Condición SQL opcional para cláusula WHERE. ATENCIÓN: en PG si hay campos en MAYÚSCULAS hay que indicarlos entre ""
+        user (str | None): Usuario PostgreSQL.
+        psw (str | None): Password PostgreSQL.
+        srvr_db (str): Host del servidor.
+        port_db (int): Puerto del servidor.
+        db (str): Nombre de la base de datos.
+        schemas (str | None): Schemas separados por coma para ``search_path``.
+        a_logger (logging.Logger | None): Logger opcional.
+        conn_string (str | None): Connection string completa.
+
+    Returns:
+        DataFrame: Resultado de ``SELECT *`` sobre la tabla/vista.
+    """
+
+    def _quote_pg_identifier(identifier: str) -> str:
+        # Quote identifiers to support reserved words/mixed case and avoid SQL injection patterns.
+        if not isinstance(identifier, str) or not identifier.strip():
+            raise ValueError("El nombre de tabla/vista debe ser un string no vacio")
+        clean = identifier.strip().replace('"', '""')
+        return f'"{clean}"'
+
+    table_sql = _quote_pg_identifier(table)
+
+    sql = f"SELECT * FROM {table_sql}"
+    if filter_sql and filter_sql.strip():
+        where_sql = filter_sql.strip()
+        if where_sql.lower().startswith('where '):
+            where_sql = where_sql[6:].strip()
+        if where_sql:
+            sql += f" WHERE {where_sql}"
+
+    return df_from_pg_sql(
+        sql=sql,
+        user=user,
+        psw=psw,
+        srvr_db=srvr_db,
+        port_db=port_db,
+        db=db,
+        schemas=schemas,
+        a_logger=a_logger,
+        conn_string=conn_string,
+    )
 
 
 def extract_operator(input_string):

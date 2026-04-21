@@ -5,7 +5,7 @@ import pandas as pd
 
 from apb_extra_utils.misc import unzip
 from apb_extra_utils.utils_logging import get_base_logger
-from apb_pandas_utils import df_memory_usage, optimize_df, df_filtered_by_prop, df_from_url
+from apb_pandas_utils import df_memory_usage, optimize_df, df_filtered_by_prop, df_from_url, df_from_pg_table
 
 RESOURCES_DATA_DIR = os.path.join(
     os.path.dirname(
@@ -21,6 +21,12 @@ class PandasUtilsTestCase(unittest.TestCase):
     def setUp(self):
         self.df_csv = pd.read_csv(self.csv_path)
         self.df_csv.set_index('APB_ID', inplace=True)
+        self.user = os.getenv('TEST_USER_PG')
+        self.psw = os.getenv('TEST_USER_PG_PASSWORD')
+        self.srvr_db = os.getenv('TEST_HOST_PG')
+        self.port_db = os.getenv('TEST_PORT_PG', 5432)
+        self.db = os.getenv('TEST_DB_PG')
+        self.schemas = os.getenv('TEST_SCHEMA_PG', 'gis,qgis')
 
     def test_optimize_df(self):
         self.logger.info('Optimize DataFrame')
@@ -59,6 +65,19 @@ class PandasUtilsTestCase(unittest.TestCase):
         df_url = df_from_url(url)
         self.logger.info(f'DF from URL: {df_url.shape} | Memory: {df_memory_usage(df_url):.2f} MB')
         self.assertEqual(df_url.shape[0], 100)
+
+    def test_df_from_pg_table(self):
+        required = [self.user, self.psw, self.srvr_db, self.db]
+        if any(v in (None, '') for v in required):
+            self.skipTest('Faltan variables de entorno TEST_* para test PostgreSQL')
+
+        self.logger.info('Get DataFrame from PostgreSQL table origen_dades_gis')
+        df_pg = df_from_pg_table(table='origen_dades_gis', user=self.user, psw=self.psw, srvr_db=self.srvr_db,
+                                 port_db=self.port_db, db=self.db, schemas=self.schemas, a_logger=self.logger)
+        self.logger.debug(f'DF from PostgreSQL: {df_pg.shape} | Memory: {df_memory_usage(df_pg):.2f} MB')
+        self.assertIsNotNone(df_pg)
+        self.assertIsInstance(df_pg, pd.DataFrame)
+        self.assertGreater(len(df_pg.columns), 0)
 
 
 if __name__ == '__main__':
