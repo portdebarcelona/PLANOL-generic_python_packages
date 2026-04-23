@@ -173,7 +173,7 @@ def gdf_from_pg_table(table: str, geom_col: str | None = None, filter_sql: str |
                       add_goto_url: bool = False, user: str | None = None, psw: str | None = None,
                       srvr_db: str = 'localhost', port_db: int = 5432, db: str = 'postgres',
                       schemas: str | None = None, a_logger=None,
-                      conn_string: str | None = None) -> GeoDataFrame | DataFrame:
+                      url_conn_string: str | None = None) -> GeoDataFrame | DataFrame:
     """
     Carga una tabla/vista de PostgreSQL como GeoDataFrame cuando existe una columna geométrica usable.
 
@@ -194,7 +194,7 @@ def gdf_from_pg_table(table: str, geom_col: str | None = None, filter_sql: str |
         db (str): Nombre de la base de datos.
         schemas (str | None): Schemas separados por coma para ``search_path``.
         a_logger (logging.Logger | None): Logger opcional.
-        conn_string (str | None): Connection string completa.
+        url_conn_string (str | sqlalchemy.engine.urlURL | None): Connection string completa o URL de SQLAlchemy (ver apb_extra_utils.postgres_pckg.psql_alchemy.url_pg_string_connection). Si se proporciona, se ignoran los parámetros anteriores.
 
     Returns:
         GeoDataFrame | DataFrame
@@ -210,9 +210,8 @@ def gdf_from_pg_table(table: str, geom_col: str | None = None, filter_sql: str |
         db=db,
         schemas=schemas,
         a_logger=a_logger,
-        conn_string=conn_string,
+        url_conn_string=url_conn_string,
     )
-
 
     def _fallback_df(reason: str) -> DataFrame:
         logger.warning(f"{reason} Fallback a df_from_pg_table para '{table}'.")
@@ -226,11 +225,11 @@ def gdf_from_pg_table(table: str, geom_col: str | None = None, filter_sql: str |
         db=db,
         schemas=schemas,
         a_logger=a_logger,
-        conn_string=conn_string,
+        url_conn_string=url_conn_string,
     )
 
     try:
-        geoms_info = eng.geoms_table(table)
+        geoms_info = eng.geoms_table_view(table)
     except Exception as exc:
         return _fallback_df(f"No se pudo inspeccionar geometrías ({exc}).")
 

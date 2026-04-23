@@ -16,6 +16,7 @@ from typing import Union, Generator
 import numpy as np
 import pandas as pd
 import requests
+import sqlalchemy
 from geopandas import GeoDataFrame
 from pandas import DataFrame, Timestamp, NaT, CategoricalDtype
 from requests.adapters import HTTPAdapter
@@ -273,7 +274,7 @@ def df_memory_usage(df: DataFrame | GeoDataFrame) -> float:
 
 def df_from_pg_sql(sql: str, user: str | None = None, psw: str | None = None, srvr_db: str = 'localhost',
                    port_db: int = 5432, db: str = 'postgres', schemas: str | None = None,
-                   a_logger=None, conn_string: str | None = None) -> DataFrame:
+                   a_logger=None, url_conn_string: str | sqlalchemy.engine.url.URL | None = None) -> DataFrame:
     """
     Ejecuta un SQL sobre PostgreSQL y devuelve el resultado como DataFrame.
 
@@ -288,7 +289,7 @@ def df_from_pg_sql(sql: str, user: str | None = None, psw: str | None = None, sr
         db (str): Nombre de la base de datos.
         schemas (str | None): Schemas separados por coma para ``search_path``.
         a_logger (logging.Logger | None): Logger opcional.
-        conn_string (str | None): Connection string completa.
+        url_conn_string (str | sqlalchemy.engine.urlURL | None): Connection string completa o URL de SQLAlchemy (ver apb_extra_utils.postgres_pckg.psql_alchemy.url_pg_string_connection). Si se proporciona, se ignoran los parámetros anteriores.
 
     Returns:
         DataFrame: Resultado del SQL.
@@ -301,7 +302,7 @@ def df_from_pg_sql(sql: str, user: str | None = None, psw: str | None = None, sr
         db=db,
         schemas=schemas,
         a_logger=a_logger,
-        conn_string=conn_string,
+        url_conn_string=url_conn_string,
     )
 
     return pd.read_sql_query(sql, eng.eng_db)
@@ -310,7 +311,7 @@ def df_from_pg_sql(sql: str, user: str | None = None, psw: str | None = None, sr
 def df_from_pg_table(table: str, filter_sql: str | None = None, user: str | None = None,
                      psw: str | None = None, srvr_db: str = 'localhost',
                      port_db: int = 5432, db: str = 'postgres', schemas: str | None = None, a_logger=None,
-                     conn_string: str | None = None) -> DataFrame:
+                     url_conn_string: str | sqlalchemy.engine.url.URL | None = None) -> DataFrame:
     """
     Carga una tabla o vista de PostgreSQL en un DataFrame.
 
@@ -324,7 +325,7 @@ def df_from_pg_table(table: str, filter_sql: str | None = None, user: str | None
         db (str): Nombre de la base de datos.
         schemas (str | None): Schemas separados por coma para ``search_path``.
         a_logger (logging.Logger | None): Logger opcional.
-        conn_string (str | None): Connection string completa.
+        url_conn_string (str | sqlalchemy.engine.url.URL | None): Connection string completa o URL de SQLAlchemy (ver apb_extra_utils.postgres_pckg.psql_alchemy.url_pg_string_connection). Si se proporciona, se ignoran los parámetros anteriores.
 
     Returns:
         DataFrame: Resultado de ``SELECT *`` sobre la tabla/vista.
@@ -356,7 +357,7 @@ def df_from_pg_table(table: str, filter_sql: str | None = None, user: str | None
         db=db,
         schemas=schemas,
         a_logger=a_logger,
-        conn_string=conn_string,
+        url_conn_string=url_conn_string,
     )
 
 
