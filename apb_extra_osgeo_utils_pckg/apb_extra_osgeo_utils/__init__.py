@@ -14,20 +14,56 @@ import re
 from collections import OrderedDict, namedtuple
 
 import math
-from osgeo import ogr, osr
+from osgeo import gdal, ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
     ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn
 
 from apb_extra_utils import misc as utils
 
+DRVR_PG = 'PostgreSQL'
+DRVR_CSV = "CSV"
+DRVR_GPKG = "GPKG"
+DRVR_GEOJSON = "GeoJSON"
+DRVR_KML = "KML"
+
 SIMPLIFY_TOLERANCE = 1e-6
-DRIVERS_GDAL_NOT_DELETE_LAYERS = ('POSTGRESQL',)
-DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = ('GEOJSON', 'GPKG', 'POSTGRESQL')
+DRIVERS_GDAL_NOT_DELETE_LAYERS = (DRVR_PG,)
+DRIVERS_OLD_SRS_AXIS_MAPPING_4326 = (DRVR_GEOJSON, DRVR_GPKG, DRVR_PG)
+DRIVERS_NO_SPATIAL_IDX = (DRVR_GEOJSON, DRVR_CSV, DRVR_PG)
 PREFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 PREFFIX_GEOMS_LAYERS_GDAL_CSV = '_WKT'
 
 print_debug = logging.debug
 print_warning = logging.warning
+
+
+def get_geom_field_defn(layer_feature_defn, id_geom: int = 0):
+    """
+    Retorna el GeomFieldDefn indicado solo cuando existe al menos un campo geométrico.
+
+    Args:
+        layer_feature_defn (osgeo.ogr.FeatureDefn): una instancia de FeatureDefn (vease https://gdal.org/en/stable/api/python/vector_api.html#featuredefn)
+        id_geom (int=0): índice del campo geométrico a recuperar.
+
+    Returns:
+        osgeo.ogr.GeomFieldDefn: vease https://gdal.org/en/stable/api/python/vector_api.html#geomfielddefn
+    """
+    if not layer_feature_defn:
+        return None
+
+    if id_geom < 0:
+        raise ValueError(f"id_geom debe ser >= 0. Valor recibido: {id_geom}")
+
+    count_geoms = layer_feature_defn.GetGeomFieldCount()
+    if count_geoms == 0:
+        return None
+
+    if id_geom >= count_geoms:
+        raise ValueError(
+            f"id_geom fuera de rango ({id_geom}). Geometrías disponibles: {count_geoms} (índices 0..{count_geoms - 1})"
+        )
+
+    return layer_feature_defn.GetGeomFieldDefn(id_geom)
 
 
 def srs_ref_from_epsg_code(code_epsg: int, old_axis_mapping=False) -> osr.SpatialReference:
@@ -59,7 +95,7 @@ def srs_ref_from_epsg_code(code_epsg: int, old_axis_mapping=False) -> osr.Spatia
 
 
 def layer_gdal_from_file(path_file: str,
-                         nom_driver: str = 'GeoJSON',
+                         nom_driver: str = DRVR_GEOJSON,
                          nom_geom: str = None,
                          default_srs_epsg_code: int = 4326,
                          default_order_long_lat: bool = True):
@@ -67,7 +103,7 @@ def layer_gdal_from_file(path_file: str,
 
     Args:
         path_file (str):
-        nom_driver (str='GeoJSON'):
+        nom_driver (str=DRVR_GEOJSON):
         nom_geom (str=None): si se informa devolverá la layer solo con la geometria especificada
         default_srs_epsg_code (int=4326): codigo del sistema de coordenadas que asignará por defecto si la layer
                                           NO tiene sistema definido
@@ -106,8 +142,8 @@ def layer_gdal_from_file(path_file: str,
                     if a_layer:
                         ds_vector_file = ds_mem
 
-            elif not a_layer.GetGeometryColumn() and lay_def.GetGeomFieldDefn(0):
-                lay_def.GetGeomFieldDefn(0).SetName(nom_geom)
+            elif not a_layer.GetGeometryColumn() and (geom_def := get_geom_field_defn(lay_def)):
+                geom_def.SetName(nom_geom)
 
         if a_layer:
             # Por si no carga el SRS se asigna el :default_srs_epsg_code (defecto epsg:4326)
@@ -189,7 +225,7 @@ def driver_gdal(nom_driver):
     driver_gdal = ogr.GetDriverByName(nom_driver)
     if driver_gdal is None:
         raise ValueError(f"Driver '{nom_driver}' is not available")
-    
+
     metadata = driver_gdal.GetMetadata()
     exts_drvr = metadata.get('DMD_EXTENSIONS', "").split(" ") if metadata else []
 
@@ -206,23 +242,24 @@ def ds_gdal_memory():
     return ogr.GetDriverByName("memory").CreateDataSource("")
 
 
-def set_create_option_list_for_layer_gdal(layer_gdal, drvr_name="GPKG", **extra_opt_list):
+def set_create_option_list_for_layer_gdal(layer_gdal, drvr_name=DRVR_GPKG, has_geom=True, **extra_opt_list):
     """
     Devuelve la lista de create options GDAL a partir de una layer, el driver para el que se quiere crear y options
     pasadas por defecto
 
     Args:
         layer_gdal (ogr.Layer):
-        drvr_name (str="GPKG"): nombre de driver GDAL
+        drvr_name (str=DRVR_GPKG): nombre de driver GDAL
+        has_geom (bool=True): Indica si la layer tiene geometria. Si es False no añadirá options de geom como GEOMETRY_NAME, SPATIAL_INDEX, ...
         extra_opt_list: lista pares claves-valores que se corresponden con option create list del driver GDAL
 
     Returns:
         opt_list (dict)
     """
-    opt_list = set_create_option_list_for_driver_gdal(drvr_name, **extra_opt_list)
+    opt_list = set_create_option_list_for_driver_gdal(drvr_name, has_geom=has_geom, **extra_opt_list)
 
     opt_geom_name = "GEOMETRY_NAME"
-    if opt_geom_name not in opt_list:
+    if has_geom and opt_geom_name not in opt_list:
         nom_geom_src = layer_gdal.GetGeometryColumn()
         if nom_geom_src:
             opt_list[opt_geom_name] = "{}={}".format(opt_geom_name, nom_geom_src)
@@ -230,13 +267,14 @@ def set_create_option_list_for_layer_gdal(layer_gdal, drvr_name="GPKG", **extra_
     return opt_list
 
 
-def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
+def set_create_option_list_for_driver_gdal(drvr_name=DRVR_GPKG, has_geom=True, **extra_opt_list):
     """
     Devuelve la lista de create options GDAL a partir de una layer, el driver para el que se quiere crear y options
     pasadas por defecto
 
     Args:
-        drvr_name (str="GPKG"): nombre de driver GDAL
+        drvr_name (str=DRVR_GPKG): nombre de driver GDAL
+        has_geom (bool=True): Indica si la layer tiene geometria. Si es False no añadirá options de geom como SPATIAL_INDEX, ...
         extra_opt_list: lista pares claves-valores que se corresponden con option create list del driver GDAL
 
     Returns:
@@ -249,17 +287,17 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
 
     opt_list = {k.upper(): v.upper() for k, v in extra_opt_list.items()}
 
-    if not "FID" in opt_list and drvr.GetName() == 'GPKG':
+    if not "FID" in opt_list and drvr.GetName() == DRVR_GPKG:
         opt_list["FID"] = 'FID=FID_GPKG'
 
-    if drvr.GetName() == "GeoJSON":
+    if drvr.GetName() == DRVR_GEOJSON:
         if "WRITE_BBOX" not in opt_list:
             opt_list["WRITE_BBOX"] = 'WRITE_BBOX=YES'
 
-    if drvr.GetName() == "CSV":
+    if drvr.GetName() == DRVR_CSV:
         if "CREATE_CSVT" not in opt_list:
             opt_list["CREATE_CSVT"] = 'CREATE_CSVT=YES'
-        if "GEOMETRY" not in opt_list:
+        if "GEOMETRY" not in opt_list and has_geom:
             opt_list["GEOMETRY"] = 'GEOMETRY=AS_WKT'
 
     if drvr.GetMetadataItem('DS_LAYER_CREATIONOPTIONLIST'):
@@ -269,8 +307,8 @@ def set_create_option_list_for_driver_gdal(drvr_name="GPKG", **extra_opt_list):
             if list_opts_drvr.find(n_opt) < 0:
                 opt_list.pop(n_opt)
 
-        if "SPATIAL_INDEX" not in opt_list and \
-                list_opts_drvr.find("SPATIAL_INDEX") >= 0 and drvr.GetName() != 'PostgreSQL':
+        if has_geom and "SPATIAL_INDEX" not in opt_list and \
+                list_opts_drvr.find("SPATIAL_INDEX") >= 0 and drvr.GetName() != DRVR_PG:
             opt_list["SPATIAL_INDEX"] = 'SPATIAL_INDEX=YES'
 
     return opt_list
@@ -308,22 +346,25 @@ def copy_layer_gdal_to_ds_gdal(layer_src, ds_gdal_dest, nom_layer=None, nom_geom
 
     extra_opt_list["IDENTIFIER"] = "IDENTIFIER={}".format(nom_layer)
 
-    opt_list = set_create_option_list_for_layer_gdal(layer_src, drvr_name=drvr_name,
-                                                     **{k.upper(): v.upper() for k, v in extra_opt_list.items()})
+    lyr_src_has_geom = bool(layer_src.GetGeometryColumn() or nom_geom)
+
+    opt_list = set_create_option_list_for_layer_gdal(
+        layer_src, drvr_name=drvr_name, has_geom=lyr_src_has_geom,
+        **{str(k).upper(): str(v).upper() for k, v in extra_opt_list.items()})
 
     layer_dest = ds_gdal_dest.CopyLayer(layer_src, nom_layer, list(opt_list.values()))
 
     if layer_dest:
-        if not layer_dest.GetGeometryColumn() and layer_dest.GetLayerDefn().GetGeomFieldDefn(0) and \
-                (layer_src.GetGeometryColumn() or nom_geom):
+        layer_dest_def = layer_dest.GetLayerDefn()
+        if lyr_src_has_geom and not layer_dest.GetGeometryColumn() and get_geom_field_defn(layer_dest_def):
             if not nom_geom:
                 nom_geom = layer_src.GetGeometryColumn()
             else:
                 nom_geom = nom_geom.upper()
 
-            layer_dest.GetLayerDefn().GetGeomFieldDefn(0).SetName(nom_geom)
+            get_geom_field_defn(layer_dest_def).SetName(nom_geom)
 
-        if drvr_name == "GPKG":
+        if drvr_name == DRVR_GPKG and lyr_src_has_geom:
             create_spatial_index_layer_gpkg(ds_gdal_dest, nom_layer)
 
     return layer_dest
@@ -365,7 +406,7 @@ def srs_for_layer(layer_src, nom_geom_src=None):
     srs_lyr_src = layer_src.GetSpatialRef()
     layer_src_def = layer_src.GetLayerDefn()
 
-    if act_geom_field := layer_src_def.GetGeomFieldDefn(0):
+    if act_geom_field := get_geom_field_defn(layer_src_def):
         if nom_geom_src:
             idx_act_geom_field = layer_src_def.GetGeomFieldIndex(nom_geom_src)
             if idx_act_geom_field >= 0:
@@ -445,7 +486,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     srs_lyr_src = layer_src.GetSpatialRef()
 
     layer_src_def = layer_src.GetLayerDefn()
-    act_geom_field = layer_src_def.GetGeomFieldDefn(0)
+    act_geom_field = get_geom_field_defn(layer_src_def)
     nom_geom_out = None
 
     if act_geom_field:
@@ -497,13 +538,15 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
     geom_field_out = None
     if layer_out.TestCapability(OLCAlterFieldDefn):
         layer_out_def = layer_out.GetLayerDefn()
-        geom_field_out = layer_out_def.GetGeomFieldDefn(0)
+        geom_field_out = get_geom_field_defn(layer_out_def)
         if geom_field_out:
+            nom_geom_field_ref = act_geom_field.GetNameRef() if act_geom_field else None
             if not nom_geom_out:
-                nom_geom_out = act_geom_field.GetNameRef()
+                nom_geom_out = nom_geom_field_ref
                 if not nom_geom_out:
                     nom_geom_out = "GEOMETRY"
-            geom_field_out.SetName(nom_geom_out)
+            if not nom_geom_field_ref or nom_geom_field_ref.lower() != nom_geom_out.lower():
+                geom_field_out.SetName(nom_geom_out)
 
     if layer_out.TestCapability(OLCCreateField):
         for fd in fields_layer_gdal(layer_src):
@@ -533,10 +576,10 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                                 epsg_code_src_default=epsg_code_src_default,
                                 old_axis_mapping_srs=old_axis_mapping_srs)
 
-    if drvr_name == "GPKG":
+    if drvr_name == DRVR_GPKG:
         create_spatial_index_layer_gpkg(ds_gdal_dest, nom_layer)
 
-    if drvr_name == 'CSV':
+    if drvr_name == DRVR_CSV:
         path_csv = ds_gdal_dest.GetName()
         if os.path.exists(path_csv):
             rename_wkt_geoms_csv(path_csv)
@@ -672,7 +715,7 @@ def create_layer_on_ds_gdal(ds_gdal_dest, nom_layer, nom_geom=None, gtype=None, 
             nom_layer, ds_gdal_dest.GetDescription()))
         ds_gdal_dest.DeleteLayer(nom_layer)
 
-    if drvr_name.upper() == "KML":
+    if drvr_name.upper() == DRVR_KML:
         nom_layer = nom_layer.replace("-", "__")
 
     layer_out = ds_gdal_dest.CreateLayer(nom_layer, srs_lyr_out, geom_type=gtype, options=list(opt_list.values()))
@@ -692,13 +735,14 @@ def create_spatial_index_layer_gpkg(ds_gpkg, nom_layer):
         bool
     """
     layer_gpkg = ds_gpkg.GetLayerByName(nom_layer)
-    if layer_gpkg and layer_gpkg.GetGeometryColumn():
-        # Se crea spatial_index ya que GDAL NO lo hace
-        ds_gpkg.StartTransaction()
-        ds_gpkg.ExecuteSQL("SELECT CreateSpatialIndex('{tab_name}', '{geom_name}') ".format(
-            tab_name=layer_gpkg.GetName(),
-            geom_name=layer_gpkg.GetGeometryColumn()))
-        ds_gpkg.CommitTransaction()
+    if layer_gpkg and (geom_name := layer_gpkg.GetGeometryColumn()):
+        tab_name = layer_gpkg.GetName()
+        res = ds_gpkg.ExecuteSQL(f"SELECT HasSpatialIndex('{tab_name}', '{geom_name}');")
+        if not bool(res and res.GetNextFeature().GetField(0) == 1):
+            # Se crea spatial_index ya que GDAL NO lo hace
+            ds_gpkg.StartTransaction()
+            ds_gpkg.ExecuteSQL(f"SELECT CreateSpatialIndex('{tab_name}', '{geom_name}');")
+            ds_gpkg.CommitTransaction()
 
         return True
     else:
@@ -726,10 +770,12 @@ def add_feature_to_layer_gdal(layer_gdal, tolerance_simplify=None, geom_trans=No
         es_geom = idx_geom >= 0
         if es_geom:
             if val:
+                new_val = None
                 if tolerance_simplify:
-                    val = val.Simplify(tolerance_simplify)
+                    new_val = val.Simplify(tolerance_simplify)
                 if val and geom_trans:
-                    val.Transform(geom_trans)
+                    new_val = val.Transform(geom_trans)
+                val = new_val or val
 
             dd_feat.SetGeomField(idx_geom, val)
 
@@ -806,51 +852,61 @@ def drivers_ogr_gdal_vector_file():
             else:
                 # Fall back to GetMetadata for GDAL 3.10+
                 metadata = d.GetMetadata()
-            
+
             if metadata and metadata.get('DMD_EXTENSIONS'):
                 result[nd] = d
         except Exception:
             # Skip drivers that have issues
             continue
-    
+
     return result
 
 
-def format_nom_column(nom_col):
+def format_nom_column(nom_col, case_format=None):
     """
+    Retorna el nombre de columna formateado para usar como campo de un namedtuple (quita espacios y los reemplaza por "_").
 
     Args:
-        nom_col:
+        nom_col (str):
+        case_format (str|None): formato de la columna. Si 'upper' or 'lower'. Por defecto tal como viene indicado
 
     Returns:
         str
     """
-    return nom_col.replace(" ", "_")
+    nom_col_res = nom_col.replace(" ", "_")
+    if case_format:
+        if (case_format := case_format.lower()) == 'upper':
+            nom_col_res = nom_col_res.upper()
+        elif case_format == 'lower':
+            nom_col_res = nom_col_res.lower()
+
+    return nom_col_res
 
 
-def namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld=None):
+def namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld=None, case_fields_nt=None):
     """
     Devuelve namedTuple con los campos del layer pasado por parametro
 
     Args:
         layer_gdal:
         extract_affix_geom_fld (str=None):
+        case_fields_nt (str|None): formato de las columnas de NamedTuple retornado. Si 'upper' or 'lower'. Por defecto tal como vienen de la FeatureLayer
 
     Returns:
         namedtuple: con nombre "gdalFeatDef_{NOM_LAYER}" y con los campos de la layer
     """
     camps_layer = set()
     for fld in fields_layer_gdal(layer_gdal):
-        camps_layer.add(format_nom_column(fld.GetNameRef()))
+        camps_layer.add(format_nom_column(fld.GetNameRef(), case_format=case_fields_nt))
 
     for nom_geom in geoms_layer_gdal(layer_gdal, extract_affix=extract_affix_geom_fld):
-        camps_layer.add(format_nom_column(nom_geom))
+        camps_layer.add(format_nom_column(nom_geom, case_format=case_fields_nt))
 
     nom_layer = layer_gdal.GetName().upper().split(".")[0].replace("-", "_")
     return namedtuple(f"gdalFeatDef_{nom_layer}", camps_layer)
 
 
-def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
+def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None, case_fields_nt=None):
     """
     Itera las features (registros de una layer de gdal) y los devuelve como un namdetuple
 
@@ -859,6 +915,7 @@ def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
         nom_layer (str=None): Si no viene informado cogerá la primera layer que encuentre en el datasource
         filter_sql (str=None): Si viene informado se aplicará como filtro sql a la layer seleccionada.
                             Utiliza OGR SQL (vease https://www.gdal.org/ogr_sql.html)
+        case_fields_nt (str|None): formato de las columnas de NamedTuple retornado. Si 'upper' or 'lower'. Por defecto tal como vienen de la FeatureLayer
 
     Returns:
         ogr.Feature, ogr.Geometry, namedtuple_layer_gdal
@@ -869,13 +926,16 @@ def feats_layer_ds_gdal(ds_gdal, nom_layer=None, filter_sql=None):
         layer_gdal = ds_gdal.GetLayerByName(nom_layer)
 
     if layer_gdal:
-        for feat, geom, vals in feats_layer_gdal(layer_gdal, filter_sql=filter_sql):
+        for feat, geom, vals in feats_layer_gdal(layer_gdal, filter_sql=filter_sql, case_fields_nt=case_fields_nt):
             yield feat, geom, vals
+    else:
+        raise ValueError(f"'{nom_layer}' is not a valid layer over DataSource GDAL '{ds_gdal.GetName()}'")
 
 
-def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_geom_fld=PREFFIX_GEOMS_LAYERS_GDAL):
+def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_geom_fld=PREFFIX_GEOMS_LAYERS_GDAL,
+                     case_fields_nt=None):
     """
-    Itera las features (registros de una layer de gdal) y los devuelve como un namdtuple
+    Itera las features (registros de una layer de gdal) y los devuelve como un namedtuple
 
     Args:
         layer_gdal (ogr.Layer):
@@ -883,12 +943,14 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_g
         filter_sql (str=None): Si viene informado se aplicará como filtro sql a la layer seleccionada.
                             Utiliza OGR SQL (vease https://www.gdal.org/ogr_sql.html)
         extract_affix_geom_fld (str=SUFFIX_GEOMS_LAYERS_GDAL): Por defecto quita el sufijo 'geom_' a los campos geom
+        case_fields_nt (str=None): si 'upper' los campos del NamedTuple retornado estarán en UPPERCASE y si 'lower' al contrario.
+                        Por defecto tal como vienen de la FeatureLayer
 
     Returns:
         ogr.Feature, ogr.Geometry, namedtuple_layer_gdal
     """
     layer_gdal.ResetReading()
-    ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld)
+    ntup_layer = namedtuple_layer_gdal(layer_gdal, extract_affix_geom_fld, case_fields_nt=case_fields_nt)
     n_geoms_layer = {nom_geom_feat: fix_affix_geom_name_layer_gdal(nom_geom_feat, layer_gdal, extract_affix_geom_fld)
                      for nom_geom_feat in geoms_layer_gdal(layer_gdal)}
 
@@ -901,16 +963,16 @@ def feats_layer_gdal(layer_gdal, nom_geom=None, filter_sql=None, extract_affix_g
         # In GDAL 3.x, items() returns a dict
         if isinstance(feat_items, dict):
             for camp, val in feat_items.items():
-                vals[format_nom_column(camp)] = val
+                vals[format_nom_column(camp, case_format=case_fields_nt)] = val
         else:
             # Older GDAL versions may return different structure
             for camp, val in feat_items:
-                vals[format_nom_column(camp)] = val
+                vals[format_nom_column(camp, case_format=case_fields_nt)] = val
 
         for camp_geom, camp_geom_val in n_geoms_layer.items():
             idx_geom = feat_gdal.GetGeomFieldIndex(camp_geom)
             if idx_geom >= 0:
-                vals[camp_geom_val] = feat_gdal.GetGeomFieldRef(idx_geom)
+                vals[format_nom_column(camp_geom_val, case_format=case_fields_nt)] = feat_gdal.GetGeomFieldRef(idx_geom)
 
         return vals
 
@@ -1108,7 +1170,7 @@ def add_layer_gdal_to_ds_gdal(ds_gdal, layer_gdal, nom_layer=None, lite=False, s
                                                           epsg_code_dest=srs_epsg_code, **extra_opt_list)
             new_layers_ds_gdal.append(lyr)
     else:
-        if ds_gdal.GetDriver().GetName() == 'PostgreSQL':
+        if ds_gdal.GetDriver().GetName() == DRVR_PG:
             extra_opt_list.update(dict(
                 precision=extra_opt_list.get('precision', 'PRECISION=NO')
             ))
@@ -1139,7 +1201,7 @@ def copy_layers_gpkg(ds_gpkg, driver, dir_base, lite=False, srs_epsg_code=None, 
     utils.create_dir(subdir_drvr)
 
     for layer_gpkg in (ds_gpkg.GetLayer(id_lyr) for id_lyr in range(ds_gpkg.GetLayerCount() - 1)):
-        if driver == "GPKG":
+        if driver == DRVR_GPKG:
             nom_ds, ext = utils.split_ext_file(os.path.basename(ds_gpkg.GetName()))
         else:
             nom_ds = f"{layer_gpkg.GetName()}".lower()
@@ -1164,7 +1226,7 @@ def set_csvt_for_layer_csv(path_csv, **tipus_camps):
     Returns:
         path_csvt (str)
     """
-    lyr_csv, nom_layer, ds_lyr = layer_gdal_from_file(path_csv, "CSV")
+    lyr_csv, nom_layer, ds_lyr = layer_gdal_from_file(path_csv, DRVR_CSV)
     if not lyr_csv:
         print_warning("!ATENCIO! - No s'ha pogut obrir la layer CSV '{}'".format(path_csv))
         return
@@ -1207,7 +1269,7 @@ def zip_and_clean_ds_csv(path_csv):
     Returns:
         zip_path (str)
     """
-    ds_gdal_csv, dummy = datasource_gdal_vector_file("CSV", os.path.basename(path_csv).split(".")[0],
+    ds_gdal_csv, dummy = datasource_gdal_vector_file(DRVR_CSV, os.path.basename(path_csv).split(".")[0],
                                                      os.path.dirname(path_csv))
     layer_csv = ds_gdal_csv.GetLayer(0)
     tips_geoms = {gn: "WKT" for gn in
@@ -1282,7 +1344,8 @@ def transform_ogr_geom(a_ogr_geom, from_espg_code, to_epsg_code):
     return a_ogr_geom
 
 
-def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schema='public'):
+def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schema=None,
+               **open_options):
     """
     Retorna datasource GDAL para ddbb postgis
 
@@ -1293,12 +1356,24 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
         user:
         password:
         schema:
+        **open_options: Open options del driver PostgreSQL de GDAL
+                        (vease https://gdal.org/en/stable/drivers/vector/pg.html#dataset-open-options)
+                        p.e.: LIST_ALL_TABLES='YES', SKIP_VIEWS='YES', SCHEMAS='public,myschema',
+                              TABLES='tabla1,tabla2', OGR_PG_RETRIEVE_FID='YES'
 
     Returns:
         osgeo.ogr.DataSource
     """
-    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}' active_schema='{schema}'"
-    drvr, exts = driver_gdal('PostgreSQL')
+    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}'"
+    if schema:
+        pg_conn = f"{pg_conn} active_schema='{schema}' schemas='{schema}'"
+
+    if open_options:
+        oo_list = [f"{k.upper()}={v}" for k, v in open_options.items()]
+        return gdal.OpenEx(pg_conn, gdal.OF_VECTOR | gdal.OF_UPDATE, open_options=oo_list)
+
+    drvr, exts = driver_gdal(DRVR_PG)
+
     return drvr.Open(pg_conn, 1)
 
 
