@@ -33,6 +33,9 @@ DRIVERS_NO_SPATIAL_IDX = (DRVR_GEOJSON, DRVR_CSV, DRVR_PG)
 PREFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 PREFFIX_GEOMS_LAYERS_GDAL_CSV = '_WKT'
 
+# Cache global: {ds_name: {'count': int, 'layers': set[str]}}
+_CACHE_NOM_LAYERS_DS_GDAL = {}
+
 print_debug = logging.debug
 print_warning = logging.warning
 
@@ -449,7 +452,7 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
         layer_out (ogr.Layer)
     """
     desc_ds_gdal = ds_gdal_dest.GetDescription()
-    drvr_name = ds_gdal_dest.GetDriver().GetName().upper()
+    drvr_name = ds_gdal_dest.GetDriver().GetName()
     print_debug("Inici crear layer '{}' en ds_gdal '{}'".format(
         (nom_layer if nom_layer else layer_src.GetName()).upper(),
         desc_ds_gdal if desc_ds_gdal else drvr_name))
@@ -566,7 +569,8 @@ def create_layer_from_layer_gdal_on_ds_gdal(ds_gdal_dest, layer_src, nom_layer=N
                     gfd_def_dest.SetSpatialRef(srs_lyr_dest)
                 layer_out.CreateGeomField(gfd_def_dest)
 
-    if not geom_field_out:
+    # Si capa ALFA se fuerza a crear la capa aunque no tenga geometría
+    if not nom_geom_out and not nom_geom_src:
         null_geoms = True  # Si no hay geom siempre se añaden
 
     add_layer_features_to_layer(layer_src, ds_gdal_dest, layer_out, nom_geom_src, nom_geom_out,
@@ -1042,14 +1046,37 @@ def geom_fields_layer_gdal(layer_gdal):
 
 def nom_layers_datasource_gdal(ds_gdal):
     """
+    Retorna lista con los nombres de las layers de un datasource gdal.
+    CACHEA esos nombres por DS Name para optimizar llamadas repetidas.
 
     Args:
-        ds_gdal (ogr.Datasource:
+        ds_gdal (ogr.Datasource):
 
     Returns:
         set
     """
-    return {l.GetName() for l in ds_gdal}
+    if not ds_gdal:
+        return set()
+
+    ds_name = ds_gdal.GetName() if hasattr(ds_gdal, "GetName") else None
+    layer_count = ds_gdal.GetLayerCount() if hasattr(ds_gdal, "GetLayerCount") else None
+
+    if ds_name and ds_name in _CACHE_NOM_LAYERS_DS_GDAL:
+        cached = _CACHE_NOM_LAYERS_DS_GDAL[ds_name]
+        if layer_count is None or cached.get("count") == layer_count:
+            # Devolvemos copia para evitar mutaciones externas de la caché
+            return set(cached.get("layers", set()))
+
+    layers = {l.GetName() for l in ds_gdal}
+
+    # Solo cacheamos cuando existe identificador estable de datasource
+    if ds_name:
+        _CACHE_NOM_LAYERS_DS_GDAL[ds_name] = {
+            "count": layer_count,
+            "layers": set(layers)
+        }
+
+    return layers
 
 
 def cols_layer_gdal(layer_gdal):
@@ -1344,7 +1371,7 @@ def transform_ogr_geom(a_ogr_geom, from_espg_code, to_epsg_code):
     return a_ogr_geom
 
 
-def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schema=None,
+def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schemas=None,
                **open_options):
     """
     Retorna datasource GDAL para ddbb postgis
@@ -1355,7 +1382,7 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
         port:
         user:
         password:
-        schema:
+        schemas (str | list[str]):
         **open_options: Open options del driver PostgreSQL de GDAL
                         (vease https://gdal.org/en/stable/drivers/vector/pg.html#dataset-open-options)
                         p.e.: LIST_ALL_TABLES='YES', SKIP_VIEWS='YES', SCHEMAS='public,myschema',
@@ -1365,8 +1392,13 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
         osgeo.ogr.DataSource
     """
     pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}'"
-    if schema:
-        pg_conn = f"{pg_conn} active_schema='{schema}' schemas='{schema}'"
+    if schemas:
+        if isinstance(schemas, str):
+            schemas = [*schemas.split(",")]
+
+        active_schema = schemas[0]
+        str_schemas = ",".join(schemas)
+        pg_conn = f"{pg_conn} active_schema='{active_schema}' schemas='{str_schemas}'"
 
     if open_options:
         oo_list = [f"{k.upper()}={v}" for k, v in open_options.items()]
