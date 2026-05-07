@@ -107,7 +107,7 @@ class TestOsgeoUtils(unittest.TestCase):
 
     def test_create_csv_from_csv(self):
         layer_gdal, nom_layer_gdal, ds_gdal = apb_extra_osgeo_utils.layer_gdal_from_file(
-            os.path.join(path_data, 'edificacio.zip'), 'CSV', default_order_long_lat=False)
+            os.path.join(path_data, 'edificacio.zip'), 'CSV', default_order_long_lat=True)
         ds_gdal_csv, overwrited = apb_extra_osgeo_utils.datasource_gdal_vector_file(
             'CSV',
             "{}_{}".format(nom_layer_gdal, 25831),
