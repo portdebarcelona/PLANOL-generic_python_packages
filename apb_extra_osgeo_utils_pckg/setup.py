@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_extra_osgeo_utils',
-    version='1.1.2',
+    version='1.1.3',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_extra_osgeo_utils_pckg',
     author='Ernesto Arredondo Martinez',
@@ -37,7 +37,7 @@ setup(
         'Operating System :: OS Independent'
     ],
     install_requires=[
-        'apb_extra_utils<1.1'
+        'apb_extra_utils>=1.0,<1.1'
     ],
     python_requires='>=3.6'
 )
