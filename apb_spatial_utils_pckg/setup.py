@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_spatial_utils',
-    version='0.1.2',
+    version='0.1.3',
     packages=['apb_spatial_utils'],
     url=f'{GIT_REPO}/tree/master/apb_spatial_utils_pckg',
     author='Ernesto Arredondo Martinez',
@@ -39,7 +39,7 @@ setup(
     install_requires=[
         'shapely',
         'pyproj',
-        'apb_extra_utils<1.1'
+        'apb_extra_utils>=1.0,<1.1'
     ],
     python_requires='>=3.6'
 )
