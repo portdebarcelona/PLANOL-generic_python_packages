@@ -170,7 +170,7 @@ def has_changes_in_github(owner, repo, branch, download_to, token=None):
 
 
 def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_repo, header=None, force_update=False,
-                                   remove_prev=False, as_zip=False, normalize_eol_win32=True):
+                                   remove_prev=False, as_zip=False, normalize_eol_win32=None):
     """
     
     Args:
@@ -182,7 +182,8 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
         force_update (bool=False):
         remove_prev (bool=False):
         as_zip (bool=False):
-        normalize_eol_win32 (bool=True): Normaliza endline para CRLF (Windows)
+        normalize_eol_win32 (bool=None): Normaliza endline para CRLF. Si True fuerza la conversión;
+            si None convierte solo en Windows; si False no convierte.
 
     Returns:
         updated (bool)
@@ -216,7 +217,7 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
             if remove_prev and os.path.exists(path_repo):
                 remove_content_dir(path_repo)
             shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
-            if normalize_eol_win32:
+            if normalize_eol_win32 is True or (normalize_eol_win32 is None and os.name == 'nt'):
                 convert_tree_to_crlf(path_repo)
 
         shutil.rmtree(path_res, ignore_errors=True)
@@ -230,7 +231,7 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
 
 
 def download_release_repo_github(owner, repo, download_to, tag_release=None, token=None, force=False, as_zip=False,
-                                 remove_prev=False, normalize_eol_win32=True):
+                                 remove_prev=False, normalize_eol_win32=None):
     """
     Download release Github repository on the path selected.
 
@@ -243,7 +244,8 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         force (bool=False): Force update if exists previous sources
         remove_prev (bool=False): Remove all previous resources
         as_zip (bool=False): Retorna como ZIP
-        normalize_eol_win32 (bool=True): Normaliza endline para CRLF (Windows)
+        normalize_eol_win32 (bool=None): Normaliza endline para CRLF. Si True fuerza la conversión;
+            si None convierte solo en Windows; si False no convierte.
 
     Returns:
         tag_name (str)
@@ -267,7 +269,7 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
 
 
 def download_branch_repo_github(owner, repo, branch, download_to, token=None, force=False, as_zip=False,
-                                remove_prev=False, normalize_eol_win32=True):
+                                remove_prev=False, normalize_eol_win32=None):
     """
     Download the branch selected for the Github repo on the path selected
 
@@ -280,7 +282,8 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         force (bool=False): Force update if exists previous sources
         remove_prev (bool=False): Remove all previous resources
         as_zip (bool=False): Retorna como ZIP
-        normalize_eol_win32 (bool=True): Normalize eol to windows if True
+        normalize_eol_win32 (bool=None): Normaliza endline para CRLF. Si True fuerza la conversión;
+            si None convierte solo en Windows; si False no convierte.
 
     Returns:
         sha_commit (str), updated (boolean)
