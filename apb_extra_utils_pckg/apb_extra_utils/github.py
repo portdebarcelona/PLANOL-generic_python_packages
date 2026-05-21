@@ -9,6 +9,54 @@ from urllib.request import Request, urlopen
 from apb_extra_utils.misc import download_and_unzip, remove_content_dir, zip_dir, create_dir
 
 PREFIX_FILE_LAST_TAG_REPO = 'last_tag_repo_github_'
+from pathlib import Path
+
+TEXT_EXTS = {
+    ".py", ".txt", ".md", ".rst", ".json", ".yaml", ".yml",
+    ".ini", ".cfg", ".toml", ".csv", ".tsv", ".xml", ".html",
+    ".css", ".js", ".sql", ".bat", ".cmd", ".ps1"
+}
+
+def _is_probably_binary(data: bytes) -> bool:
+    return b"\x00" in data
+
+def convert_tree_to_crlf(root_dir: str):
+    """
+    Convert endlines LF to CRLF
+
+    Args:
+        root_dir (str): root directory of tree:
+
+    Returns:
+        None
+    """
+    root = Path(root_dir)
+    for p in root.rglob("*"):
+        if not p.is_file():
+            continue
+        if p.suffix.lower() not in TEXT_EXTS:
+            continue
+
+        raw = p.read_bytes()
+        if _is_probably_binary(raw):
+            continue
+
+        # decode defensivo
+        try:
+            text = raw.decode("utf-8")
+            encoding = "utf-8"
+        except UnicodeDecodeError:
+            try:
+                text = raw.decode("windows-1252")
+                encoding = "windows-1252"
+            except UnicodeDecodeError:
+                continue
+
+        # normaliza primero a LF y luego a CRLF
+        text = text.replace("\r\n", "\n").replace("\r", "\n")
+        text = text.replace("\n", "\r\n")
+
+        p.write_text(text, encoding=encoding, newline="")
 
 
 def get_api_github(owner, repo, api_request, token=None):
@@ -121,8 +169,8 @@ def has_changes_in_github(owner, repo, branch, download_to, token=None):
     return True, sha_commit
 
 
-def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_repo, header=None,
-                                   force_update=False, remove_prev=False, as_zip=False):
+def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_repo, header=None, force_update=False,
+                                   remove_prev=False, as_zip=False, normalize_eol_win32=True):
     """
     
     Args:
@@ -134,6 +182,7 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
         force_update (bool=False):
         remove_prev (bool=False):
         as_zip (bool=False):
+        normalize_eol_win32 (bool=True): Normaliza endline para CRLF (Windows)
 
     Returns:
         updated (bool)
@@ -167,6 +216,8 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
             if remove_prev and os.path.exists(path_repo):
                 remove_content_dir(path_repo)
             shutil.copytree(path_res, path_repo, dirs_exist_ok=True)
+            if normalize_eol_win32:
+                convert_tree_to_crlf(path_repo)
 
         shutil.rmtree(path_res, ignore_errors=True)
 
@@ -179,7 +230,7 @@ def get_resources_from_repo_github(html_repo, tag, expected_name_zip_repo, path_
 
 
 def download_release_repo_github(owner, repo, download_to, tag_release=None, token=None, force=False, as_zip=False,
-                                 remove_prev=False):
+                                 remove_prev=False, normalize_eol_win32=True):
     """
     Download release Github repository on the path selected.
 
@@ -192,6 +243,7 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         force (bool=False): Force update if exists previous sources
         remove_prev (bool=False): Remove all previous resources
         as_zip (bool=False): Retorna como ZIP
+        normalize_eol_win32 (bool=True): Normaliza endline para CRLF (Windows)
 
     Returns:
         tag_name (str)
@@ -208,14 +260,14 @@ def download_release_repo_github(owner, repo, download_to, tag_release=None, tok
         if token:
             header['Authorization'] = f'token {token}'
 
-        get_resources_from_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to,
-                                       header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
+        get_resources_from_repo_github(html_release, tag_name, f'{repo}-{tag_name}', download_to, header=header,
+                                       force_update=force, remove_prev=remove_prev, as_zip=as_zip, normalize_eol_win32=normalize_eol_win32)
 
         return tag_name
 
 
 def download_branch_repo_github(owner, repo, branch, download_to, token=None, force=False, as_zip=False,
-                                remove_prev=False):
+                                remove_prev=False, normalize_eol_win32=True):
     """
     Download the branch selected for the Github repo on the path selected
 
@@ -228,6 +280,7 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         force (bool=False): Force update if exists previous sources
         remove_prev (bool=False): Remove all previous resources
         as_zip (bool=False): Retorna como ZIP
+        normalize_eol_win32 (bool=True): Normalize eol to windows if True
 
     Returns:
         sha_commit (str), updated (boolean)
@@ -241,8 +294,8 @@ def download_branch_repo_github(owner, repo, branch, download_to, token=None, fo
         header['Authorization'] = f'token {token}'
 
     name_zip = f'{repo}-{branch}'
-    updated = get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to,
-                                             header=header, force_update=force, remove_prev=remove_prev, as_zip=as_zip)
+    updated = get_resources_from_repo_github(html_branch, sha_commit, name_zip, download_to, header=header,
+                                             force_update=force, remove_prev=remove_prev, as_zip=as_zip, normalize_eol_win32=normalize_eol_win32)
 
     if as_zip:
         path_zip = os.path.join(download_to, f'{name_zip}.zip')
