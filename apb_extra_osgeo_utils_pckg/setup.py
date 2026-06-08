@@ -21,7 +21,7 @@ def readme():
 
 setup(
     name='apb_extra_osgeo_utils',
-    version='1.1.3',
+    version='1.1.4',
     packages=find_packages(),
     url=f'{GIT_REPO}/tree/master/apb_extra_osgeo_utils_pckg',
     author='Ernesto Arredondo Martinez',

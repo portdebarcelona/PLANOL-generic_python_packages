@@ -12,13 +12,14 @@ import logging
 import os
 import re
 from collections import OrderedDict, namedtuple
+from logging import Logger
 
 import math
 from osgeo import gdal, ogr, osr
 from osgeo.ogr import ODsCCreateLayer, OLCAlterFieldDefn, OLCCreateField, ODsCTransactions, \
     ODsCDeleteLayer, OLCTransactions, Geometry, ODrCCreateDataSource, GeomFieldDefn
 
-from apb_extra_utils import misc as utils
+from apb_extra_utils import misc as utils, utils_logging
 
 DRVR_PG = 'PostgreSQL'
 DRVR_CSV = "CSV"
@@ -34,6 +35,7 @@ PREFFIX_GEOMS_LAYERS_GDAL = 'geom_'
 PREFFIX_GEOMS_LAYERS_GDAL_CSV = '_WKT'
 
 # Cache global: {ds_name: {'count': int, 'layers': set[str]}}
+_CACHE_DS_POSTGIS: dict[str, ogr.DataSource] = {}
 _CACHE_NOM_LAYERS_DS_GDAL = {}
 
 print_debug = logging.debug
@@ -1371,18 +1373,13 @@ def transform_ogr_geom(a_ogr_geom, from_espg_code, to_epsg_code):
     return a_ogr_geom
 
 
-def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres', password='postgres', schemas=None,
-               **open_options):
+def ds_postgis(pg_conn_str, schemas=None, **open_options):
     """
     Retorna datasource GDAL para ddbb postgis
 
     Args:
-        dbname:
-        host:
-        port:
-        user:
-        password:
-        schemas (str | list[str]):
+        pg_conn_str: str "PG:user=... password=..."
+        schemas:
         **open_options: Open options del driver PostgreSQL de GDAL
                         (vease https://gdal.org/en/stable/drivers/vector/pg.html#dataset-open-options)
                         p.e.: LIST_ALL_TABLES='YES', SKIP_VIEWS='YES', SCHEMAS='public,myschema',
@@ -1391,22 +1388,128 @@ def ds_postgis(dbname='POSTGRES', host='localhost', port='5432', user='postgres'
     Returns:
         osgeo.ogr.DataSource
     """
-    pg_conn = f"PG:dbname='{dbname}' host='{host}' port='{port}' user='{user}' password='{password}'"
     if schemas:
         if isinstance(schemas, str):
             schemas = [*schemas.split(",")]
 
         active_schema = schemas[0]
         str_schemas = ",".join(schemas)
-        pg_conn = f"{pg_conn} active_schema='{active_schema}' schemas='{str_schemas}'"
+        pg_conn_str = f"{pg_conn_str} active_schema='{active_schema}' schemas='{str_schemas}'"
 
     if open_options:
         oo_list = [f"{k.upper()}={v}" for k, v in open_options.items()]
-        return gdal.OpenEx(pg_conn, gdal.OF_VECTOR | gdal.OF_UPDATE, open_options=oo_list)
+        return gdal.OpenEx(pg_conn_str, gdal.OF_VECTOR | gdal.OF_UPDATE, open_options=oo_list)
 
     drvr, exts = driver_gdal(DRVR_PG)
 
-    return drvr.Open(pg_conn, 1)
+    return drvr.Open(pg_conn_str, 1)
+
+
+def pg_string_connection(dbname=None, host=None, port=None, service=None, user=None, password=None, schemas=None):
+    """
+    Retorna una cadena de conexion a una base de datos postgis
+
+    Args:
+        dbname:
+        host:
+        port:
+        service:
+        user:
+        password:
+        schemas (str | list[str]=None): Esquema de la base de datos
+
+    Returns:
+        str
+    """
+    pg_conn = "PG:"
+    if dbname:
+        pg_conn += f"dbname='{dbname}'"
+    if host:
+        pg_conn += f"host='{host}'"
+    if port:
+        pg_conn += f"port='{port}'"
+    if service:
+        pg_conn += f"service='{service}'"
+    if user:
+        pg_conn += f"user='{user}'"
+    if password:
+        pg_conn += f"password='{password}'"
+
+    if schemas:
+        if isinstance(schemas, str):
+            schemas = [*schemas.split(",")]
+
+        active_schema = schemas[0]
+        str_schemas = ",".join(schemas)
+        pg_conn_str = f"{pg_conn} active_schema='{active_schema}' schemas='{str_schemas}'"
+
+    return pg_conn
+
+
+def get_ds_postgis(dbname=None, host=None, port=None, service=None, user=None, password=None, schemas=None,
+                   pg_conn_str=None, logger: Logger = None, **open_options) -> ogr.DataSource:
+    """
+    Retorna cached datasource postgis GDAL
+
+    Args:
+        dbname (str=None): Nombre de la base de datos
+        host (str=None): Host de la base de datos
+        port (str=None): Puerto de la base de datos
+        service (str=None): nombre service definido en pg_service.conf (env var PGSERVICE)
+        user (str=None): Usuario de la base de datos
+        password (str=None): Contraseña de la base de datos
+        schemas (str | list[str]=None): Esquema de la base de datos
+        pg_conn_str (str=None): cadena conexion tipo "PG:user=... password=... service=...". Si viene informada no se hace caso a ningún otro argumento
+        logger (logging.Logger=None): (opcional) logger para LOG.
+        **open_options (str): Opciones para abrir el Datasource de Postgis. Vease https://gdal.org/en/stable/drivers/vector/pg.html#dataset-open-options
+    Returns:
+        datasource_gdal (osgeo.gdal.DataSource)
+    """
+    ds_gdal: ogr.DataSource | None = None
+
+    if not pg_conn_str:
+        pg_conn_str = pg_string_connection(dbname=dbname, host=host, port=port, service=service, user=user,
+                                           password=password)
+    elif not pg_conn_str.startswith('PG:'):
+        pg_conn_str = f"PG:{pg_conn_str}"
+
+    # Retorna la pg_conn_str con el valor despues de 'password=' substituido por '****'
+    pg_id_ds = re.sub(r"(?i)(password\s*=\s*')([^']*)(')", r"\1****\3", pg_conn_str)
+    
+    if ds_gdal := _CACHE_DS_POSTGIS.get(pg_id_ds):
+        # Antes de retornar verificar que la conexión sigue siendo correcta
+        try:
+            _ = ds_gdal.GetLayerCount()
+            lyr_test = ds_gdal.ExecuteSQL("SELECT 1")
+            if lyr_test is not None:
+                ds_gdal.ReleaseResultSet(lyr_test)
+            return ds_gdal
+        except Exception:
+            _CACHE_DS_POSTGIS.pop(pg_id_ds, None)
+
+    if not logger:
+        logger = utils_logging.get_base_logger()
+
+    error_exc = None
+    try:
+        ds_gdal: ogr.DataSource = ds_postgis(
+            pg_conn_str=pg_conn_str,
+            schemas=schemas,
+            **open_options)
+    except Exception as exc:
+        error_exc = f"Error: {exc}"
+    finally:
+        if ds_gdal:
+            logger.info(f"Conectado a la base de datos POSTGIS del repositorio GIS: {pg_id_ds}")
+        else:
+            msg_error = f"No se ha podido conectar a la base de datos POSTGIS [{pg_id_ds}] del repositorio GIS. " \
+                        f"{error_exc if error_exc else ''} "
+            logger.error(msg_error)
+            raise ConnectionError(msg_error)
+
+    _CACHE_DS_POSTGIS[pg_id_ds] = ds_gdal
+
+    return ds_gdal
 
 
 def reset_sequence_layer_postgis(ds_postgis, nom_layer):
