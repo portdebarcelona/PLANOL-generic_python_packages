@@ -49,7 +49,6 @@ pipeline {
   environment {
     TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
     PYPI_API_TOKEN = credentials('pypi-api-token')
-    REPO_BRANCH = 'training'
     GITHUB_EVENT = "${env.X_GitHub_Event}"
 
     // Docker (build image & push)
@@ -100,11 +99,17 @@ pipeline {
   }
 
   stages {
+    stage('Initialize checkout context') {
+      steps {
+        script { planolCheckoutContext() }
+      }
+    }
+
     stage('Checkout code') {
       steps {
         planolCheckout(
-          url: scm.getUserRemoteConfigs()[0].getUrl(),
-          ref: '*/training',
+          url: env.CHECKOUT_URL,
+          ref: env.CHECKOUT_REF,
           shallow: true,
           timeout: 360,
           changelog: false
