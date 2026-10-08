@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"path": "../PLANOL-apb-python-packages"
+		},
+		{
+			"path": "../PLANOL-django_api"
+		},
+		{
+			"path": "../PLANOL-fastapi"
+		},
+		{
+			"path": "../../qgis/PLANOL-apb-qgis"
+		}
+	],
+	"settings": {}
+}
