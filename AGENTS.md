@@ -29,3 +29,6 @@ CI (`Jenkinsfile`) publica cada paquete en PyPI/TestPyPI con `build_pckg.sh` y c
 - `apb_cx_oracle_spatial` no funciona en la imagen `python_packages_deploy_no_oracle` (`ORACLE_AVAILABLE=0`).
 - GDAL 3.10: notas en `gdal_310_migration/`.
 - El contenedor `python_packages_doc` publica los README; un cambio de README sale en la doc del puerto `8095`.
+
+## Mantener esta guía
+Al hacer una feature o un fix, si sale una particularidad de este repo que no esté aquí ni en `.cursor/skills/generic-python-dev/SKILL.md`, actualiza esos ficheros en el mismo cambio. El procedimiento de ejecución va al skill; la forma del proyecto, aquí. No copies secretos de los `.env`. No hagas commit de estos ficheros salvo que el usuario lo pida.
