@@ -1,0 +1,17 @@
+{
+  "python.testing.unittestEnabled": true,
+  "python.testing.unittestArgs": [
+    "-v",
+    "-s",
+    ".",
+    "-p",
+    "*test*.py"
+  ],
+  "python.testing.pytestEnabled": false,
+  "python.terminal.activateEnvironment": false,
+  "python.defaultInterpreterPath": "C:\\Users\\ARREDOER\\AppData\\Local\\miniconda3\\envs\\PLANOL-apb_python_packages-DEV\\python.exe",
+  "planol.devInterpreter": "docker compose run --rm python_packages python",
+  "planol.composeService": "python_packages",
+  "planol.containerWorkdir": "/project",
+  "ruff.lint.select": ["E4", "E7", "E9", "F"]
+}

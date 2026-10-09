@@ -23,6 +23,14 @@ El servicio carga, en este orden:
 
 Esos ficheros no se commitean. No los leas en voz alta ni copies valores a commits, logs o respuestas. En el host, `DATA_DIR_DEV` (defecto `C:/data`) se monta en `/project/data`. El README también pide `PATH_DEVELOPER_MODE_APB`, `PATH_BASE_PACKAGES` y `PATH_GISWEB_DADES`.
 
+## Cursor / VS Code
+
+En `.vscode/` hay `launch.json` y `tasks.json` equivalentes al SDK Docker Compose de PyCharm (`python_packages`, workdir `/project`). Run/Debug del fichero actual y unittest van por `docker compose run`. Puertos debugpy: `5678`. El botón Run Python File usa `.vscode/run_file.cmd` (también en el ajuste de usuario). Elige el servicio por la ruta del fichero; en este repo es `python_packages`.
+
+El revisor de código es Ruff (`charliermarsh.ruff`), con `ruff.lint.select` en `E4`, `E7`, `E9` y `F`. No usa el intérprete del contenedor. No marca el orden de imports ni pyupgrade.
+
+El workspace multi-root `PLANOL-generic_python_packages.code-workspace` tiene que declarar esas configs en su clave `launch`. Una clave `launch` vacía sustituye a los `launch.json` de cada carpeta y el desplegable de Run/Debug queda vacío.
+
 ## Ejecutar
 
 Desde la raíz del repo:

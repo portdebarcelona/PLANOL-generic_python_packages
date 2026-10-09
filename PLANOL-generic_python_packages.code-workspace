@@ -1,20 +1,302 @@
 {
 	"folders": [
 		{
+			"name": "generic_python_packages",
 			"path": "."
 		},
 		{
+			"name": "apb-python-packages",
 			"path": "../PLANOL-apb-python-packages"
 		},
 		{
+			"name": "django_api",
 			"path": "../PLANOL-django_api"
 		},
 		{
+			"name": "fastapi",
 			"path": "../PLANOL-fastapi"
 		},
 		{
+			"name": "apb-qgis",
 			"path": "../../qgis/PLANOL-apb-qgis"
 		}
 	],
-	"settings": {}
+	"settings": {
+		"python.terminal.activateEnvironment": false,
+		"python.defaultInterpreterPath": "C:\\Users\\ARREDOER\\AppData\\Local\\miniconda3\\envs\\PLANOL-apb_python_packages-DEV\\python.exe",
+		"ruff.lint.select": ["E4", "E7", "E9", "F"]
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-python.python",
+			"ms-python.debugpy",
+			"charliermarsh.ruff",
+			"ms-azuretools.vscode-docker"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "apb: python current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:apb-python-packages}\\.vscode\\compose_python.cmd\" python_planol_dev \"${relativeFile}\"",
+				"options": {
+					"cwd": "${workspaceFolder:apb-python-packages}"
+				},
+				"problemMatcher": [],
+				"group": "build"
+			},
+			{
+				"label": "apb: unittest current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:apb-python-packages}\\.vscode\\compose_python.cmd\" python_planol_dev -m unittest \"${relativeFile}\"",
+				"options": {
+					"cwd": "${workspaceFolder:apb-python-packages}"
+				},
+				"problemMatcher": [],
+				"group": "test"
+			},
+			{
+				"label": "apb: debugpy current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:apb-python-packages}\\.vscode\\compose_debugpy.cmd\" python_planol_dev /opt/project_apb 5679 file \"${relativeFile}\"",
+				"options": {
+					"cwd": "${workspaceFolder:apb-python-packages}"
+				},
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5679|debugpy.*5679)"
+					}
+				}
+			},
+			{
+				"label": "apb: debugpy unittest current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:apb-python-packages}\\.vscode\\compose_debugpy.cmd\" python_planol_dev /opt/project_apb 5679 unittest \"${relativeFile}\"",
+				"options": {
+					"cwd": "${workspaceFolder:apb-python-packages}"
+				},
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5679|debugpy.*5679)"
+					}
+				}
+			},
+			{
+				"label": "generic: debugpy current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:generic_python_packages}\\.vscode\\compose_debugpy.cmd\" python_packages /project 5678 file \"${relativeFile}\"",
+				"options": { "cwd": "${workspaceFolder:generic_python_packages}" },
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5678|debugpy.*5678)"
+					}
+				}
+			},
+			{
+				"label": "generic: debugpy unittest current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:generic_python_packages}\\.vscode\\compose_debugpy.cmd\" python_packages /project 5678 unittest \"${relativeFile}\"",
+				"options": { "cwd": "${workspaceFolder:generic_python_packages}" },
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5678|debugpy.*5678)"
+					}
+				}
+			},
+			{
+				"label": "django: debugpy current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:django_api}\\.vscode\\compose_debugpy.cmd\" planol_django /planol_django 5680 file \"${relativeFile}\"",
+				"options": { "cwd": "${workspaceFolder:django_api}" },
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5680|debugpy.*5680)"
+					}
+				}
+			},
+			{
+				"label": "fastapi: debugpy current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:fastapi}\\.vscode\\compose_debugpy.cmd\" planol_fastapi /opt/project 5681 file \"${relativeFile}\"",
+				"options": { "cwd": "${workspaceFolder:fastapi}" },
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5681|debugpy.*5681)"
+					}
+				}
+			},
+			{
+				"label": "fastapi: debugpy unittest current file",
+				"type": "shell",
+				"command": "\"${workspaceFolder:fastapi}\\.vscode\\compose_debugpy.cmd\" planol_fastapi /opt/project 5681 unittest \"${relativeFile}\"",
+				"options": { "cwd": "${workspaceFolder:fastapi}" },
+				"isBackground": true,
+				"problemMatcher": {
+					"owner": "debugpy",
+					"pattern": { "regexp": "^$" },
+					"background": {
+						"activeOnStart": true,
+						"beginsPattern": ".",
+						"endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5681|debugpy.*5681)"
+					}
+				}
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "APB python_planol_dev: Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5679 },
+				"preLaunchTask": "apb: debugpy current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:apb-python-packages}",
+						"remoteRoot": "/opt/project_apb"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "APB python_planol_dev: Unittest Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5679 },
+				"preLaunchTask": "apb: debugpy unittest current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:apb-python-packages}",
+						"remoteRoot": "/opt/project_apb"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "Generic python_packages: Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5678 },
+				"preLaunchTask": "generic: debugpy current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:generic_python_packages}",
+						"remoteRoot": "/project"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "Generic python_packages: Unittest Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5678 },
+				"preLaunchTask": "generic: debugpy unittest current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:generic_python_packages}",
+						"remoteRoot": "/project"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "Django planol_django: Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5680 },
+				"preLaunchTask": "django: debugpy current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:django_api}",
+						"remoteRoot": "/planol_django"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "FastAPI planol_fastapi: Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5681 },
+				"preLaunchTask": "fastapi: debugpy current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:fastapi}",
+						"remoteRoot": "/opt/project"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "FastAPI planol_fastapi: Unittest Current File",
+				"type": "python",
+				"request": "attach",
+				"connect": { "host": "localhost", "port": 5681 },
+				"preLaunchTask": "fastapi: debugpy unittest current file",
+				"pathMappings": [
+					{
+						"localRoot": "${workspaceFolder:fastapi}",
+						"remoteRoot": "/opt/project"
+					}
+				],
+				"justMyCode": true
+			},
+			{
+				"name": "QGIS DEV: Current File",
+				"type": "python",
+				"request": "launch",
+				"program": "${file}",
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder:apb-qgis}",
+				"python": "${workspaceFolder:apb-qgis}/config/python/python_qgis_DEV.bat",
+				"justMyCode": true
+			},
+			{
+				"name": "QGIS DEV: Unittest Current File",
+				"type": "python",
+				"request": "launch",
+				"module": "unittest",
+				"args": ["${relativeFile}"],
+				"console": "integratedTerminal",
+				"cwd": "${workspaceFolder:apb-qgis}",
+				"python": "${workspaceFolder:apb-qgis}/config/python/python_qgis_DEV.bat",
+				"justMyCode": true
+			}
+		]
+	}
 }

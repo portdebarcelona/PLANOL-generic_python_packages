@@ -20,7 +20,7 @@ El intérprete es el servicio `python_packages` de `docker-compose.yml` en la ra
 `DATA_DIR_DEV` del host se monta en `/project/data`. PostGIS local: `db_pg_pyckg` (`35432`). Oracle XE local: `db_ora_pyckg` (`35521`). Volúmenes `db_postgis_vol-generic_python` y `oracle_xe_vol-generic_python` son externos (`docker_settings/create_volumes.cmd`).
 
 ## Tests y empaquetado
-Tests `unittest` en `*_pckg/tests/test_*.py`. Varios pegan contra Postgres, Oracle o ficheros de `resources/data`; no des por hecho que son offline. Corre solo el módulo afectado con `docker compose run --rm python_packages python -m unittest ...`.
+Tests `unittest` en `*_pckg/tests/test_*.py`. Varios pegan contra Postgres, Oracle o ficheros de `resources/data`; no des por hecho que son offline. Corre solo el módulo afectado con `docker compose run --rm python_packages python -m unittest ...`. En Cursor/VS Code, `.vscode/launch.json` y `tasks.json` usan ese mismo servicio Compose (`python_packages`) como intérprete de run/debug. Run Python File usa `.vscode/run_dev.cmd`. El revisor de código es Ruff (`E4`, `E7`, `E9`, `F`), sin el intérprete del contenedor. El workspace multi-root repite esas configs en `PLANOL-generic_python_packages.code-workspace`; si `launch.configurations` está vacío, el menú de Run/Debug no muestra las de cada carpeta.
 
 CI (`Jenkinsfile`) publica cada paquete en PyPI/TestPyPI con `build_pckg.sh` y construye la imagen con `Dockerfile.dev`. Rama y tag deciden el destino.
 
