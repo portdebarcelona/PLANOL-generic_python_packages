@@ -43,6 +43,14 @@ docker compose run --rm python_packages python -m unittest apb_duckdb_utils_pckg
 
 Paquetes, en el orden de editable install de `Dockerfile.dev`: `apb_extra_utils`, `apb_extra_osgeo_utils`, `apb_spatial_utils`, `apb_cx_oracle_spatial`, `apb_pandas_utils`, `apb_duckdb_utils`. Conserva ese orden si añades dependencias cruzadas. Empaquetado con `setup.py`. Publicar: servicio `build_python_packages` y `build_pckg.sh`.
 
+## Versionado de packages (`setup.py`)
+
+Esquema **`major.medium.MINOR`**. Tras cambiar código de un paquete, sube la versión en su `setup.py` en el mismo commit:
+
+- Sin cambiar signatures ni returns de API pública → solo `MINOR` (`1.6.9` → `1.6.10`).
+- Si cambian signatures o lo que retornan → `medium` y `MINOR=0` (`1.6.9` → `1.7.0`).
+- Rotura grande de contrato / migración obligatoria → **sugerir** `major` (`2.0.0`); no subirlo sin pedirlo el usuario.
+
 ## Otros servicios (no son el intérprete)
 
 - `python_packages_deploy_oracle` / `python_packages_deploy_no_oracle`: imagen de `Dockerfile` (la segunda con `ORACLE_AVAILABLE=0`).
