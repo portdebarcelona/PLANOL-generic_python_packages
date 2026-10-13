@@ -1,0 +1,77 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "compose: python current file",
+      "type": "shell",
+      "command": ".vscode\\compose_python.cmd python_packages ${relativeFile}",
+      "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {}
+      },
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared"
+      },
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    },
+    {
+      "label": "compose: unittest current file",
+      "type": "shell",
+      "command": ".vscode\\compose_python.cmd python_packages -m unittest ${relativeFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": [],
+      "group": "test"
+    },
+    {
+      "label": "compose: debugpy current file",
+      "type": "shell",
+      "command": ".vscode\\compose_debugpy.cmd python_packages /project 5678 file ${relativeFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "debugpy",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5678|debugpy.*5678)"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    {
+      "label": "compose: debugpy unittest current file",
+      "type": "shell",
+      "command": ".vscode\\compose_debugpy.cmd python_packages /project 5678 unittest ${relativeFile}",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "debugpy",
+        "pattern": {
+          "regexp": "^$"
+        },
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": "(Listening for debug|waiting for.*client|0\\.0\\.0\\.0:5678|debugpy.*5678)"
+        }
+      }
+    }
+  ]
+}

@@ -15,15 +15,22 @@
 *.tmp
 *.coverage.*
 /.idea
-/.vscode
 *.idea*
 /sqlnet.log
 /.project
 /.pydevproject
 .spyderworkspace
 .spyderproject
-*.vscode*
 *.ipynb_checkpoints*
+
+### VisualStudioCode / Cursor
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.cmd
+!.vscode/run_dev.py
 
 # Compiled source #
 ###################
