@@ -19,6 +19,14 @@
 		{
 			"name": "apb-qgis",
 			"path": "../../qgis/PLANOL-apb-qgis"
+		},
+		{
+			"name": "qgis_resources",
+			"path": "../../qgis/PLANOL-apb-qgis/plugins_python/gestor_apb/data"
+		},
+		{
+			"name": "estils_gis",
+			"path": "../../qgis/PLANOL-apb-qgis/plugins_python/gestor_apb/data/estils_gis"
 		}
 	],
 	"settings": {
