@@ -22,6 +22,8 @@ El intérprete es el servicio `python_packages` de `docker-compose.yml` en la ra
 ## Tests y empaquetado
 Tests `unittest` en `*_pckg/tests/test_*.py`. Varios pegan contra Postgres, Oracle o ficheros de `resources/data`; no des por hecho que son offline. Corre solo el módulo afectado con `docker compose run --rm python_packages python -m unittest ...`. En Cursor/VS Code, `.vscode/launch.json` y `tasks.json` usan ese mismo servicio Compose (`python_packages`) como intérprete de run/debug. Run Python File usa `.vscode/run_dev.cmd`. El revisor de código es Ruff (`E4`, `E7`, `E9`, `F`), sin el intérprete del contenedor. El workspace multi-root repite esas configs en `PLANOL-generic_python_packages.code-workspace`; si `launch.configurations` está vacío, el menú de Run/Debug no muestra las de cada carpeta.
 
+Versión en cada `setup.py` como **`major.medium.MINOR`**: cambio sin tocar signatures/returns públicos → `MINOR`; si cambian → `medium` (`MINOR=0`); rotura grande → sugerir `major`. El bump va en el mismo commit que el código.
+
 CI (`Jenkinsfile`) publica cada paquete en PyPI/TestPyPI con `build_pckg.sh` y construye la imagen con `Dockerfile.dev`. Rama y tag deciden el destino.
 
 ## Al cambiar código
