@@ -1,3 +1,5 @@
+@Library('planol-pipeline-library') _
+
 def jenkinsToken = 'planol-generic-python-packages'
 def dockerProject = 'planolport'
 def dockerBaseImage = 'gdal_oracle'
@@ -40,13 +42,13 @@ pipeline {
 
   options {
     buildDiscarder(logRotator(numToKeepStr: '15'))
+    skipDefaultCheckout(true)
     disableConcurrentBuilds()
   }
 
   environment {
     TESTPYPI_API_TOKEN = credentials('testpypi-api-token')
     PYPI_API_TOKEN = credentials('pypi-api-token')
-    REPO_BRANCH = "${GIT_BRANCH.split('/')[GIT_BRANCH.split('/').length - 1]}"
     GITHUB_EVENT = "${env.X_GitHub_Event}"
 
     // Docker (build image & push)
@@ -97,20 +99,21 @@ pipeline {
   }
 
   stages {
+    stage('Initialize checkout context') {
+      steps {
+        script { planolCheckoutContext() }
+      }
+    }
+
     stage('Checkout code') {
       steps {
-        checkout([
-          $class: 'GitSCM',
-          branches: [[name: "${GIT_BRANCH}"]],
-          extensions: [[$class: 'CloneOption', shallow: true, timeout: 360]],
-          changelog: false,
-          doGenerateSubmoduleConfigurations: false,
-          submoduleCfg: [],
-          userRemoteConfigs: [
-            [credentialsId: 'apb-admincicd-token', url: "${GIT_URL}" ]
-          ],
-          poll: false
-        ])
+        planolCheckout(
+          url: env.CHECKOUT_URL,
+          ref: env.CHECKOUT_REF,
+          shallow: true,
+          timeout: 360,
+          changelog: false
+        )
       }
       post {
         success { echo 'success' }
