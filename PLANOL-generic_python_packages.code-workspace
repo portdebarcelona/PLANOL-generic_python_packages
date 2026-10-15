@@ -32,7 +32,8 @@
 	"settings": {
 		"python.terminal.activateEnvironment": false,
 		"python.defaultInterpreterPath": "C:\\Users\\ARREDOER\\AppData\\Local\\miniconda3\\envs\\PLANOL-apb_python_packages-DEV\\python.exe",
-		"ruff.lint.select": ["E4", "E7", "E9", "F"]
+		"ruff.lint.select": ["E9", "E722", "F"],
+		"ruff.lint.ignore": ["F401"]
 	},
 	"extensions": {
 		"recommendations": [
