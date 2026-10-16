@@ -110,9 +110,9 @@ pipeline {
         planolCheckout(
           url: env.CHECKOUT_URL,
           ref: env.CHECKOUT_REF,
-          shallow: true,
+          shallow: false,
           timeout: 360,
-          changelog: false
+          changelog: true
         )
       }
       post {
