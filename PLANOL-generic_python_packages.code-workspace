@@ -27,13 +27,32 @@
 		{
 			"name": "estils_gis",
 			"path": "../../qgis/PLANOL-apb-qgis/plugins_python/gestor_apb/data/estils_gis"
+		},
+		{
+			"name": "django_dades_ref",
+			"path": "../PLANOL-django_api/applications/PLANOL-django_dades_ref_app"
+		},
+		{
+			"name": "django_gis_repo_pg",
+			"path": "../PLANOL-django_api/applications/PLANOL-django_gis_repo_pg_app"
+		},
+		{
+			"name": "django_escales",
+			"path": "../PLANOL-django_api/applications/PLANOL-django_escales_app"
+		},
+		{
+			"name": "django_operativa_vaixells",
+			"path": "../PLANOL-django_api/applications/PLANOL-django_operativa_vaixells_app"
 		}
 	],
 	"settings": {
 		"python.terminal.activateEnvironment": false,
 		"python.defaultInterpreterPath": "C:\\Users\\ARREDOER\\AppData\\Local\\miniconda3\\envs\\PLANOL-apb_python_packages-DEV\\python.exe",
 		"ruff.lint.select": ["E9", "E722", "F"],
-		"ruff.lint.ignore": ["F401"]
+		"ruff.lint.ignore": ["F401"],
+		"git.openRepositoryInParentFolders": "always",
+		"scm.alwaysShowRepositories": true,
+		"scm.repositories.visible": 0
 	},
 	"extensions": {
 		"recommendations": [
