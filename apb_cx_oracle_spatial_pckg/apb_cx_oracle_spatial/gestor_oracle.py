@@ -119,15 +119,22 @@ def get_oracle_connection(user_ora, psw_ora, dsn_ora=None, call_timeout=None, sc
 
 def get_nom_conexion(con_db):
     """
-    Devuelve el nombre de la conexion a Oracle
+    Devuelve el nombre de la conexion a Oracle (``USER@DSN``).
 
-    Args:
-        con_db:
-
-    Returns:
-
+    Amb connexions ja tancades (p.ex. ``DPY-1001``) ``username``/``dsn`` fallen;
+    es prova un fallback amb atributs interns abans de relançar.
     """
-    return "@".join((con_db.username.upper(), con_db.dsn.upper()))
+    try:
+        return "@".join((con_db.username.upper(), str(con_db.dsn).upper()))
+    except Exception:
+        user = getattr(con_db, "_user", None) or getattr(con_db, "username", None)
+        dsn = getattr(con_db, "_dsn", None) or getattr(con_db, "dsn", None)
+        if user and dsn:
+            try:
+                return "@".join((str(user).upper(), str(dsn).upper()))
+            except Exception:
+                pass
+        raise
 
 
 def new_cursor(con_db, input_handler=None, output_handler=None):
@@ -1117,14 +1124,35 @@ class gestor_oracle(object):
         self.__set_logger()
         self.__set_conexion(user_ora, psw_ora, dsn_ora, schema_ora=schema_ora)
 
+    def close(self):
+        """
+        Tanca la connexió i invalida caches de metadades lligades a ``USER@DSN``.
+
+        Important: les ``row_class`` cachejades tanquen sobre l'objecte
+        ``Connection``; si no es buiden, un gestor nou amb el mateix DSN
+        reutilitza classes amb la connexió morta (``DPY-1001`` a ``__repr__``/PK).
+        """
+        nom = getattr(self, "nom_con_db", None) or ""
+        if nom:
+            try:
+                del_cache_rel_con_db(nom)
+            except Exception:
+                pass
+        con = getattr(self, "__con_db__", None)
+        self.__con_db__ = None
+        if con is not None:
+            try:
+                con.close()
+            except Exception:
+                pass
+
     def __del__(self):
         """
         Cierra la conexion al matar la instancia
         """
         try:
-            if hasattr(self, "__con_db__"):
-                self.__con_db__.close()
-        except:
+            self.close()
+        except Exception:
             pass
 
     def __repr__(self):
@@ -1241,13 +1269,21 @@ class gestor_oracle(object):
         Returns:
             cx_Oracle.Connection
         """
-        reconnect = False
         if (con_ora := self.__con_db__) is not None:
             try:
                 con_ora.ping()
-            except cx_Oracle.Error as exc:
-                # Borramos las entradas de cache asociadas a la conexión que no responde
-                del_cache_rel_con_db(get_nom_conexion(con_ora))
+            except cx_Oracle.Error:
+                # Cache per USER@DSN (no per id de Connection): cal buidar-la
+                # abans de tancar, altrament get_nom_conexion pot fallar amb
+                # DPY-1001 i les row_class queden amb la connexió morta.
+                nom = getattr(self, "nom_con_db", None) or ""
+                if not nom:
+                    try:
+                        nom = get_nom_conexion(con_ora)
+                    except Exception:
+                        nom = ""
+                if nom:
+                    del_cache_rel_con_db(nom)
                 try:
                     con_ora.close()
                 except cx_Oracle.Error:
