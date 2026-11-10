@@ -94,6 +94,11 @@ def _to_container(
         joined = os.path.normpath(os.path.join(host_root, normalized))
         if os.path.exists(joined):
             normalized = joined
+        else:
+            # Relativo al cwd (p.ej. python script.py lanzado desde un subdir del repo).
+            cwd_joined = os.path.normpath(os.path.join(os.getcwd(), normalized))
+            if os.path.exists(cwd_joined):
+                normalized = cwd_joined
     host_key = os.path.normcase(host_root)
     path_key = os.path.normcase(normalized)
     if path_key == host_key or path_key.startswith(host_key + os.sep):
@@ -105,7 +110,9 @@ def _to_container(
     # Esas rutas no estan en el repo: hay que montarlas o python las busca
     # bajo el workdir y el .cmd deja de ser un interprete valido.
     if os.path.isfile(normalized):
-        parent = os.path.dirname(normalized)
+        parent = os.path.dirname(os.path.abspath(normalized))
+        if not parent:
+            return arg.replace("\\", "/")
         parent_key = os.path.normcase(parent)
         mounted = mounts.get(parent_key)
         if mounted is None:
